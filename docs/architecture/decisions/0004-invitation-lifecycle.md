@@ -20,6 +20,8 @@ reveal whether an email address belongs to an existing account.
 - Invitations may grant admin, member or viewer only; they cannot grant owner.
 - Normalize invited and verified email addresses before comparison.
 - Use a seven-day expiry, single-use acceptance and explicit revocation.
+- Keep at most one pending invitation per organization/email. Issuing a new
+  invitation atomically revokes any prior pending invitation for that pair.
 - Apply organization authorization and per-actor/organization/email rate limits
   before persistence.
 - Deliver the raw token only to the invited address. Delivery adapters must not
@@ -39,8 +41,11 @@ membership, and mark the invitation accepted. The repository must not expose a
 read-then-write sequence that permits replay under concurrent requests.
 
 Invitation issuance must re-check the active actor membership and role policy
-using server-loaded state. The invitation service's authorizer and rate limiter
-are ports; their production adapters are not implemented in this change.
+using server-loaded state. The repository must serialize creates for the same
+organization/email and revoke the previous pending row before inserting the
+replacement, respecting the database's unique active-email index. The
+invitation service's authorizer and rate limiter are ports; their production
+adapters are not implemented in this change.
 
 ## Consequences and deferred work
 
