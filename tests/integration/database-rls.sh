@@ -207,6 +207,7 @@ run_owner_demotion() {
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 >"$output_file" <<SQL
 BEGIN;
 SELECT set_config('app.tenant_id', '$TENANT_ONE', true);
+SELECT 'WAITING_FOR_LOCK';
 SELECT pg_advisory_xact_lock(
   hashtextextended(
     'organization-memberships:' || lower('$lock_tenant_id'),
@@ -214,7 +215,7 @@ SELECT pg_advisory_xact_lock(
   )
 );
 SELECT 'LOCK_ACQUIRED';
-SELECT pg_sleep(1);
+SELECT pg_sleep(2);
 DO \$membership\$
 DECLARE
   active_owner_count integer;
@@ -284,6 +285,76 @@ run_owner_demotion \
   "$TENANT_ONE" \
   "$lock_test_dir/second.log" &
 second_demotion_pid=$!
+
+for attempt in $(seq 1 100); do
+  if grep -q '^WAITING_FOR_LOCK
+active_owner_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM organization_memberships WHERE role = 'owner' AND status = 'active';"
+)"
+if [[ "$active_owner_count" != "1" ]]; then
+  echo "Concurrent membership mutations left $active_owner_count active owners; expected exactly one." >&2
+  exit 1
+fi
+
+assert_count organization_memberships "$TENANT_ONE" 2
+assert_count audit_events "$TENANT_ONE" 2
+assert_count audit_events "$TENANT_TWO" 1
+
+echo "PostgreSQL tenant RLS, append-only audit and concurrent owner-continuity checks passed."
+ "$lock_test_dir/second.log" 2>/dev/null; then
+    break
+  fi
+  if ! kill -0 "$second_demotion_pid" 2>/dev/null; then
+    wait "$second_demotion_pid"
+    echo "Second membership transaction exited before requesting its lock." >&2
+    exit 1
+  fi
+  sleep 0.01
+done
+
+if ! grep -q '^WAITING_FOR_LOCK
+active_owner_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM organization_memberships WHERE role = 'owner' AND status = 'active';"
+)"
+if [[ "$active_owner_count" != "1" ]]; then
+  echo "Concurrent membership mutations left $active_owner_count active owners; expected exactly one." >&2
+  exit 1
+fi
+
+assert_count organization_memberships "$TENANT_ONE" 2
+assert_count audit_events "$TENANT_ONE" 2
+assert_count audit_events "$TENANT_TWO" 1
+
+echo "PostgreSQL tenant RLS, append-only audit and concurrent owner-continuity checks passed."
+ "$lock_test_dir/second.log"; then
+  echo "Second membership transaction did not request its advisory lock." >&2
+  exit 1
+fi
+if grep -q '^LOCK_ACQUIRED
+active_owner_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM organization_memberships WHERE role = 'owner' AND status = 'active';"
+)"
+if [[ "$active_owner_count" != "1" ]]; then
+  echo "Concurrent membership mutations left $active_owner_count active owners; expected exactly one." >&2
+  exit 1
+fi
+
+assert_count organization_memberships "$TENANT_ONE" 2
+assert_count audit_events "$TENANT_ONE" 2
+assert_count audit_events "$TENANT_TWO" 1
+
+echo "PostgreSQL tenant RLS, append-only audit and concurrent owner-continuity checks passed."
+ "$lock_test_dir/second.log"; then
+  echo "Case-variant tenant UUIDs did not serialize on one advisory lock." >&2
+  exit 1
+fi
+if ! kill -0 "$first_demotion_pid" 2>/dev/null; then
+  echo "First membership transaction released its lock before the contention check." >&2
+  exit 1
+fi
 
 wait "$first_demotion_pid"
 wait "$second_demotion_pid"
