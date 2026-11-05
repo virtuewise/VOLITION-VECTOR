@@ -64,7 +64,7 @@ CREATE UNIQUE INDEX organization_invitations_active_email_unique
 
 CREATE TABLE audit_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  organization_id uuid REFERENCES organizations(id) ON DELETE RESTRICT,
+  organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
   actor_account_id uuid REFERENCES accounts(id) ON DELETE SET NULL,
   event_name text NOT NULL CHECK (length(trim(event_name)) BETWEEN 1 AND 160),
   resource_type text NOT NULL CHECK (length(trim(resource_type)) BETWEEN 1 AND 120),
@@ -98,8 +98,8 @@ CREATE POLICY organization_invitations_tenant_isolation ON organization_invitati
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_events FORCE ROW LEVEL SECURITY;
 CREATE POLICY audit_events_tenant_isolation ON audit_events
-  USING (organization_id IS NULL OR organization_id = nullif(current_setting('app.tenant_id', true), '')::uuid)
-  WITH CHECK (organization_id IS NULL OR organization_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
+  USING (organization_id = nullif(current_setting('app.tenant_id', true), '')::uuid)
+  WITH CHECK (organization_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 
 CREATE FUNCTION prevent_audit_event_mutation() RETURNS trigger
 LANGUAGE plpgsql AS $$
