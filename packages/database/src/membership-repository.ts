@@ -162,7 +162,7 @@ export class PostgresMembershipRepository {
 
         const allowed = this.authorize({
           actorAccountId: input.actorAccountId,
-          organizationId,
+          organizationId: organizationId,
           resourceOrganizationId: organizationId,
           membershipStatus: actor.status,
           role: actor.role,
