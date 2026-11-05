@@ -1,4 +1,4 @@
-import { Inject, Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 
 export type MembershipRole = "owner" | "admin" | "member" | "viewer";
 export type MembershipMutationAction =
@@ -52,6 +52,3 @@ export class UnconfiguredMembershipMutationCommand
   }
 }
 
-export function injectMembershipMutationCommand(): ReturnType<typeof Inject> {
-  return Inject(MEMBERSHIP_MUTATION_COMMAND);
-}
