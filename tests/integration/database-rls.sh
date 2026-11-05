@@ -184,4 +184,121 @@ expect_failure "audit event truncate" "TRUNCATE audit_events;"
 assert_count audit_events "$TENANT_ONE" 1
 assert_count audit_events "$TENANT_TWO" 1
 
-echo "PostgreSQL tenant RLS and append-only audit integration checks passed."
+# Two concurrent owner demotions must serialize on the same canonical tenant
+# lock key. The first request leaves one active owner; the second must observe
+# that committed state and refuse to remove the final owner.
+THIRD_ACCOUNT="33333333-3333-4333-8333-333333333333"
+THIRD_MEMBERSHIP="99999999-9999-4999-8999-999999999999"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<SQL
+INSERT INTO accounts (id) VALUES ('$THIRD_ACCOUNT');
+INSERT INTO organization_memberships (id, organization_id, account_id, role)
+VALUES ('$THIRD_MEMBERSHIP', '$TENANT_ONE', '$THIRD_ACCOUNT', 'owner');
+SQL
+
+lock_test_dir="$(mktemp -d)"
+trap 'rm -rf "$lock_test_dir"' EXIT
+
+run_owner_demotion() {
+  local actor_account_id="$1"
+  local target_account_id="$2"
+  local lock_tenant_id="$3"
+  local output_file="$4"
+
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 >"$output_file" <<SQL
+BEGIN;
+SELECT set_config('app.tenant_id', '$TENANT_ONE', true);
+SELECT pg_advisory_xact_lock(
+  hashtextextended(
+    'organization-memberships:' || lower('$lock_tenant_id'),
+    0
+  )
+);
+SELECT 'LOCK_ACQUIRED';
+SELECT pg_sleep(1);
+DO \$membership\$
+DECLARE
+  active_owner_count integer;
+  updated_membership_id text;
+BEGIN
+  SELECT count(*) INTO active_owner_count
+  FROM organization_memberships
+  WHERE organization_id = '$TENANT_ONE'::uuid
+    AND role = 'owner'
+    AND status = 'active';
+
+  IF active_owner_count > 1 THEN
+    UPDATE organization_memberships
+    SET role = 'member', updated_at = clock_timestamp()
+    WHERE organization_id = '$TENANT_ONE'::uuid
+      AND account_id = '$target_account_id'::uuid
+      AND role = 'owner'
+      AND status = 'active'
+    RETURNING id::text INTO updated_membership_id;
+
+    IF updated_membership_id IS NOT NULL THEN
+      INSERT INTO audit_events
+        (organization_id, actor_account_id, event_name, resource_type, resource_id, metadata)
+      VALUES (
+        '$TENANT_ONE'::uuid,
+        '$actor_account_id'::uuid,
+        'organization.membership.change-role',
+        'organization_membership',
+        updated_membership_id,
+        jsonb_build_object('targetAccountId', '$target_account_id', 'role', 'member')
+      );
+    END IF;
+  END IF;
+END
+\$membership\$;
+COMMIT;
+SQL
+}
+
+run_owner_demotion \
+  "$ACCOUNT_ONE" \
+  "$THIRD_ACCOUNT" \
+  "${TENANT_ONE^^}" \
+  "$lock_test_dir/first.log" &
+first_demotion_pid=$!
+
+for attempt in $(seq 1 100); do
+  if grep -q '^LOCK_ACQUIRED "$lock_test_dir/first.log" 2>/dev/null; then
+    break
+  fi
+  if ! kill -0 "$first_demotion_pid" 2>/dev/null; then
+    wait "$first_demotion_pid"
+    echo "First membership transaction exited before acquiring its lock." >&2
+    exit 1
+  fi
+  sleep 0.05
+done
+
+if ! grep -q '^LOCK_ACQUIRED "$lock_test_dir/first.log"; then
+  echo "First membership transaction did not acquire its advisory lock." >&2
+  exit 1
+fi
+
+run_owner_demotion \
+  "$THIRD_ACCOUNT" \
+  "$ACCOUNT_ONE" \
+  "$TENANT_ONE" \
+  "$lock_test_dir/second.log" &
+second_demotion_pid=$!
+
+wait "$first_demotion_pid"
+wait "$second_demotion_pid"
+
+active_owner_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM organization_memberships WHERE role = 'owner' AND status = 'active';"
+)"
+if [[ "$active_owner_count" != "1" ]]; then
+  echo "Concurrent membership mutations left $active_owner_count active owners; expected exactly one." >&2
+  exit 1
+fi
+
+assert_count organization_memberships "$TENANT_ONE" 2
+assert_count audit_events "$TENANT_ONE" 2
+assert_count audit_events "$TENANT_TWO" 1
+
+echo "PostgreSQL tenant RLS, append-only audit and concurrent owner-continuity checks passed."
