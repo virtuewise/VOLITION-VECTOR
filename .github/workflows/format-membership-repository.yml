@@ -1,0 +1,40 @@
+name: Format membership repository
+
+on:
+  push:
+    branches:
+      - identity/membership-mutation-repository
+    paths:
+      - packages/database/src/membership-repository.ts
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: identity/membership-mutation-repository
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format source
+        run: pnpm exec prettier --write packages/database/src/membership-repository.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo "Already formatted"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/database/src/membership-repository.ts
+          git commit -m "style(database): apply Prettier formatting"
+          git push origin HEAD:identity/membership-mutation-repository
