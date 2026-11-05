@@ -1,6 +1,9 @@
 import type { Pool, PoolClient } from "pg";
 import { describe, expect, it, vi } from "vitest";
-import { PostgresTenantConnectionPool } from "./postgres-tenant-connection.pool.js";
+import {
+  assertDatabaseTlsConfiguration,
+  PostgresTenantConnectionPool,
+} from "./postgres-tenant-connection.pool.js";
 
 function makePool(roleRows: unknown[] = []) {
   const query = vi.fn().mockResolvedValue({ rows: roleRows });
@@ -12,6 +15,33 @@ function makePool(roleRows: unknown[] = []) {
 }
 
 describe("PostgresTenantConnectionPool", () => {
+  it("requires hostname-verified TLS for production URLs", () => {
+    expect(() =>
+      assertDatabaseTlsConfiguration(
+        "postgres://runtime:secret@db.example.test/app",
+        "production",
+      ),
+    ).toThrow(/sslmode=verify-full/);
+    expect(() =>
+      assertDatabaseTlsConfiguration(
+        "postgres://runtime:secret@db.example.test/app?sslmode=require",
+        "production",
+      ),
+    ).toThrow(/sslmode=verify-full/);
+    expect(() =>
+      assertDatabaseTlsConfiguration(
+        "postgres://runtime:secret@db.example.test/app?sslmode=verify-full",
+        "production",
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertDatabaseTlsConfiguration(
+        "postgres://runtime:secret@localhost/app",
+        "development",
+      ),
+    ).not.toThrow();
+  });
+
   it("accepts a least-privilege role with forced tenant RLS", async () => {
     const { pool, query } = makePool([
       {
