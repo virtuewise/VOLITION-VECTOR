@@ -7,7 +7,18 @@
     "rootDir": ".",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts", "identity/**/*.ts", "opportunity/**/*.ts", "marketplace/**/*.ts", "payments/**/*.ts", "intelligence/**/*.ts", "credentials/**/*.ts", "governance/**/*.ts", "communication/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "identity/**/*.ts",
+    "opportunity/**/*.ts",
+    "marketplace/**/*.ts",
+    "payments/**/*.ts",
+    "intelligence/**/*.ts",
+    "credentials/**/*.ts",
+    "governance/**/*.ts",
+    "communication/**/*.ts"
+  ]
 }

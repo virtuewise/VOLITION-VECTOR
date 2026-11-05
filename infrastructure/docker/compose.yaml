@@ -16,7 +16,14 @@ services:
       retries: 5
   redis:
     image: redis:8.10.3
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "local-development-only"]
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "local-development-only",
+      ]
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
