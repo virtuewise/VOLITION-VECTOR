@@ -19,6 +19,8 @@ leave an organization without an accountable owner.
   gate, including active membership, tenant equality and explicit denies.
 - Apply a second, operation-aware membership policy before invite, role change,
   suspension, revocation or reactivation.
+- Invitations cannot grant the owner role; an owner must be assigned through
+  an authorized existing-membership role change.
 - Administrators may manage member and viewer memberships only. They cannot
   create, change, suspend or revoke owner or administrator memberships.
 - Owners may manage other roles, but cannot modify their own membership through
