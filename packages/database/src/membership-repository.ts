@@ -106,6 +106,7 @@ export class PostgresMembershipRepository {
       return null;
     }
 
+    // PostgreSQL UUID equality is case-insensitive; the advisory-lock key must match it.
     const organizationId = normalizeTenantId(input.organizationId);
 
     return withTenantTransaction(
