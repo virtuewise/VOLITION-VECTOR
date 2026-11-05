@@ -6,21 +6,38 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   quality:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
         with:
-          node-version: 26
-      - uses: pnpm/action-setup@v4
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+      - uses: pnpm/setup@v3
         with:
           version: 12.18.0
+          runtime: node@26
+          install: false
       - name: Install dependencies and generate the initial lockfile
         run: pnpm install --no-frozen-lockfile
+      - name: Apply repository formatting and commit generated files
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          pnpm exec prettier --write .
+          git add -A
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: format workspace and commit pnpm lockfile"
+            git push origin "HEAD:${HEAD_BRANCH}"
+          fi
       - name: Preserve generated lockfile for review
         uses: actions/upload-artifact@v4
         with:
