@@ -1,1 +1,29 @@
-{"name":"volition-vector","private":true,"packageManager":"pnpm@12.18.0","engines":{"node":">=26 <27"},"scripts":{"dev":"turbo dev","build":"turbo build","typecheck":"turbo typecheck","lint":"turbo lint","test":"turbo test","format:check":"prettier --check ."},"devDependencies":{"prettier":"3.6.2","turbo":"2.5.8","typescript":"7.0.2"}}
+{
+  "name": "volition-vector",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=26 <27",
+    "pnpm": ">=12.18.0"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "test": "vitest run --passWithNoTests",
+    "format:check": "prettier --check .",
+    "clean": "turbo clean"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "eslint": "10.14.0",
+    "eslint-config-next": "16.4.5",
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "6.0.2",
+    "vitest": "4.0.8"
+  }
+}

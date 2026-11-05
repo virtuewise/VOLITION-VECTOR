@@ -1,3 +1,14 @@
 packages:
-  - "apps/*"
+  - "apps/web/*"
+  - "apps/api"
+  - "apps/mobile"
+  - "apps/worker"
   - "packages/*"
+
+# Explicitly approve only the native build scripts required by this workspace.
+allowBuilds:
+  esbuild: true
+  msgpackr-extract: true
+
+minimumReleaseAgeExclude:
+  - bullmq@6.7.0

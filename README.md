@@ -2,33 +2,30 @@
 
 **A global opportunity ecosystem built around capability, trust, fair access and measurable outcomes.**
 
-Volition Vector connects people, organizations, service providers, buyers and learning pathways through a trusted, accessible and evidence-led platform.
+Volition Vector connects individuals, businesses, service providers, buyers, learning pathways and institutions in one accessible opportunity ecosystem.
 
-This repository contains the initial engineering foundation: web, API and mobile application shells; local infrastructure; architecture; product-domain definitions; security, privacy and compliance controls; delivery roadmap; and GitBook-ready documentation navigation.
+## Authoritative repository structure
+
+- `apps/web/`: five independently deployable Next.js surfaces: public website, marketplace, individual workspace, business workspace and admin console.
+- `apps/api/`: one NestJS modular-monolith API with explicit identity, opportunity, marketplace, payments, intelligence, credentials, governance and communication domain modules.
+- `apps/mobile/`: Expo / React Native mobile client.
+- `apps/worker/`: asynchronous jobs, event consumers and scheduled work.
+- `packages/`: shared UI, design system, database, contracts, validation, permissions, payment and AI adapters, localization, security and shared utilities.
+- `infrastructure/`: local containers, deployment, monitoring, backups and security automation.
+- `governance/`: privacy, GDPR, AI governance, platform-work, payments, security, accessibility and certification controls.
+- `docs/`: product, architecture, API, operations and policy documentation.
+- `tests/`: cross-application integration, end-to-end, contract and security test plans.
 
 ## Product principles
-- Ecosystem first: one coherent environment for people, organizations, services, learning and opportunity.
-- Trust by evidence: identity, qualifications, capability and transaction history remain distinct claims.
-- Equitable discovery: access and relevance must not be reducible to ability to pay.
-- Human accountability: consequential automated decisions require transparency, contestability and appropriate human review.
-- Privacy and security by design.
-- Global by architecture: localization, accessibility, jurisdiction and payment-provider boundaries are foundational.
 
-## Platform domains
-Identity · Professional Capability · Opportunity · Service Marketplace · Vector Intelligence · Trust · Transactions · Projects · Communication · Learning · Certification · Governance · Globalization · Opportunity Equity · Business Intelligence.
+Ecosystem first; trust by evidence; equitable discovery; human accountability for consequential decisions; privacy and security by design; global accessibility and localization.
 
-## Start here
-- [Architecture](docs/architecture/overview.md)
-- [90-day roadmap](docs/roadmap/90-day-plan.md)
-- [Engineering standards](docs/governance/engineering-standards.md)
-- [Security threat model](docs/security/threat-model.md)
-- [Compliance register](docs/compliance/control-register.md)
-- [GitBook navigation](SUMMARY.md)
+## Platform engines
 
-## Technology baseline
-TypeScript monorepo; Next.js web; NestJS API; Expo/React Native mobile; PostgreSQL; Redis; pnpm and Turborepo. Versions are pinned in manifests as a starting baseline; a fresh lockfile, full peer-compatibility review and CI validation are required before treating the dependency matrix as release-ready.
+Identity; Professional Capability; Opportunity; Service Marketplace; Vector Intelligence; Trust; Transactions; Projects; Communication; Learning; Certification; Governance; Globalization; Opportunity Equity; Business Intelligence.
 
-## Status
-Foundation scaffold only. No payment processing, identity verification, credential issuance, production AI decisioning or production deployment is claimed as complete. Do not deploy until security, legal, privacy, accessibility, operational and build gates have passed.
+## Engineering status
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+This branch establishes the planned repository layout and architectural boundaries. It is a **scaffold**, not a claim that all product features are implemented or production-ready. No payment processing, identity verification, credential issuance, production AI decisioning, certification or production deployment is claimed complete.
+
+Before production use, install dependencies, generate and commit the lockfile, validate the complete version matrix, run CI gates, complete threat modelling and jurisdiction-specific legal review, and obtain required independent audits.

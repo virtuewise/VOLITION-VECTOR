@@ -8,9 +8,11 @@
 - Pin exact dependency versions and commit the lockfile. Resolve warnings rather than suppressing them.
 
 ## Required gates
+
 Formatting, lint with zero warnings, strict typecheck, unit/integration/contract/E2E tests, build, dependency/license/secret/SAST/container scans, accessibility checks, migration validation and backup restoration evidence.
 
 ## PR checklist
+
 - [ ] Acceptance criteria and scope are clear.
 - [ ] Server-side authorization and tenant isolation are tested.
 - [ ] Input validation and error handling are covered.
