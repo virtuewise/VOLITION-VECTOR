@@ -19,9 +19,15 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: 12.18.0
-      - name: Install dependencies
-        # Transitional until the first validated pnpm-lock.yaml is committed.
+      - name: Install dependencies and generate the initial lockfile
         run: pnpm install --no-frozen-lockfile
+      - name: Preserve generated lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: pnpm-lockfile-bootstrap
+          path: pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 1
       - name: Formatting
         run: pnpm format:check
       - name: Lint
