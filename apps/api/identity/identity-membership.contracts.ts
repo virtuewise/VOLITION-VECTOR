@@ -23,7 +23,9 @@ export interface MembershipMutationResult {
 }
 
 export interface MembershipMutationCommand {
-  mutate(input: MembershipMutationInput): Promise<MembershipMutationResult | null>;
+  mutate(
+    input: MembershipMutationInput,
+  ): Promise<MembershipMutationResult | null>;
 }
 
 export const MEMBERSHIP_MUTATION_COMMAND = Symbol(
