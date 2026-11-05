@@ -18,6 +18,7 @@ describe("PostgresTenantConnectionPool", () => {
         is_superuser: false,
         bypasses_rls: false,
         owns_tenant_tables: false,
+        all_tenant_tables_force_rls: true,
       },
     ]);
     const adapter = new PostgresTenantConnectionPool(pool);
@@ -25,6 +26,7 @@ describe("PostgresTenantConnectionPool", () => {
     await expect(adapter.onModuleInit()).resolves.toBeUndefined();
     expect(query.mock.calls[0]?.[0]).toContain("rolbypassrls");
     expect(query.mock.calls[0]?.[0]).toContain("relowner");
+    expect(query.mock.calls[0]?.[0]).toContain("relforcerowsecurity");
   });
 
   it.each([
@@ -32,23 +34,26 @@ describe("PostgresTenantConnectionPool", () => {
       is_superuser: true,
       bypasses_rls: false,
       owns_tenant_tables: false,
+        all_tenant_tables_force_rls: true,
     },
     {
       is_superuser: false,
       bypasses_rls: true,
       owns_tenant_tables: false,
+        all_tenant_tables_force_rls: true,
     },
     {
       is_superuser: false,
       bypasses_rls: false,
       owns_tenant_tables: true,
+        all_tenant_tables_force_rls: true,
     },
   ])("rejects an unsafe PostgreSQL runtime role", async (role) => {
     const { pool } = makePool([role]);
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-superuser, non-owner PostgreSQL role/,
+      /non-superuser, non-owner role/,
     );
   });
 
@@ -57,7 +62,7 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-superuser, non-owner PostgreSQL role/,
+      /non-superuser, non-owner role/,
     );
   });
 
