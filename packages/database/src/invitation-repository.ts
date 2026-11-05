@@ -242,7 +242,10 @@ export class PostgresInvitationRepository {
           located.organization_id,
           input.accountId,
           membership.id,
-          JSON.stringify({ invitationId: invitation.id, role: invitation.role }),
+          JSON.stringify({
+            invitationId: invitation.id,
+            role: invitation.role,
+          }),
         ],
       );
       await client.query("COMMIT");
