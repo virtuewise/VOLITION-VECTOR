@@ -1,1 +1,8 @@
-{"name":"@volition/mobile","private":true,"main":"expo-router/entry","scripts":{"start":"expo start","android":"expo start --android","ios":"expo start --ios"},"dependencies":{"expo":"58.0.20","expo-router":"6.0.21","react":"19.3.1","react-native":"0.83.2"}}
+{
+  "name": "@volition/mobile",
+  "private": true,
+  "version": "0.1.0",
+  "main": "expo-router/entry",
+  "scripts": { "dev": "expo start", "start": "expo start", "android": "expo start --android", "ios": "expo start --ios", "lint": "eslint .", "typecheck": "tsc --noEmit" },
+  "dependencies": { "expo": "58.0.23", "expo-router": "58.0.30", "react": "19.3.0", "react-native": "0.88.0" }
+}
