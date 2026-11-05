@@ -4,6 +4,7 @@ import {
   canManageOrganizationMembership,
   type OrganizationAccessRequest,
   type OrganizationMembershipManagementRequest,
+  type OrganizationRole,
 } from "./index.js";
 
 const base: OrganizationAccessRequest = {
@@ -215,3 +216,31 @@ describe("canManageOrganizationMembership", () => {
     ).toBe(false);
   });
 });
+
+  it("fails closed for unknown actor roles", () => {
+    expect(
+      canAccessOrganization({
+        ...base,
+        role: "super-admin" as OrganizationRole,
+      }),
+    ).toBe(false);
+  });
+
+  it("fails closed for unknown runtime actions and revoked role changes", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        action: "delete" as OrganizationMembershipManagementRequest["action"],
+      }),
+    ).toBe(false);
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        action: "change-role",
+        targetAccountId: "member-3",
+        currentTargetRole: "member",
+        targetMembershipStatus: "revoked",
+        requestedRole: "viewer",
+      }),
+    ).toBe(false);
+  });
