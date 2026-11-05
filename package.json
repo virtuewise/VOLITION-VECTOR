@@ -23,7 +23,7 @@
     "eslint-config-next": "16.4.5",
     "prettier": "3.9.10",
     "turbo": "2.11.10",
-    "typescript": "7.0.2",
+    "typescript": "6.0.2",
     "vitest": "4.0.8"
   }
 }

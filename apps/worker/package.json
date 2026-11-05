@@ -11,11 +11,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "bullmq": "5.58.5",
+    "bullmq": "6.7.0",
     "ioredis": "5.7.0"
   },
   "devDependencies": {
     "tsx": "4.20.5",
-    "typescript": "7.0.2"
+    "typescript": "6.0.2"
   }
 }
