@@ -2,10 +2,7 @@ import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 
 export type MembershipRole = "owner" | "admin" | "member" | "viewer";
 export type MembershipMutationAction =
-  | "change-role"
-  | "suspend"
-  | "revoke"
-  | "reactivate";
+  "change-role" | "suspend" | "revoke" | "reactivate";
 
 export interface AuthenticatedPrincipal {
   readonly accountId: string;
@@ -40,9 +37,7 @@ export const MEMBERSHIP_MUTATION_COMMAND = Symbol(
  * are configured. Never replace this with a success-shaped mock.
  */
 @Injectable()
-export class UnconfiguredMembershipMutationCommand
-  implements MembershipMutationCommand
-{
+export class UnconfiguredMembershipMutationCommand implements MembershipMutationCommand {
   async mutate(
     _input: MembershipMutationInput,
   ): Promise<MembershipMutationResult | null> {
