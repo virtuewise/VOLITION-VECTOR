@@ -11,6 +11,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261105133000_identity_tenancy/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261105145000_audit_event_truncate_guard/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261105153000_invitation_token_lookup/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -136,6 +138,25 @@ for table in organizations organization_memberships organization_invitations aud
   assert_count "$table" "$TENANT_ONE" 1
   assert_count "$table" "$TENANT_TWO" 1
 done
+
+# A SHA-256 bearer-token hash can locate exactly one invitation before the
+# tenant is known. A non-matching hash must reveal no invitation rows.
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+BEGIN;
+DO $vv$
+BEGIN
+  PERFORM set_config('app.invitation_token_hash', repeat('01', 32), true);
+  IF (SELECT count(*) FROM organization_invitations) <> 1 THEN
+    RAISE EXCEPTION 'token hash lookup did not isolate the matching invitation';
+  END IF;
+  PERFORM set_config('app.invitation_token_hash', repeat('03', 32), true);
+  IF (SELECT count(*) FROM organization_invitations) <> 0 THEN
+    RAISE EXCEPTION 'non-matching token hash exposed an invitation';
+  END IF;
+END
+$vv$;
+ROLLBACK;
+SQL
 
 without_tenant="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \

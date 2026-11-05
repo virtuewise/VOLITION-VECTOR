@@ -154,6 +154,7 @@ describe("InvitationApplicationService", () => {
     );
 
     expect(repository.revokePendingInvitation).toHaveBeenCalledWith({
+      organizationId: createInput.organizationId,
       invitationId: "invitation-1",
       revokedAt: now,
     });

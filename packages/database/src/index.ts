@@ -3,6 +3,12 @@ export type DatabaseHealth = "unknown" | "healthy" | "unhealthy";
 
 export { normalizeTenantId } from "./tenant-context.js";
 export { withTenantTransaction } from "./tenant-transaction.js";
+export { PostgresInvitationRepository } from "./invitation-repository.js";
+export type {
+  AcceptInvitationRecord,
+  CreatedInvitationRecord,
+  CreatePendingInvitationRecord,
+} from "./invitation-repository.js";
 export type {
   TenantConnection,
   TenantConnectionPool,
