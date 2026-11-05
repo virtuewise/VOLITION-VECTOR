@@ -12,7 +12,7 @@ function makePool(roleRows: unknown[] = []) {
 }
 
 describe("PostgresTenantConnectionPool", () => {
-  it("accepts only a non-superuser, non-owner role without BYPASSRLS", async () => {
+  it("accepts a non-owner runtime role with forced RLS", async () => {
     const { pool, query } = makePool([
       {
         is_superuser: false,
@@ -46,7 +46,13 @@ describe("PostgresTenantConnectionPool", () => {
       is_superuser: false,
       bypasses_rls: false,
       owns_tenant_tables: true,
-        all_tenant_tables_force_rls: true,
+      all_tenant_tables_force_rls: true,
+    },
+    {
+      is_superuser: false,
+      bypasses_rls: false,
+      owns_tenant_tables: false,
+      all_tenant_tables_force_rls: false,
     },
   ])("rejects an unsafe PostgreSQL runtime role", async (role) => {
     const { pool } = makePool([role]);
