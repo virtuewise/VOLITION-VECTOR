@@ -59,7 +59,7 @@ export class OrganizationMembershipApplicationService {
     if (!result) {
       // Keep missing, cross-tenant and denied cases indistinguishable.
       throw new ForbiddenException(
-        "The requested organization membership mutation is not permitted or available.",
+        "Membership mutation is not permitted or available.",
       );
     }
     return result;
