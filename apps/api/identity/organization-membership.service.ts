@@ -35,13 +35,17 @@ export class OrganizationMembershipApplicationService {
     request: OrganizationMembershipMutationRequest,
   ): Promise<MembershipMutationResult> {
     if (!isUUID(principal.accountId)) {
-      throw new UnauthorizedException("A verified identity context is required.");
+      throw new UnauthorizedException(
+        "A verified identity context is required.",
+      );
     }
     if (
       !isUUID(request.organizationId) ||
       !isUUID(request.targetAccountId)
     ) {
-      throw new BadRequestException("Valid organization and account IDs are required.");
+      throw new BadRequestException(
+        "Valid organization and account IDs are required.",
+      );
     }
 
     const input: MembershipMutationInput = {
