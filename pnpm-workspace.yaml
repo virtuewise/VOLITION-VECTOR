@@ -4,3 +4,8 @@ packages:
   - "apps/mobile"
   - "apps/worker"
   - "packages/*"
+
+# Explicitly approve only the native build scripts required by this workspace.
+onlyBuiltDependencies:
+  - esbuild
+  - msgpackr-extract
