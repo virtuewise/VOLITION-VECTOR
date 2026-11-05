@@ -106,7 +106,9 @@ export function canManageOrganizationMembership(
       membershipStatus: request.membershipStatus,
       role: request.role,
       permission: "members:manage",
-      explicitDenies: request.explicitDenies,
+      ...(request.explicitDenies
+        ? { explicitDenies: request.explicitDenies }
+        : {}),
     })
   ) {
     return false;
