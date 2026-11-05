@@ -41,7 +41,9 @@ export function requireIdentityPrincipal(
   request: IdentityRequest,
 ): AuthenticatedPrincipal {
   if (!request.identity) {
-    throw new UnauthorizedException("A verified identity context is required.");
+    throw new UnauthorizedException(
+        "A verified identity context is required.",
+      );
   }
   return request.identity;
 }
