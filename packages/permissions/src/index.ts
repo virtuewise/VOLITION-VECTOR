@@ -73,7 +73,10 @@ export interface OrganizationMembershipManagementRequest
 export function canManageOrganizationMembership(
   request: OrganizationMembershipManagementRequest,
 ): boolean {
-  if (!Number.isInteger(request.activeOwnerCount) || request.activeOwnerCount < 0) {
+  if (
+    !Number.isInteger(request.activeOwnerCount) ||
+    request.activeOwnerCount < 0
+  ) {
     return false;
   }
 
