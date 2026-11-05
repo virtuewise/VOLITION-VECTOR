@@ -149,9 +149,9 @@ describe("InvitationApplicationService", () => {
       new Error("mail provider unavailable"),
     );
 
-    await expect(
-      service.createInvitation(createInput),
-    ).rejects.toBeInstanceOf(InvitationDeliveryError);
+    await expect(service.createInvitation(createInput)).rejects.toBeInstanceOf(
+      InvitationDeliveryError,
+    );
 
     expect(repository.revokePendingInvitation).toHaveBeenCalledWith({
       invitationId: "invitation-1",

@@ -198,14 +198,15 @@ export class InvitationApplicationService {
     const tokenHash = hashInvitationToken(token);
     const createdAt = this.clock();
     const expiresAt = new Date(createdAt.getTime() + INVITATION_TTL_MS);
-    const invitation = await this.dependencies.repository.createPendingInvitation({
-      organizationId: input.organizationId,
-      invitedEmail,
-      role: input.role,
-      tokenHash,
-      invitedByAccountId: input.actorAccountId,
-      expiresAt,
-    });
+    const invitation =
+      await this.dependencies.repository.createPendingInvitation({
+        organizationId: input.organizationId,
+        invitedEmail,
+        role: input.role,
+        tokenHash,
+        invitedByAccountId: input.actorAccountId,
+        expiresAt,
+      });
 
     try {
       await this.dependencies.notifier.sendInvitation({
