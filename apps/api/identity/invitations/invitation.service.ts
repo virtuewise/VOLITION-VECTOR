@@ -32,6 +32,7 @@ export interface InvitationRepository {
 
   /** Revoke only a still-pending invitation after delivery fails. */
   revokePendingInvitation(input: {
+    readonly organizationId: string;
     readonly invitationId: string;
     readonly revokedAt: Date;
   }): Promise<void>;
@@ -220,6 +221,7 @@ export class InvitationApplicationService {
     } catch (deliveryError) {
       try {
         await this.dependencies.repository.revokePendingInvitation({
+          organizationId: input.organizationId,
           invitationId: invitation.id,
           revokedAt: this.clock(),
         });
