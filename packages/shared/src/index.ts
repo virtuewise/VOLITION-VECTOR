@@ -1,1 +1,1 @@
-export type Identifier = string & { readonly __brand: 'Identifier' };
+export type Identifier = string & { readonly __brand: "Identifier" };

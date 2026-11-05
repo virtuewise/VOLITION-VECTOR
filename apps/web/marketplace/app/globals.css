@@ -1,7 +1,38 @@
-* { box-sizing: border-box; }
-html { color-scheme: dark; background: #071326; }
-body { margin: 0; color: #f4f7ff; font-family: Arial, Helvetica, sans-serif; }
-.shell { min-height: 100svh; display: grid; align-content: center; gap: 1rem; padding: clamp(2rem, 8vw, 8rem); background: radial-gradient(ellipse at 75% 20%, #183b72 0, transparent 42%), #071326; }
-.eyebrow { color: #7bdcff; letter-spacing: .18em; font-size: .75rem; }
-h1 { max-width: 12ch; margin: 0; font-size: clamp(3rem, 9vw, 7rem); line-height: .98; }
-.shell > p:last-child { max-width: 42rem; color: #c4d2e8; font-size: 1.15rem; line-height: 1.7; }
+* {
+  box-sizing: border-box;
+}
+html {
+  color-scheme: dark;
+  background: #071326;
+}
+body {
+  margin: 0;
+  color: #f4f7ff;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.shell {
+  min-height: 100svh;
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+  padding: clamp(2rem, 8vw, 8rem);
+  background:
+    radial-gradient(ellipse at 75% 20%, #183b72 0, transparent 42%), #071326;
+}
+.eyebrow {
+  color: #7bdcff;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+}
+h1 {
+  max-width: 12ch;
+  margin: 0;
+  font-size: clamp(3rem, 9vw, 7rem);
+  line-height: 0.98;
+}
+.shell > p:last-child {
+  max-width: 42rem;
+  color: #c4d2e8;
+  font-size: 1.15rem;
+  line-height: 1.7;
+}
