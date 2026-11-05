@@ -62,7 +62,10 @@ function assertInvitationInput(input: CreatePendingInvitationRecord): void {
   }
 }
 
-/** PostgreSQL persistence for the provider-neutral invitation application service. */
+/**
+ * PostgreSQL persistence for the provider-neutral invitation application
+ * service.
+ */
 export class PostgresInvitationRepository {
   constructor(private readonly pool: TenantConnectionPool) {}
 
