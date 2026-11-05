@@ -1,5 +1,5 @@
+import { normalizeTenantId } from "./tenant-context.js";
 import {
-  normalizeTenantId,
   withTenantTransaction,
   type TenantConnectionPool,
   type TenantQueryResult,
