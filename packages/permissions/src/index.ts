@@ -10,6 +10,15 @@ export const ORGANIZATION_PERMISSIONS = [
 export type OrganizationPermission = (typeof ORGANIZATION_PERMISSIONS)[number];
 export type OrganizationRole = "owner" | "admin" | "member" | "viewer";
 
+function isOrganizationRole(value: unknown): value is OrganizationRole {
+  return (
+    value === "owner" ||
+    value === "admin" ||
+    value === "member" ||
+    value === "viewer"
+  );
+}
+
 export interface OrganizationAccessRequest {
   readonly actorAccountId: string | null;
   readonly organizationId: string;
@@ -40,7 +49,9 @@ const ROLE_PERMISSIONS: Readonly<
 export function canAccessOrganization(
   request: OrganizationAccessRequest,
 ): boolean {
-  if (!request.actorAccountId || !request.role) return false;
+  if (!request.actorAccountId?.trim() || !isOrganizationRole(request.role)) {
+    return false;
+  }
   if (request.membershipStatus !== "active") return false;
   if (request.organizationId !== request.resourceOrganizationId) return false;
   if (request.explicitDenies?.includes(request.permission)) return false;
@@ -73,6 +84,15 @@ export interface OrganizationMembershipManagementRequest
 export function canManageOrganizationMembership(
   request: OrganizationMembershipManagementRequest,
 ): boolean {
+  const allowedActions: readonly string[] = [
+    "invite",
+    "change-role",
+    "suspend",
+    "revoke",
+    "reactivate",
+  ];
+  if (!allowedActions.includes(request.action)) return false;
+
   if (
     !Number.isInteger(request.activeOwnerCount) ||
     request.activeOwnerCount < 0
@@ -99,24 +119,33 @@ export function canManageOrganizationMembership(
       request.targetAccountId !== null ||
       request.currentTargetRole !== null ||
       request.targetMembershipStatus !== null ||
-      request.requestedRole === null
+      !isOrganizationRole(request.requestedRole)
     ) {
       return false;
     }
   } else {
     if (
       !request.targetAccountId?.trim() ||
-      request.targetAccountId === request.actorAccountId ||
-      request.currentTargetRole === null ||
-      request.targetMembershipStatus === null
+      request.targetAccountId.trim() === request.actorAccountId?.trim() ||
+      !isOrganizationRole(request.currentTargetRole) ||
+      !["active", "suspended", "revoked"].includes(
+        request.targetMembershipStatus ?? "",
+      )
     ) {
       return false;
     }
 
     if (
       request.action === "change-role"
-        ? request.requestedRole === null
+        ? !isOrganizationRole(request.requestedRole)
         : request.requestedRole !== null
+    ) {
+      return false;
+    }
+
+    if (
+      request.action === "change-role" &&
+      request.targetMembershipStatus === "revoked"
     ) {
       return false;
     }
