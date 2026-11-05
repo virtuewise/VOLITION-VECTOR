@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.setGlobalPrefix("v1");
   app.enableCors({
-    origin: process.env.WEB_ORIGIN?.split(",") ?? false,
+    origin: process.env["WEB_ORIGIN"]?.split(",") ?? false,
     credentials: true,
   });
   app.useGlobalPipes(
@@ -16,6 +16,6 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  await app.listen(Number(process.env.API_PORT ?? 4000));
+  await app.listen(Number(process.env["API_PORT"] ?? 4000));
 }
 void bootstrap();
