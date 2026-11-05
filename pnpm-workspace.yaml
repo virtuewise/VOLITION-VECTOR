@@ -5,6 +5,10 @@ packages:
   - "apps/worker"
   - "packages/*"
 
+overrides:
+  "glob@^13.0.0": "14.0.2"
+  "minimatch@^10.0.0": "11.0.1"
+
 # Explicitly approve only the native build scripts required by this workspace.
 allowBuilds:
   esbuild: true
