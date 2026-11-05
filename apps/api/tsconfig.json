@@ -7,7 +7,10 @@
     "rootDir": ".",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "src/**/*.ts",
