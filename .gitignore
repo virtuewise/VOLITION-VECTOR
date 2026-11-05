@@ -1,0 +1,15 @@
+node_modules
+.pnpm-store
+.next
+.expo
+dist
+build
+coverage
+playwright-report
+test-results
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.turbo
