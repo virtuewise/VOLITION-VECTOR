@@ -197,6 +197,15 @@ describe("canManageOrganizationMembership", () => {
     ).toBe(false);
   });
 
+  it("prevents invitations from granting the owner role", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        requestedRole: "owner",
+      }),
+    ).toBe(false);
+  });
+
   it("fails closed for invalid owner counts and membership transitions", () => {
     expect(
       canManageOrganizationMembership({
