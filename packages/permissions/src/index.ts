@@ -119,7 +119,8 @@ export function canManageOrganizationMembership(
       request.targetAccountId !== null ||
       request.currentTargetRole !== null ||
       request.targetMembershipStatus !== null ||
-      !isOrganizationRole(request.requestedRole)
+      !isOrganizationRole(request.requestedRole) ||
+      request.requestedRole === "owner"
     ) {
       return false;
     }
