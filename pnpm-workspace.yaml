@@ -6,6 +6,6 @@ packages:
   - "packages/*"
 
 # Explicitly approve only the native build scripts required by this workspace.
-onlyBuiltDependencies:
-  - esbuild
-  - msgpackr-extract
+allowBuilds:
+  esbuild: true
+  msgpackr-extract: true
