@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   canAccessOrganization,
+  canManageOrganizationMembership,
   type OrganizationAccessRequest,
+  type OrganizationMembershipManagementRequest,
 } from "./index.js";
 
 const base: OrganizationAccessRequest = {
@@ -60,5 +62,156 @@ describe("canAccessOrganization", () => {
         permission: "members:manage",
       }),
     ).toBe(true);
+  });
+});
+
+const membershipRequest: OrganizationMembershipManagementRequest = {
+  actorAccountId: "owner-1",
+  organizationId: "org-1",
+  resourceOrganizationId: "org-1",
+  membershipStatus: "active",
+  role: "owner",
+  action: "invite",
+  targetAccountId: null,
+  currentTargetRole: null,
+  targetMembershipStatus: null,
+  requestedRole: "member",
+  activeOwnerCount: 1,
+};
+
+describe("canManageOrganizationMembership", () => {
+  it("allows an admin to manage a member within the same organization", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        role: "admin",
+        action: "change-role",
+        targetAccountId: "member-1",
+        currentTargetRole: "member",
+        targetMembershipStatus: "active",
+        requestedRole: "viewer",
+      }),
+    ).toBe(true);
+  });
+
+  it("prevents admins from inviting owners or administrators", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        role: "admin",
+        requestedRole: "admin",
+      }),
+    ).toBe(false);
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        role: "admin",
+        requestedRole: "owner",
+      }),
+    ).toBe(false);
+  });
+
+  it("prevents admins from changing or revoking owner and admin memberships", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        role: "admin",
+        action: "revoke",
+        targetAccountId: "admin-1",
+        currentTargetRole: "admin",
+        targetMembershipStatus: "active",
+        requestedRole: null,
+      }),
+    ).toBe(false);
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        role: "admin",
+        action: "revoke",
+        targetAccountId: "owner-2",
+        currentTargetRole: "owner",
+        targetMembershipStatus: "active",
+        requestedRole: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("prevents removing the last active owner", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        action: "change-role",
+        targetAccountId: "owner-2",
+        currentTargetRole: "owner",
+        targetMembershipStatus: "active",
+        requestedRole: "admin",
+      }),
+    ).toBe(false);
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        action: "revoke",
+        targetAccountId: "owner-2",
+        currentTargetRole: "owner",
+        targetMembershipStatus: "active",
+        requestedRole: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("allows an owner to change another owner when an active owner remains", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        action: "change-role",
+        targetAccountId: "owner-2",
+        currentTargetRole: "owner",
+        targetMembershipStatus: "active",
+        requestedRole: "admin",
+        activeOwnerCount: 2,
+      }),
+    ).toBe(true);
+  });
+
+  it("denies self-management of an organization membership", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        action: "change-role",
+        targetAccountId: "owner-1",
+        currentTargetRole: "owner",
+        targetMembershipStatus: "active",
+        requestedRole: "admin",
+        activeOwnerCount: 2,
+      }),
+    ).toBe(false);
+  });
+
+  it("denies cross-organization membership management", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        resourceOrganizationId: "org-2",
+      }),
+    ).toBe(false);
+  });
+
+  it("fails closed for invalid owner counts and membership transitions", () => {
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        activeOwnerCount: -1,
+      }),
+    ).toBe(false);
+    expect(
+      canManageOrganizationMembership({
+        ...membershipRequest,
+        action: "reactivate",
+        targetAccountId: "member-2",
+        currentTargetRole: "member",
+        targetMembershipStatus: "revoked",
+        requestedRole: null,
+      }),
+    ).toBe(false);
   });
 });
