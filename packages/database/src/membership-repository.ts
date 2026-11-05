@@ -103,7 +103,7 @@ export class PostgresMembershipRepository {
       return null;
     }
 
-    const organizationId = normalizeTenantId(organizationId);
+    const organizationId = normalizeTenantId(input.organizationId);
 
     return withTenantTransaction(
       this.pool,
