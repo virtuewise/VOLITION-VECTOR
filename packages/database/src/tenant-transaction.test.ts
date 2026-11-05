@@ -13,7 +13,7 @@ function createPool() {
       rows: [] as readonly unknown[],
     }),
   );
-  const release = vi.fn();
+  const release = vi.fn((_error?: Error) => undefined);
   const client: TenantConnection = { query, release };
   const connect = vi.fn(async () => client);
   const pool: TenantConnectionPool = { connect };
@@ -35,7 +35,7 @@ describe("withTenantTransaction", () => {
       ["COMMIT"],
     ]);
     expect(work).toHaveBeenCalledOnce();
-    expect(release).toHaveBeenCalledOnce();
+    expect(release).toHaveBeenCalledWith(undefined);
   });
 
   it("rolls back when tenant work fails and preserves the original error", async () => {
@@ -54,7 +54,7 @@ describe("withTenantTransaction", () => {
       "SELECT set_config('app.tenant_id', $1, true)",
       "ROLLBACK",
     ]);
-    expect(release).toHaveBeenCalledOnce();
+    expect(release).toHaveBeenCalledWith(undefined);
   });
 
   it("rejects an invalid tenant before acquiring a connection", async () => {
@@ -67,15 +67,16 @@ describe("withTenantTransaction", () => {
     expect(connect).not.toHaveBeenCalled();
   });
 
-  it("rolls back if setting tenant context fails", async () => {
+  it("does not run tenant work when setting tenant context fails", async () => {
     const { pool, query, release } = createPool();
+    const work = vi.fn(async () => "unused");
     query.mockImplementationOnce(async () => ({ rows: [] }));
     query.mockImplementationOnce(async () => {
       throw new Error("set_config failed");
     });
 
     await expect(
-      withTenantTransaction(pool, tenantId, async () => "unused"),
+      withTenantTransaction(pool, tenantId, work),
     ).rejects.toThrow("set_config failed");
 
     expect(query.mock.calls.map(([statement]) => statement)).toEqual([
@@ -83,6 +84,43 @@ describe("withTenantTransaction", () => {
       "SELECT set_config('app.tenant_id', $1, true)",
       "ROLLBACK",
     ]);
-    expect(release).toHaveBeenCalledOnce();
+    expect(work).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledWith(undefined);
+  });
+
+  it("discards a connection when BEGIN fails with uncertain state", async () => {
+    const { pool, query, release } = createPool();
+    const failure = new Error("connection lost during BEGIN");
+    query.mockRejectedValueOnce(failure);
+
+    await expect(
+      withTenantTransaction(pool, tenantId, async () => "unused"),
+    ).rejects.toBe(failure);
+
+    expect(query.mock.calls.map(([statement]) => statement)).toEqual(["BEGIN"]);
+    expect(release).toHaveBeenCalledWith(failure);
+  });
+
+  it("discards a connection when rollback fails", async () => {
+    const { pool, query, release } = createPool();
+    const operationFailure = new Error("tenant query failed");
+    const rollbackFailure = new Error("connection lost during rollback");
+    query.mockImplementationOnce(async () => ({ rows: [] }));
+    query.mockImplementationOnce(async () => ({ rows: [] }));
+    query.mockRejectedValueOnce(operationFailure);
+    query.mockRejectedValueOnce(rollbackFailure);
+
+    await expect(
+      withTenantTransaction(pool, tenantId, async () => {
+        throw operationFailure;
+      }),
+    ).rejects.toBe(operationFailure);
+
+    expect(query.mock.calls.map(([statement]) => statement)).toEqual([
+      "BEGIN",
+      "SELECT set_config('app.tenant_id', $1, true)",
+      "ROLLBACK",
+    ]);
+    expect(release).toHaveBeenCalledWith(rollbackFailure);
   });
 });
