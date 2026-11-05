@@ -143,7 +143,7 @@ done
 # tenant is known. A non-matching hash must reveal no invitation rows.
 psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 BEGIN;
-DO $
+DO $vv$
 BEGIN
   PERFORM set_config('app.invitation_token_hash', repeat('01', 32), true);
   IF (SELECT count(*) FROM organization_invitations) <> 1 THEN
@@ -154,7 +154,7 @@ BEGIN
     RAISE EXCEPTION 'non-matching token hash exposed an invitation';
   END IF;
 END
-$;
+$vv$;
 ROLLBACK;
 SQL
 
