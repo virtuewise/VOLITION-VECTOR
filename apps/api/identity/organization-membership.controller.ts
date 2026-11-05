@@ -7,10 +7,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import type {
-  MembershipMutationResult,
-  MembershipRole,
-} from "./identity-membership.contracts.js";
+import type { MembershipMutationResult } from "./identity-membership.contracts.js";
 import {
   IdentityContextGuard,
   requireIdentityPrincipal,
@@ -37,7 +34,7 @@ export class OrganizationMembershipController {
       organizationId,
       targetAccountId,
       action: "change-role",
-      requestedRole: body.role as MembershipRole,
+      requestedRole: body.role,
     });
   }
 
