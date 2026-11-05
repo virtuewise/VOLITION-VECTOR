@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:18.1
+    environment:
+      POSTGRES_DB: volition_vector
+      POSTGRES_USER: volition
+      POSTGRES_PASSWORD: local-development-only
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U volition -d volition_vector"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:8.2
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "local-development-only"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "local-development-only", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  postgres_data:
+  redis_data:
