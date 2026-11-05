@@ -1,4 +1,5 @@
 import {
+  normalizeTenantId,
   withTenantTransaction,
   type TenantConnectionPool,
   type TenantQueryResult,
@@ -102,15 +103,17 @@ export class PostgresMembershipRepository {
       return null;
     }
 
+    const organizationId = normalizeTenantId(organizationId);
+
     return withTenantTransaction(
       this.pool,
-      input.organizationId,
+      organizationId,
       async (client) => {
         // Serialize every membership mutation in this tenant. This makes the
         // owner count and subsequent write one race-safe critical section.
         await client.query(
           "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
-          ["organization-memberships:" + input.organizationId],
+          ["organization-memberships:" + organizationId],
         );
 
         const actor = firstRow<MembershipRow>(
@@ -118,7 +121,7 @@ export class PostgresMembershipRepository {
             "SELECT id::text AS id, account_id::text AS account_id, role, status " +
               "FROM organization_memberships " +
               "WHERE organization_id = $1 AND account_id = $2 FOR UPDATE",
-            [input.organizationId, input.actorAccountId],
+            [organizationId, input.actorAccountId],
           ),
         );
         const target = firstRow<MembershipRow>(
@@ -126,7 +129,7 @@ export class PostgresMembershipRepository {
             "SELECT id::text AS id, account_id::text AS account_id, role, status " +
               "FROM organization_memberships " +
               "WHERE organization_id = $1 AND account_id = $2 FOR UPDATE",
-            [input.organizationId, input.targetAccountId],
+            [organizationId, input.targetAccountId],
           ),
         );
         const count = firstRow<CountRow>(
@@ -134,7 +137,7 @@ export class PostgresMembershipRepository {
             "SELECT count(*)::int AS active_owner_count " +
               "FROM organization_memberships " +
               "WHERE organization_id = $1 AND role = 'owner' AND status = 'active'",
-            [input.organizationId],
+            [organizationId],
           ),
         );
 
@@ -155,8 +158,8 @@ export class PostgresMembershipRepository {
 
         const allowed = this.authorize({
           actorAccountId: input.actorAccountId,
-          organizationId: input.organizationId,
-          resourceOrganizationId: input.organizationId,
+          organizationId: organizationId,
+          resourceOrganizationId: organizationId,
           membershipStatus: actor.status,
           role: actor.role,
           action: input.action,
@@ -177,7 +180,7 @@ export class PostgresMembershipRepository {
               "WHERE organization_id = $1 AND account_id = $2 " +
               "RETURNING id::text AS id, account_id::text AS account_id, role, status",
             [
-              input.organizationId,
+              organizationId,
               input.targetAccountId,
               input.action === "change-role" ? input.requestedRole : null,
               input.action === "suspend"
@@ -199,7 +202,7 @@ export class PostgresMembershipRepository {
             "(organization_id, actor_account_id, event_name, resource_type, resource_id, metadata) " +
             "VALUES ($1, $2, $3, 'organization_membership', $4, $5::jsonb)",
           [
-            input.organizationId,
+            organizationId,
             input.actorAccountId,
             "organization.membership." + input.action,
             updated.id,
