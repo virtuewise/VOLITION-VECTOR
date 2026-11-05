@@ -60,14 +60,12 @@ export function canAccessOrganization(
 }
 
 export type MembershipManagementAction =
-  | "invite"
-  | "change-role"
-  | "suspend"
-  | "revoke"
-  | "reactivate";
+  "invite" | "change-role" | "suspend" | "revoke" | "reactivate";
 
-export interface OrganizationMembershipManagementRequest
-  extends Omit<OrganizationAccessRequest, "permission"> {
+export interface OrganizationMembershipManagementRequest extends Omit<
+  OrganizationAccessRequest,
+  "permission"
+> {
   readonly action: MembershipManagementAction;
   readonly targetAccountId: string | null;
   readonly currentTargetRole: OrganizationRole | null;
@@ -186,8 +184,7 @@ export function canManageOrganizationMembership(
     request.targetMembershipStatus === "active" &&
     (request.action === "suspend" ||
       request.action === "revoke" ||
-      (request.action === "change-role" &&
-        request.requestedRole !== "owner"));
+      (request.action === "change-role" && request.requestedRole !== "owner"));
 
   if (removesActiveOwner && request.activeOwnerCount <= 1) {
     return false;
