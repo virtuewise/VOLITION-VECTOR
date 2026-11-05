@@ -3,6 +3,16 @@ export type DatabaseHealth = "unknown" | "healthy" | "unhealthy";
 
 export { normalizeTenantId } from "./tenant-context.js";
 export { withTenantTransaction } from "./tenant-transaction.js";
+export { PostgresMembershipRepository } from "./membership-repository.js";
+export type {
+  MembershipMutationAction,
+  MembershipMutationAuthorizer,
+  MembershipMutationPolicyInput,
+  MembershipMutationResult,
+  MembershipRole,
+  MembershipStatus,
+  MutateMembershipInput,
+} from "./membership-repository.js";
 export type {
   TenantConnection,
   TenantConnectionPool,
