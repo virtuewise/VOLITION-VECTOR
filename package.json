@@ -13,5 +13,14 @@
     "format:check": "prettier --check .",
     "clean": "turbo clean"
   },
-  "devDependencies": { "prettier": "3.9.10", "turbo": "2.11.10", "typescript": "7.0.2" }
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "eslint": "9.39.2",
+    "eslint-config-next": "16.4.5",
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "7.0.2",
+    "vitest": "4.0.8"
+  }
 }
