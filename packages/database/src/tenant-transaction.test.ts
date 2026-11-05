@@ -115,6 +115,8 @@ describe("withTenantTransaction", () => {
     const { pool, query, release } = createPool();
     const operationFailure = new Error("tenant query failed");
     const rollbackFailure = new Error("connection lost during rollback");
+    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [] });
     query.mockRejectedValueOnce(rollbackFailure);
 
     const operation = withTenantTransaction(pool, tenantId, async () => {
