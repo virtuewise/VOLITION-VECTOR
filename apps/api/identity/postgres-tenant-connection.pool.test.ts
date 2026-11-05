@@ -12,12 +12,15 @@ function makePool(roleRows: unknown[] = []) {
 }
 
 describe("PostgresTenantConnectionPool", () => {
-  it("accepts a non-owner runtime role with forced RLS", async () => {
+  it("accepts a least-privilege role with forced tenant RLS", async () => {
     const { pool, query } = makePool([
       {
         is_superuser: false,
         bypasses_rls: false,
+        is_replication_role: false,
         owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
         all_tenant_tables_force_rls: true,
       },
     ]);
@@ -26,6 +29,7 @@ describe("PostgresTenantConnectionPool", () => {
     await expect(adapter.onModuleInit()).resolves.toBeUndefined();
     expect(query.mock.calls[0]?.[0]).toContain("rolbypassrls");
     expect(query.mock.calls[0]?.[0]).toContain("relowner");
+    expect(query.mock.calls[0]?.[0]).toContain("pg_has_role");
     expect(query.mock.calls[0]?.[0]).toContain("relforcerowsecurity");
   });
 
@@ -33,25 +37,64 @@ describe("PostgresTenantConnectionPool", () => {
     {
       is_superuser: true,
       bypasses_rls: false,
+      is_replication_role: false,
       owns_tenant_tables: false,
-        all_tenant_tables_force_rls: true,
+      member_of_tenant_owner_role: false,
+      member_of_privileged_role: false,
+      all_tenant_tables_force_rls: true,
     },
     {
       is_superuser: false,
       bypasses_rls: true,
+      is_replication_role: false,
       owns_tenant_tables: false,
-        all_tenant_tables_force_rls: true,
-    },
-    {
-      is_superuser: false,
-      bypasses_rls: false,
-      owns_tenant_tables: true,
+      member_of_tenant_owner_role: false,
+      member_of_privileged_role: false,
       all_tenant_tables_force_rls: true,
     },
     {
       is_superuser: false,
       bypasses_rls: false,
+      is_replication_role: true,
       owns_tenant_tables: false,
+      member_of_tenant_owner_role: false,
+      member_of_privileged_role: false,
+      all_tenant_tables_force_rls: true,
+    },
+    {
+      is_superuser: false,
+      bypasses_rls: false,
+      is_replication_role: false,
+      owns_tenant_tables: true,
+      member_of_tenant_owner_role: false,
+      member_of_privileged_role: false,
+      all_tenant_tables_force_rls: true,
+    },
+    {
+      is_superuser: false,
+      bypasses_rls: false,
+      is_replication_role: false,
+      owns_tenant_tables: false,
+      member_of_tenant_owner_role: true,
+      member_of_privileged_role: false,
+      all_tenant_tables_force_rls: true,
+    },
+    {
+      is_superuser: false,
+      bypasses_rls: false,
+      is_replication_role: false,
+      owns_tenant_tables: false,
+      member_of_tenant_owner_role: false,
+      member_of_privileged_role: true,
+      all_tenant_tables_force_rls: true,
+    },
+    {
+      is_superuser: false,
+      bypasses_rls: false,
+      is_replication_role: false,
+      owns_tenant_tables: false,
+      member_of_tenant_owner_role: false,
+      member_of_privileged_role: false,
       all_tenant_tables_force_rls: false,
     },
   ])("rejects an unsafe PostgreSQL runtime role", async (role) => {
@@ -59,7 +102,7 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-superuser, non-owner role/,
+      /non-privileged, non-owner PostgreSQL role/,
     );
   });
 
@@ -68,7 +111,7 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-superuser, non-owner role/,
+      /non-privileged, non-owner PostgreSQL role/,
     );
   });
 
