@@ -10,7 +10,9 @@ import {
   type MembershipMutationInput,
   type MembershipMutationResult,
 } from "./identity-membership.contracts.js";
-import { OrganizationMembershipApplicationService } from "./organization-membership.service.js";
+import {
+  OrganizationMembershipApplicationService,
+} from "./organization-membership.service.js";
 
 const organizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const actorAccountId = "11111111-1111-4111-8111-111111111111";
@@ -23,10 +25,8 @@ const result: MembershipMutationResult = {
 };
 
 describe("OrganizationMembershipApplicationService", () => {
-  it("uses only the verified principal as actor and canonicalizes UUID inputs", async () => {
-    const mutate = vi.fn(
-      async (_input: MembershipMutationInput) => result,
-    );
+  it("uses verified principal as actor and canonicalizes UUIDs", async () => {
+    const mutate = vi.fn(async (_input: MembershipMutationInput) => result);
     const command: MembershipMutationCommand = { mutate };
     const service = new OrganizationMembershipApplicationService(command);
 
@@ -51,11 +51,9 @@ describe("OrganizationMembershipApplicationService", () => {
     });
   });
 
-  it("rejects malformed organization and target IDs before calling persistence", async () => {
+  it("rejects malformed IDs before calling persistence", async () => {
     const mutate = vi.fn(async () => result);
-    const service = new OrganizationMembershipApplicationService({
-      mutate,
-    });
+    const service = new OrganizationMembershipApplicationService({ mutate });
 
     await expect(
       service.mutate(
@@ -70,7 +68,7 @@ describe("OrganizationMembershipApplicationService", () => {
     expect(mutate).not.toHaveBeenCalled();
   });
 
-  it("maps a null repository result to a generic forbidden response", async () => {
+  it("maps null results to a generic forbidden response", async () => {
     const command: MembershipMutationCommand = {
       mutate: async () => null,
     };
@@ -88,7 +86,7 @@ describe("OrganizationMembershipApplicationService", () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it("keeps the API unavailable until a real persistence adapter is configured", async () => {
+  it("keeps API unavailable until persistence is configured", async () => {
     const command = new UnconfiguredMembershipMutationCommand();
 
     await expect(
