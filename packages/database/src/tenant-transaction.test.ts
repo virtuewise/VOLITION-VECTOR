@@ -8,7 +8,11 @@ import {
 const tenantId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 function createPool() {
-  const query = vi.fn(async () => ({ rows: [] }));
+  const query = vi.fn(
+    async (_statement: string, _parameters?: readonly unknown[]) => ({
+      rows: [] as readonly unknown[],
+    }),
+  );
   const release = vi.fn();
   const client: TenantConnection = { query, release };
   const connect = vi.fn(async () => client);
