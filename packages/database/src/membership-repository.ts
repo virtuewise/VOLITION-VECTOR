@@ -5,10 +5,7 @@ import {
 } from "./tenant-transaction.js";
 
 export type MembershipMutationAction =
-  | "change-role"
-  | "suspend"
-  | "revoke"
-  | "reactivate";
+  "change-role" | "suspend" | "revoke" | "reactivate";
 export type MembershipRole = "owner" | "admin" | "member" | "viewer";
 export type MembershipStatus = "active" | "suspended" | "revoked";
 
@@ -59,9 +56,7 @@ function firstRow<T>(result: TenantQueryResult): T | undefined {
   return result.rows[0] as T | undefined;
 }
 
-function isMembershipAction(
-  value: string,
-): value is MembershipMutationAction {
+function isMembershipAction(value: string): value is MembershipMutationAction {
   return (
     value === "change-role" ||
     value === "suspend" ||

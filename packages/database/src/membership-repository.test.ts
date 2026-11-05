@@ -14,9 +14,11 @@ const targetAccountId = "22222222-2222-4222-8222-222222222222";
 
 function createPool(responses: readonly unknown[][] = []) {
   let responseIndex = 0;
-  const query = vi.fn(async (_sql: string, _parameters?: readonly unknown[]) => ({
-    rows: (responses[responseIndex++] ?? []) as readonly unknown[],
-  }));
+  const query = vi.fn(
+    async (_sql: string, _parameters?: readonly unknown[]) => ({
+      rows: (responses[responseIndex++] ?? []) as readonly unknown[],
+    }),
+  );
   const release = vi.fn();
   const client: TenantConnection = { query, release };
   const connect = vi.fn(async () => client);
