@@ -6,7 +6,10 @@ import {
 } from "./tenant-transaction.js";
 
 export type MembershipMutationAction =
-  "change-role" | "suspend" | "revoke" | "reactivate";
+  | "change-role"
+  | "suspend"
+  | "revoke"
+  | "reactivate";
 export type MembershipRole = "owner" | "admin" | "member" | "viewer";
 export type MembershipStatus = "active" | "suspended" | "revoked";
 
@@ -158,7 +161,7 @@ export class PostgresMembershipRepository {
 
         const allowed = this.authorize({
           actorAccountId: input.actorAccountId,
-          organizationId: organizationId,
+          organizationId,
           resourceOrganizationId: organizationId,
           membershipStatus: actor.status,
           role: actor.role,
