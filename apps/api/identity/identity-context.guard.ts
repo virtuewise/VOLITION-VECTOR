@@ -1,7 +1,9 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import { isUUID } from "class-validator";
-import type { AuthenticatedPrincipal } from "./identity-membership.contracts.js";
+import type {
+  AuthenticatedPrincipal,
+} from "./identity-membership.contracts.js";
 
 /**
  * request.user must be populated by trusted authentication middleware after
@@ -20,7 +22,9 @@ export class IdentityContextGuard implements CanActivate {
     const user = request.user;
 
     if (!user || typeof user !== "object") {
-      throw new UnauthorizedException("A verified identity context is required.");
+      throw new UnauthorizedException(
+        "A verified identity context is required.",
+      );
     }
 
     const accountId = (user as Record<string, unknown>)["accountId"];
