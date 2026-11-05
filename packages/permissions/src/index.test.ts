@@ -19,9 +19,9 @@ describe("canAccessOrganization", () => {
   });
 
   it("denies an unauthenticated actor", () => {
-    expect(
-      canAccessOrganization({ ...base, actorAccountId: null }),
-    ).toBe(false);
+    expect(canAccessOrganization({ ...base, actorAccountId: null })).toBe(
+      false,
+    );
   });
 
   it("denies inactive membership", () => {
