@@ -34,5 +34,12 @@ BYPASSRLS.
 The advisory lock protects concurrent mutations only when all membership
 writers use this repository and lock key. Direct SQL writers, administrative
 scripts and other adapters must follow the same serialization contract.
-Production DI wiring, authorization guard integration and live concurrency
-tests remain deferred.
+
+The PostgreSQL integration script now runs two concurrent owner-demotion
+transactions under the non-owner RLS role. It verifies that a mixed-case and
+lowercase spelling of the same tenant UUID resolve to one canonical advisory
+lock, the second writer observes the first writer's committed owner count, and
+exactly one active owner and one audit event remain. This validates the SQL
+serialization contract, but does not instantiate the TypeScript repository
+adapter. Production DI wiring, authorization guard integration and end-to-end
+adapter concurrency tests remain deferred.
