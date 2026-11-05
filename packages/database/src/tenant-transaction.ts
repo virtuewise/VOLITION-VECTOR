@@ -12,7 +12,11 @@ export interface TenantTransactionClient {
 }
 
 export interface TenantConnection extends TenantTransactionClient {
-  release(): void;
+  /**
+   * Release the connection. Pass an error when its transaction/protocol state
+   * is uncertain so pool adapters can discard it instead of reusing it.
+   */
+  release(error?: Error): void;
 }
 
 export interface TenantConnectionPool {
@@ -35,10 +39,22 @@ export async function withTenantTransaction<T>(
   const normalizedTenantId = normalizeTenantId(tenantId);
   const client = await pool.connect();
   let transactionStarted = false;
+  let releaseError: Error | undefined;
 
   try {
-    await client.query("BEGIN");
-    transactionStarted = true;
+    try {
+      await client.query("BEGIN");
+      transactionStarted = true;
+    } catch (error) {
+      // BEGIN may have reached PostgreSQL even if its response was lost.
+      // Never return a connection with uncertain transaction state to the pool.
+      releaseError =
+        error instanceof Error
+          ? error
+          : new Error("Failed to establish database transaction.");
+      throw error;
+    }
+
     await client.query("SELECT set_config('app.tenant_id', $1, true)", [
       normalizedTenantId,
     ]);
@@ -51,13 +67,17 @@ export async function withTenantTransaction<T>(
     if (transactionStarted) {
       try {
         await client.query("ROLLBACK");
-      } catch {
-        // Preserve the original operation error; releasing the connection
-        // allows the pool to discard a connection in a failed transaction.
+      } catch (rollbackError) {
+        // Preserve the operation error and ensure the pool discards this
+        // connection rather than reusing one with an open/unknown transaction.
+        releaseError =
+          rollbackError instanceof Error
+            ? rollbackError
+            : new Error("Failed to roll back database transaction.");
       }
     }
     throw error;
   } finally {
-    client.release();
+    client.release(releaseError);
   }
 }
