@@ -51,7 +51,7 @@ CREATE TABLE organization_invitations (
   organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
   invited_email text NOT NULL CHECK (length(trim(invited_email)) BETWEEN 3 AND 320),
   role text NOT NULL CHECK (role IN ('admin', 'member', 'viewer')),
-  token_hash bytea NOT NULL CHECK (octet_length(token_hash) = 32),
+  token_hash bytea NOT NULL UNIQUE CHECK (octet_length(token_hash) = 32),
   invited_by_account_id uuid NOT NULL REFERENCES accounts(id),
   expires_at timestamptz NOT NULL,
   accepted_at timestamptz,
@@ -65,7 +65,7 @@ CREATE UNIQUE INDEX organization_invitations_active_email_unique
 CREATE TABLE audit_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
-  actor_account_id uuid REFERENCES accounts(id) ON DELETE SET NULL,
+  actor_account_id uuid REFERENCES accounts(id) ON DELETE RESTRICT,
   event_name text NOT NULL CHECK (length(trim(event_name)) BETWEEN 1 AND 160),
   resource_type text NOT NULL CHECK (length(trim(resource_type)) BETWEEN 1 AND 120),
   resource_id text,
