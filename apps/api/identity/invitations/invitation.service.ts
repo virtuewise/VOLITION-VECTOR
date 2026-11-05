@@ -15,7 +15,12 @@ export interface CreatedInvitation {
 }
 
 export interface InvitationRepository {
-  /** Persist only the SHA-256 token hash; never persist the raw token. */
+  /**
+   * In one transaction, revoke any prior pending invitation for the same
+   * organization and normalized email, then persist only the new SHA-256
+   * token hash. Serialize concurrent creates for that organization/email.
+   * Never persist the raw token.
+   */
   createPendingInvitation(input: {
     readonly organizationId: string;
     readonly invitedEmail: string;
