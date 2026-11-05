@@ -57,7 +57,7 @@ describe("PostgresMembershipRepository", () => {
 
     await expect(
       repository.mutate({
-        organizationId,
+        organizationId: organizationId.toUpperCase(),
         actorAccountId,
         targetAccountId,
         action: "change-role",
@@ -79,6 +79,10 @@ describe("PostgresMembershipRepository", () => {
       expect.stringContaining("UPDATE organization_memberships"),
       expect.stringContaining("INSERT INTO audit_events"),
       "COMMIT",
+    ]);
+    expect(query.mock.calls[1]?.[1]).toEqual([organizationId]);
+    expect(query.mock.calls[2]?.[1]).toEqual([
+      "organization-memberships:" + organizationId,
     ]);
     expect(authorize).toHaveBeenCalledWith(
       expect.objectContaining({
