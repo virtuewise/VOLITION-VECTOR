@@ -134,12 +134,35 @@ export class PostgresTenantConnectionPool
   }
 }
 
+export function assertDatabaseTlsConfiguration(
+  connectionString: string,
+  nodeEnvironment = process.env["NODE_ENV"],
+): void {
+  if (nodeEnvironment !== "production") return;
+
+  let sslMode: string | null;
+  try {
+    sslMode = new URL(connectionString).searchParams.get("sslmode");
+  } catch {
+    throw new Error(
+      "Production DATABASE_URL must be a PostgreSQL URL with sslmode=verify-full.",
+    );
+  }
+
+  if (sslMode !== "verify-full") {
+    throw new Error(
+      "Production DATABASE_URL must specify sslmode=verify-full.",
+    );
+  }
+}
+
 export function createPostgresTenantConnectionPool(
   connectionString: string,
 ): PostgresTenantConnectionPool {
   if (!connectionString.trim()) {
     throw new Error("DATABASE_URL must not be empty.");
   }
+  assertDatabaseTlsConfiguration(connectionString);
 
   return new PostgresTenantConnectionPool(
     new Pool({
