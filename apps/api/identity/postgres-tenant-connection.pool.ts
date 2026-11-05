@@ -17,7 +17,10 @@ const TENANT_OWNED_TABLES = [
 interface RuntimeRoleRow extends QueryResultRow {
   readonly is_superuser: boolean;
   readonly bypasses_rls: boolean;
+  readonly is_replication_role: boolean;
   readonly owns_tenant_tables: boolean;
+  readonly member_of_tenant_owner_role: boolean;
+  readonly member_of_privileged_role: boolean;
   readonly all_tenant_tables_force_rls: boolean;
 }
 
@@ -42,8 +45,8 @@ class PostgresTenantConnection implements TenantConnection {
 
 /**
  * Adapts node-postgres to the tenant transaction port. The pool refuses to
- * start when DATABASE_URL authenticates as a superuser, BYPASSRLS role or
- * owner of a tenant-protected table.
+ * start with a superuser, BYPASSRLS/replication role, tenant-table owner, or
+ * role that can assume one of those privileged roles.
  */
 export class PostgresTenantConnectionPool
   implements TenantConnectionPool, OnModuleInit, OnModuleDestroy
@@ -62,29 +65,46 @@ export class PostgresTenantConnectionPool
   async onModuleInit(): Promise<void> {
     const result = await this.pool.query<RuntimeRoleRow>(
       `SELECT
-         role.rolsuper AS is_superuser,
-         role.rolbypassrls AS bypasses_rls,
+         r.rolsuper AS is_superuser,
+         r.rolbypassrls AS bypasses_rls,
+         r.rolreplication AS is_replication_role,
          EXISTS (
            SELECT 1
-           FROM pg_class AS relation
-           JOIN pg_namespace AS schema
-             ON schema.oid = relation.relnamespace
-           WHERE schema.nspname = 'public'
-             AND relation.relname = ANY($1::text[])
-             AND relation.relowner = role.oid
+           FROM pg_class AS c
+           JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+           WHERE nsp.nspname = 'public'
+             AND c.relname = ANY($1::text[])
+             AND c.relowner = r.oid
          ) AS owns_tenant_tables,
+         EXISTS (
+           SELECT 1
+           FROM pg_class AS c
+           JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+           WHERE nsp.nspname = 'public'
+             AND c.relname = ANY($1::text[])
+             AND pg_has_role(r.oid, c.relowner, 'MEMBER')
+         ) AS member_of_tenant_owner_role,
+         EXISTS (
+           SELECT 1
+           FROM pg_roles AS privileged
+           WHERE (
+             privileged.rolsuper OR
+             privileged.rolbypassrls OR
+             privileged.rolreplication
+           )
+             AND pg_has_role(r.oid, privileged.oid, 'MEMBER')
+         ) AS member_of_privileged_role,
          (
            SELECT count(*) = cardinality($1::text[])
-           FROM pg_class AS relation
-           JOIN pg_namespace AS schema
-             ON schema.oid = relation.relnamespace
-           WHERE schema.nspname = 'public'
-             AND relation.relname = ANY($1::text[])
-             AND relation.relrowsecurity
-             AND relation.relforcerowsecurity
+           FROM pg_class AS c
+           JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+           WHERE nsp.nspname = 'public'
+             AND c.relname = ANY($1::text[])
+             AND c.relrowsecurity
+             AND c.relforcerowsecurity
          ) AS all_tenant_tables_force_rls
-       FROM pg_roles AS role
-       WHERE role.rolname = current_user`,
+       FROM pg_roles AS r
+       WHERE r.rolname = current_user`,
       [[...TENANT_OWNED_TABLES]],
     );
 
@@ -93,11 +113,14 @@ export class PostgresTenantConnectionPool
       !runtimeRole ||
       runtimeRole.is_superuser ||
       runtimeRole.bypasses_rls ||
+      runtimeRole.is_replication_role ||
       runtimeRole.owns_tenant_tables ||
+      runtimeRole.member_of_tenant_owner_role ||
+      runtimeRole.member_of_privileged_role ||
       !runtimeRole.all_tenant_tables_force_rls
     ) {
       throw new Error(
-        "DATABASE_URL must use a non-superuser, non-owner role without BYPASSRLS, and all tenant tables must enforce RLS.",
+        "DATABASE_URL must use a non-privileged, non-owner PostgreSQL role and all tenant tables must enforce RLS.",
       );
     }
   }
