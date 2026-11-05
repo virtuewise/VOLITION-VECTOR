@@ -1,0 +1,47 @@
+name: Format identity API (temporary)
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - "apps/api/identity/**"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: identity/api-membership-boundary
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format identity API
+        run: >-
+          pnpm exec prettier --write
+          apps/api/identity/identity-context.guard.ts
+          apps/api/identity/identity-membership.contracts.ts
+          apps/api/identity/organization-membership.service.test.ts
+          apps/api/identity/organization-membership.service.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo "Identity API files are already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/api/identity
+          git commit -m "style(identity): apply Prettier formatting"
+          git push origin HEAD:identity/api-membership-boundary
