@@ -39,10 +39,7 @@ export class OrganizationMembershipApplicationService {
         "A verified identity context is required.",
       );
     }
-    if (
-      !isUUID(request.organizationId) ||
-      !isUUID(request.targetAccountId)
-    ) {
+    if (!isUUID(request.organizationId) || !isUUID(request.targetAccountId)) {
       throw new BadRequestException(
         "Valid organization and account IDs are required.",
       );

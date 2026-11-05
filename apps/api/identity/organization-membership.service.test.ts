@@ -10,9 +10,7 @@ import {
   type MembershipMutationInput,
   type MembershipMutationResult,
 } from "./identity-membership.contracts.js";
-import {
-  OrganizationMembershipApplicationService,
-} from "./organization-membership.service.js";
+import { OrganizationMembershipApplicationService } from "./organization-membership.service.js";
 
 const organizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const actorAccountId = "11111111-1111-4111-8111-111111111111";
