@@ -11,8 +11,7 @@ import type {
 } from "./identity-membership.contracts.js";
 
 @Injectable()
-export class PostgresMembershipMutationCommand
-  implements MembershipMutationCommand {
+export class PostgresMembershipMutationCommand implements MembershipMutationCommand {
   private readonly repository: PostgresMembershipRepository;
 
   constructor(pool: TenantConnectionPool) {
