@@ -318,3 +318,44 @@ export function canManageServiceListing(
     (request.currentStatus === "draft" || request.currentStatus === "paused")
   );
 }
+
+export type OpportunityApplicationReviewDecision =
+  "shortlisted" | "rejected" | "accepted";
+
+export interface OpportunityApplicationReviewRequest {
+  readonly actorAccountId: string | null;
+  readonly organizationId: string;
+  readonly resourceOrganizationId: string;
+  readonly membershipStatus: "active" | "suspended" | "revoked" | null;
+  readonly role: OrganizationRole | null;
+  readonly currentStatus:
+    "submitted" | "shortlisted" | "withdrawn" | "rejected" | "accepted";
+  readonly decision: OpportunityApplicationReviewDecision;
+}
+
+/** Only active organization owners/admins may review applications for their tenant. */
+export function canReviewOpportunityApplication(
+  request: OpportunityApplicationReviewRequest,
+): boolean {
+  if (
+    !request.actorAccountId?.trim() ||
+    (request.role !== "owner" && request.role !== "admin") ||
+    request.membershipStatus !== "active" ||
+    request.organizationId !== request.resourceOrganizationId
+  ) {
+    return false;
+  }
+
+  if (
+    request.decision !== "shortlisted" &&
+    request.decision !== "rejected" &&
+    request.decision !== "accepted"
+  ) {
+    return false;
+  }
+
+  return (
+    request.currentStatus === "submitted" ||
+    request.currentStatus === "shortlisted"
+  );
+}

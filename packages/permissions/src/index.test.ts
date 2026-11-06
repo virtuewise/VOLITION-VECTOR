@@ -4,6 +4,7 @@ import {
   canManageOrganizationMembership,
   canManageOpportunity,
   canManageServiceListing,
+  canReviewOpportunityApplication,
   type OpportunityManagementAction,
   type OrganizationAccessRequest,
   type OrganizationMembershipManagementRequest,
@@ -439,6 +440,66 @@ describe("canManageServiceListing", () => {
       canManageServiceListing({
         ...serviceListingRequest,
         resourceOrganizationId: "org-2",
+      }),
+    ).toBe(false);
+  });
+});
+
+const applicationReviewRequest = {
+  actorAccountId: "reviewer-1",
+  organizationId: "org-1",
+  resourceOrganizationId: "org-1",
+  membershipStatus: "active" as const,
+  role: "admin" as const,
+  currentStatus: "submitted" as const,
+  decision: "shortlisted" as const,
+};
+
+describe("canReviewOpportunityApplication", () => {
+  it("allows an active tenant admin to review submitted applications", () => {
+    expect(canReviewOpportunityApplication(applicationReviewRequest)).toBe(
+      true,
+    );
+  });
+
+  it("denies members, viewers, inactive actors and cross-tenant review", () => {
+    expect(
+      canReviewOpportunityApplication({
+        ...applicationReviewRequest,
+        role: "member",
+      }),
+    ).toBe(false);
+    expect(
+      canReviewOpportunityApplication({
+        ...applicationReviewRequest,
+        role: "viewer",
+      }),
+    ).toBe(false);
+    expect(
+      canReviewOpportunityApplication({
+        ...applicationReviewRequest,
+        membershipStatus: "suspended",
+      }),
+    ).toBe(false);
+    expect(
+      canReviewOpportunityApplication({
+        ...applicationReviewRequest,
+        resourceOrganizationId: "org-2",
+      }),
+    ).toBe(false);
+  });
+
+  it("does not allow review of withdrawn or terminal applications", () => {
+    expect(
+      canReviewOpportunityApplication({
+        ...applicationReviewRequest,
+        currentStatus: "withdrawn",
+      }),
+    ).toBe(false);
+    expect(
+      canReviewOpportunityApplication({
+        ...applicationReviewRequest,
+        currentStatus: "accepted",
       }),
     ).toBe(false);
   });

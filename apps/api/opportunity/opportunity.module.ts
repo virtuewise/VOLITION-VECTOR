@@ -1,10 +1,17 @@
 import { Module } from "@nestjs/common";
-import { PostgresOpportunityRepository } from "@volition/database";
-import { canManageOpportunity } from "@volition/permissions";
+import {
+  PostgresOpportunityApplicationRepository,
+  PostgresOpportunityRepository,
+} from "@volition/database";
+import {
+  canManageOpportunity,
+  canReviewOpportunityApplication,
+} from "@volition/permissions";
 import { IdentityModule } from "../identity/identity.module.js";
 import { PostgresTenantConnectionPool } from "../identity/postgres-tenant-connection.pool.js";
 import { PublicOpportunityController } from "./public-opportunity.controller.js";
 import { OPPORTUNITY_REPOSITORY } from "./opportunity.repository.js";
+import { OPPORTUNITY_APPLICATION_REPOSITORY } from "./opportunity-application.repository.js";
 
 @Module({
   imports: [IdentityModule],
@@ -29,7 +36,25 @@ import { OPPORTUNITY_REPOSITORY } from "./opportunity.repository.js";
             )
           : null,
     },
+    {
+      provide: OPPORTUNITY_APPLICATION_REPOSITORY,
+      inject: [PostgresTenantConnectionPool],
+      useFactory: (pool: PostgresTenantConnectionPool | null) =>
+        pool
+          ? new PostgresOpportunityApplicationRepository(pool, (input) =>
+              canReviewOpportunityApplication({
+                actorAccountId: input.reviewerAccountId,
+                organizationId: input.organizationId,
+                resourceOrganizationId: input.organizationId,
+                membershipStatus: input.membershipStatus,
+                role: input.role,
+                currentStatus: input.currentStatus,
+                decision: input.decision,
+              }),
+            )
+          : null,
+    },
   ],
-  exports: [OPPORTUNITY_REPOSITORY],
+  exports: [OPPORTUNITY_REPOSITORY, OPPORTUNITY_APPLICATION_REPOSITORY],
 })
 export class OpportunityModule {}
