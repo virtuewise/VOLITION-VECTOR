@@ -213,4 +213,85 @@ describe("PostgresOpportunityRepository", () => {
     );
     expect(connect).not.toHaveBeenCalled();
   });
+
+  it("updates a creator member's draft and audits the changed fields", async () => {
+    const { pool, query } = createTransactionalPool([
+      [],
+      [],
+      [],
+      [{ role: "member", status: "active" }],
+      [opportunityRow()],
+      [opportunityRow({ title: "Updated Senior Engineer" })],
+      [],
+      [],
+    ]);
+    const authorize = vi.fn(() => true);
+    const repository = new PostgresOpportunityRepository(pool, authorize);
+
+    await expect(
+      repository.updateDraft({
+        organizationId,
+        actorAccountId,
+        opportunityId,
+        title: "Updated Senior Engineer",
+        summary: "Updated summary",
+        description: "Updated description",
+      }),
+    ).resolves.toMatchObject({ title: "Updated Senior Engineer" });
+
+    expect(authorize).toHaveBeenCalledWith({
+      actorAccountId,
+      organizationId,
+      role: "member",
+      membershipStatus: "active",
+      action: "edit",
+      isCreator: true,
+      currentStatus: "draft",
+    });
+    expect(query.mock.calls[5]?.[0]).toContain("status IN ('draft', 'paused')");
+    expect(query.mock.calls[6]?.[0]).toContain("INSERT INTO audit_events");
+    expect(query.mock.calls[7]?.[0]).toBe("COMMIT");
+  });
+
+  it.each([
+    { action: "pause" as const, source: "published" as const, target: "paused" as const },
+    { action: "close" as const, source: "paused" as const, target: "closed" as const },
+    { action: "archive" as const, source: "closed" as const, target: "archived" as const },
+  ])("audits the $action lifecycle transition", async ({ action, source, target }) => {
+    const { pool, query } = createTransactionalPool([
+      [],
+      [],
+      [],
+      [{ role: "owner", status: "active" }],
+      [opportunityRow({ status: source })],
+      [opportunityRow({ status: target })],
+      [],
+      [],
+    ]);
+    const authorize = vi.fn(() => true);
+    const repository = new PostgresOpportunityRepository(pool, authorize);
+
+    await expect(
+      repository[action]({ organizationId, actorAccountId, opportunityId }),
+    ).resolves.toMatchObject({ status: target });
+
+    expect(authorize).toHaveBeenCalledWith({
+      actorAccountId,
+      organizationId,
+      role: "owner",
+      membershipStatus: "active",
+      action,
+      isCreator: true,
+      currentStatus: source,
+    });
+    expect(query.mock.calls[5]?.[1]).toEqual([
+      organizationId,
+      opportunityId,
+      target,
+      action === "pause" ? ["published"] : action === "close" ? ["published", "paused"] : ["draft", "paused", "closed"],
+    ]);
+    expect(query.mock.calls[6]?.[0]).toContain("INSERT INTO audit_events");
+    expect(query.mock.calls[7]?.[0]).toBe("COMMIT");
+  });
+
 });
