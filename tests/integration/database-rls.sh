@@ -17,6 +17,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106110000_invitation_rate_limits/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106130000_opportunities/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106150000_service_listings/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -27,7 +29,7 @@ GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, opportunities, audit_events
+     organization_invitation_rate_limits, opportunities, service_listings, audit_events
   TO vv_runtime;
 GRANT SELECT ON public_opportunities TO vv_runtime;
 
@@ -160,6 +162,45 @@ VALUES
     NULL
   );
 
+INSERT INTO service_listings (
+  organization_id, created_by_account_id, slug, title, summary, description,
+  category, status, visibility, delivery_mode, pricing_model, price_amount,
+  price_currency, published_at
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '11111111-1111-4111-8111-111111111111',
+    'tenant-one-public-service',
+    'Tenant One Public Consulting',
+    'Public consulting service',
+    'Consulting description',
+    'consulting',
+    'published',
+    'public',
+    'remote',
+    'hourly',
+    125.00,
+    'USD',
+    now()
+  ),
+  (
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    '22222222-2222-4222-8222-222222222222',
+    'tenant-two-private-service',
+    'Tenant Two Private Draft Service',
+    'Private service draft',
+    'Private service description',
+    'design',
+    'draft',
+    'organization',
+    'hybrid',
+    'quote',
+    NULL,
+    NULL,
+    NULL
+  );
+
 INSERT INTO audit_events
   (id, organization_id, actor_account_id, event_name, resource_type, resource_id)
 VALUES
@@ -228,6 +269,7 @@ SELECT
         'organization_invitations',
         'organization_invitation_rate_limits',
         'opportunities',
+        'service_listings',
         'audit_events'
       ]::text[])
       AND (
@@ -246,7 +288,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 6
+    SELECT count(*) = 7
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
