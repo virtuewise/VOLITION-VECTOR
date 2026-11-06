@@ -60,6 +60,7 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
     OrganizationMembershipApplicationService,
     INVITATION_REPOSITORY,
     INVITATION_RATE_LIMITER,
+    PostgresTenantConnectionPool,
   ],
 })
 export class IdentityModule {}
