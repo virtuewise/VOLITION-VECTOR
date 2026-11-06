@@ -28,3 +28,22 @@ export type {
   TenantQueryResult,
   TenantTransactionClient,
 } from "./tenant-transaction.js";
+export { PostgresOpportunityRepository } from "./opportunity-repository.js";
+export {
+  OpportunityAuthorizationError,
+  OpportunityInputError,
+  OpportunityTransitionError,
+} from "./opportunity-repository.js";
+export type {
+  CreateOpportunityInput,
+  OpportunityAction,
+  OpportunityAuthorizer,
+  OpportunityAuthorizationInput,
+  OpportunityRecord,
+  OpportunityStatus,
+  OpportunityType,
+  OpportunityVisibility,
+  PublicOpportunityRecord,
+  PublicOpportunitySearchInput,
+  PublishOpportunityInput,
+} from "./opportunity-repository.js";
