@@ -64,6 +64,7 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[1]?.[0]).toContain(
       "organization_invitation_rate_limits",
     );
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("opportunities");
   });
 
   it.each([
