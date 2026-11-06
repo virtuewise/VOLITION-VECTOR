@@ -3,11 +3,7 @@ export type ServiceListingId = string & {
 };
 
 export type ServiceListingStatus =
-  | "draft"
-  | "published"
-  | "paused"
-  | "closed"
-  | "archived";
+  "draft" | "published" | "paused" | "closed" | "archived";
 
 export type ServiceDeliveryMode = "remote" | "onsite" | "hybrid";
 

@@ -46,9 +46,9 @@ describe("PublicServiceListingController", () => {
     await expect(
       controller.list({ unexpected: "value" }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
-      controller.list({ limit: "10items" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.list({ limit: "10items" })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
     await expect(
       controller.list({
         category: ["consulting", "design"] as unknown as string,

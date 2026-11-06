@@ -9,11 +9,7 @@ import {
 export type ServiceDeliveryMode = "remote" | "onsite" | "hybrid";
 export type ServicePricingModel = "fixed" | "hourly" | "starting_at" | "quote";
 export type ServiceListingStatus =
-  | "draft"
-  | "published"
-  | "paused"
-  | "closed"
-  | "archived";
+  "draft" | "published" | "paused" | "closed" | "archived";
 export type ServiceListingAction = "create" | "publish";
 
 export interface ServiceListingAuthorizationInput {
@@ -245,42 +241,59 @@ function validateInput(input: CreateServiceListingInput): void {
     input.slug.length > 64 ||
     !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(input.slug)
   ) {
-    throw new ServiceListingInputError("A valid lowercase service slug is required.");
+    throw new ServiceListingInputError(
+      "A valid lowercase service slug is required.",
+    );
   }
   if (input.title.trim().length < 1 || input.title.trim().length > 160) {
-    throw new ServiceListingInputError("Service title must be 1 to 160 characters.");
+    throw new ServiceListingInputError(
+      "Service title must be 1 to 160 characters.",
+    );
   }
   if (input.summary.trim().length < 1 || input.summary.trim().length > 320) {
-    throw new ServiceListingInputError("Service summary must be 1 to 320 characters.");
+    throw new ServiceListingInputError(
+      "Service summary must be 1 to 320 characters.",
+    );
   }
   if (
     input.description.trim().length < 1 ||
     input.description.trim().length > 10_000
   ) {
-    throw new ServiceListingInputError("Service description must be 1 to 10000 characters.");
+    throw new ServiceListingInputError(
+      "Service description must be 1 to 10000 characters.",
+    );
   }
   if (!/^[a-z][a-z0-9-]{1,62}$/.test(input.category)) {
-    throw new ServiceListingInputError("Service category must be a normalized slug.");
+    throw new ServiceListingInputError(
+      "Service category must be a normalized slug.",
+    );
   }
-  if (!isDeliveryMode(input.deliveryMode) || !isPricingModel(input.pricingModel)) {
-    throw new ServiceListingInputError("Service delivery or pricing model is invalid.");
+  if (
+    !isDeliveryMode(input.deliveryMode) ||
+    !isPricingModel(input.pricingModel)
+  ) {
+    throw new ServiceListingInputError(
+      "Service delivery or pricing model is invalid.",
+    );
   }
 
   const amount = input.priceAmount ?? null;
   const currency = input.priceCurrency?.trim().toUpperCase() ?? null;
   if (
     (amount !== null && (!Number.isFinite(amount) || amount < 0)) ||
-    (input.pricingModel === "quote" && (amount !== null || currency !== null)) ||
+    (input.pricingModel === "quote" &&
+      (amount !== null || currency !== null)) ||
     (input.pricingModel !== "quote" &&
       (amount === null || !currency || !/^[A-Z]{3}$/.test(currency)))
   ) {
-    throw new ServiceListingInputError("Service price and currency do not match the pricing model.");
+    throw new ServiceListingInputError(
+      "Service price and currency do not match the pricing model.",
+    );
   }
-  if (
-    input.locationLabel != null &&
-    input.locationLabel.trim().length > 200
-  ) {
-    throw new ServiceListingInputError("Service location must be at most 200 characters.");
+  if (input.locationLabel != null && input.locationLabel.trim().length > 200) {
+    throw new ServiceListingInputError(
+      "Service location must be at most 200 characters.",
+    );
   }
   if (
     input.expiresAt != null &&
@@ -365,7 +378,8 @@ export class PostgresServiceListingRepository {
           ],
         ),
       );
-      if (!row) throw new Error("Service listing insert did not return a record.");
+      if (!row)
+        throw new Error("Service listing insert did not return a record.");
 
       await client.query(
         "INSERT INTO audit_events " +
@@ -404,11 +418,7 @@ export class PostgresServiceListingRepository {
           [organizationId, actorAccountId],
         ),
       );
-      if (
-        !actor ||
-        !isRole(actor.role) ||
-        !isMembershipStatus(actor.status)
-      ) {
+      if (!actor || !isRole(actor.role) || !isMembershipStatus(actor.status)) {
         throw new ServiceListingAuthorizationError();
       }
 
@@ -432,10 +442,7 @@ export class PostgresServiceListingRepository {
       ) {
         throw new ServiceListingAuthorizationError();
       }
-      if (
-        current.expires_at &&
-        current.expires_at.getTime() <= Date.now()
-      ) {
+      if (current.expires_at && current.expires_at.getTime() <= Date.now()) {
         throw new ServiceListingTransitionError();
       }
 
@@ -486,7 +493,9 @@ export class PostgresServiceListingRepository {
       (category !== null && !/^[a-z][a-z0-9-]{1,62}$/.test(category)) ||
       (input.deliveryMode !== undefined && !isDeliveryMode(input.deliveryMode))
     ) {
-      throw new ServiceListingInputError("Public service search parameters are invalid.");
+      throw new ServiceListingInputError(
+        "Public service search parameters are invalid.",
+      );
     }
 
     const connection = await this.pool.connect();

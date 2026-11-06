@@ -388,7 +388,6 @@ describe("canManageOpportunity", () => {
   });
 });
 
-
 const serviceListingRequest = {
   actorAccountId: "member-1",
   organizationId: "org-1",
