@@ -3,7 +3,10 @@ export type JournalSide = "debit" | "credit";
 export interface JournalLineDraft {
   readonly accountCode: string;
   readonly side: JournalSide;
-  /** Integer minor units (for example, cents); floating-point amounts are rejected. */
+  /**
+   * Integer minor units (for example, cents); floating-point amounts are
+   * rejected.
+   */
   readonly amountMinor: number;
 }
 
@@ -86,10 +89,7 @@ export function assertBalancedJournalEntry(
       throw new JournalEntryValidationError("invalid_side");
     }
 
-    if (
-      !Number.isSafeInteger(line.amountMinor) ||
-      line.amountMinor <= 0
-    ) {
+    if (!Number.isSafeInteger(line.amountMinor) || line.amountMinor <= 0) {
       throw new JournalEntryValidationError("invalid_amount");
     }
 
