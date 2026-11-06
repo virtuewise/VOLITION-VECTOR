@@ -40,6 +40,6 @@ requests fail closed with HTTP 401. This remains a partial integration, not
 production authentication or a production deployment.
 
 Before enabling these routes, select and configure the identity provider,
-verify claims and lifecycle at the authentication boundary, supply a least-
-privilege runtime connection string with verified TLS settings, and add
+verify claims and lifecycle at the authentication boundary, supply a
+least-privilege runtime connection string with verified TLS settings, and add
 end-to-end API tests.
