@@ -1,6 +1,15 @@
-ALTER TABLE opportunity_applications
-  ADD CONSTRAINT opportunity_applications_organization_id_id_unique
-  UNIQUE (organization_id, id);
+DO $project_application_key$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'opportunity_applications_organization_id_id_unique'
+  ) THEN
+    ALTER TABLE opportunity_applications
+      ADD CONSTRAINT opportunity_applications_organization_id_id_unique
+      UNIQUE (organization_id, id);
+  END IF;
+END;
+$project_application_key$;
 
 CREATE TABLE project_workspaces (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
