@@ -3,6 +3,7 @@ import {
   withTenantTransaction,
   type TenantConnectionPool,
   type TenantQueryResult,
+  type TenantTransactionClient,
 } from "./tenant-transaction.js";
 
 export type OpportunityType =
@@ -282,7 +283,7 @@ function mapOpportunity(row: OpportunityRow): OpportunityRecord {
 }
 
 async function lockOrganizationMemberships(
-  client: Parameters<Parameters<typeof withTenantTransaction>[2]>[0],
+  client: TenantTransactionClient,
   organizationId: string,
 ): Promise<void> {
   await client.query(
