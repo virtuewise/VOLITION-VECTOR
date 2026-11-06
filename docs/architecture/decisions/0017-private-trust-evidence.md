@@ -15,4 +15,4 @@ Persist only an opaque private object-storage locator, never evidence bytes or b
 
 ## Consequences
 
-This creates a narrow persistence boundary for future Trust workflows without implying verification. Review transitions, reviewer permissions, append-only decisions, audit events, issuer validation, appeals, storage integration, scanning, retention, and API routes remain deferred. Runtime status mutation must not be enabled until those controls and their tests are implemented.
+This creates a narrow persistence boundary for future Trust workflows without implying verification. An append-only `trust_evidence_decisions` history table is introduced with forced RLS and subject-scoped reads; the runtime role receives SELECT only. Runtime reviewer writes, evidence status transitions, transactional audit events, issuer validation, appeals, storage integration, scanning, retention, and API routes remain deferred. Status mutation must not be enabled until reviewer authorization and same-transaction audit controls are implemented and tested.
