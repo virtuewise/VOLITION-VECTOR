@@ -165,6 +165,7 @@ describe("PostgresOpportunityApplicationRepository", () => {
       [],
       [],
       [{ role: "member", status: "active" }],
+      [applicationRow()],
     ]);
     const authorizeReview = vi.fn(() => false);
     const repository = new PostgresOpportunityApplicationRepository(
