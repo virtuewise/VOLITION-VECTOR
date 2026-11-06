@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { assertBalancedJournalEntry, type JournalEntryDraft } from "./journal.js";
+import {
+  assertBalancedJournalEntry,
+  type JournalEntryDraft,
+} from "./journal.js";
 
 const balancedEntry: JournalEntryDraft = {
   idempotencyKey: "provider-event-001",
