@@ -16,6 +16,7 @@ const TENANT_OWNED_TABLES = [
   "opportunity_applications",
   "service_listings",
   "audit_events",
+  "trust_evidence",
 ] as const;
 
 interface RuntimeRoleRow extends QueryResultRow {
