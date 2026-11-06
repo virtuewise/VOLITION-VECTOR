@@ -84,6 +84,22 @@ export interface OpportunityRecord {
 
 export interface PublicOpportunityRecord {
   readonly id: string;
+  readonly organizationId: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly opportunityType: OpportunityType;
+  readonly locationLabel: string | null;
+  readonly isRemote: boolean;
+  readonly compensationMin: string | null;
+  readonly compensationMax: string | null;
+  readonly compensationCurrency: string | null;
+  readonly publishedAt: Date;
+  readonly expiresAt: Date | null;
+}
+
+interface PublicOpportunityRow {
+  readonly id: string;
   readonly organization_id: string;
   readonly slug: string;
   readonly title: string;
@@ -96,6 +112,24 @@ export interface PublicOpportunityRecord {
   readonly compensation_currency: string | null;
   readonly published_at: Date;
   readonly expires_at: Date | null;
+}
+
+function mapPublicOpportunity(row: PublicOpportunityRow): PublicOpportunityRecord {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    slug: row.slug,
+    title: row.title,
+    summary: row.summary,
+    opportunityType: row.opportunity_type,
+    locationLabel: row.location_label,
+    isRemote: row.is_remote,
+    compensationMin: row.compensation_min,
+    compensationMax: row.compensation_max,
+    compensationCurrency: row.compensation_currency,
+    publishedAt: row.published_at,
+    expiresAt: row.expires_at,
+  };
 }
 
 export interface PublicOpportunitySearchInput {
@@ -510,7 +544,9 @@ export class PostgresOpportunityRepository {
          LIMIT $3 OFFSET $4`,
         [input.opportunityType ?? null, query, limit, offset],
       );
-      return result.rows as readonly PublicOpportunityRecord[];
+      return (result.rows as readonly PublicOpportunityRow[]).map(
+        mapPublicOpportunity,
+      );
     } catch (error) {
       releaseError =
         error instanceof Error
