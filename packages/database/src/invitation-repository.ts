@@ -75,42 +75,38 @@ export class PostgresInvitationRepository {
   ): Promise<CreatedInvitationRecord> {
     assertInvitationInput(input);
     const organizationId = normalizeTenantId(input.organizationId);
-    return withTenantTransaction(
-      this.pool,
-      organizationId,
-      async (client) => {
-        // Hash collisions only add contention; they cannot weaken the unique index.
+    return withTenantTransaction(this.pool, organizationId, async (client) => {
+      // Hash collisions only add contention; they cannot weaken the unique index.
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+        [organizationId + ":" + input.invitedEmail],
+      );
+      await client.query(
+        "UPDATE organization_invitations SET revoked_at = clock_timestamp() " +
+          "WHERE organization_id = $1 AND lower(invited_email) = $2 " +
+          "AND accepted_at IS NULL AND revoked_at IS NULL",
+        [organizationId, input.invitedEmail],
+      );
+      const inserted = firstRow<CreatedRow>(
         await client.query(
-          "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
-          [organizationId + ":" + input.invitedEmail],
-        );
-        await client.query(
-          "UPDATE organization_invitations SET revoked_at = clock_timestamp() " +
-            "WHERE organization_id = $1 AND lower(invited_email) = $2 " +
-            "AND accepted_at IS NULL AND revoked_at IS NULL",
-          [organizationId, input.invitedEmail],
-        );
-        const inserted = firstRow<CreatedRow>(
-          await client.query(
-            "INSERT INTO organization_invitations " +
-              "(organization_id, invited_email, role, token_hash, invited_by_account_id, expires_at) " +
-              "VALUES ($1, $2, $3, $4, $5, $6) RETURNING id::text AS id, expires_at",
-            [
-              organizationId,
-              input.invitedEmail,
-              input.role,
-              input.tokenHash,
-              input.invitedByAccountId,
-              input.expiresAt,
-            ],
-          ),
-        );
-        if (!inserted) {
-          throw new Error("Invitation insert did not return a record.");
-        }
-        return { id: inserted.id, expiresAt: new Date(inserted.expires_at) };
-      },
-    );
+          "INSERT INTO organization_invitations " +
+            "(organization_id, invited_email, role, token_hash, invited_by_account_id, expires_at) " +
+            "VALUES ($1, $2, $3, $4, $5, $6) RETURNING id::text AS id, expires_at",
+          [
+            organizationId,
+            input.invitedEmail,
+            input.role,
+            input.tokenHash,
+            input.invitedByAccountId,
+            input.expiresAt,
+          ],
+        ),
+      );
+      if (!inserted) {
+        throw new Error("Invitation insert did not return a record.");
+      }
+      return { id: inserted.id, expiresAt: new Date(inserted.expires_at) };
+    });
   }
 
   async revokePendingInvitation(input: {
@@ -119,18 +115,14 @@ export class PostgresInvitationRepository {
     readonly revokedAt: Date;
   }): Promise<void> {
     const organizationId = normalizeTenantId(input.organizationId);
-    await withTenantTransaction(
-      this.pool,
-      organizationId,
-      async (client) => {
-        await client.query(
-          "UPDATE organization_invitations SET revoked_at = $3 " +
-            "WHERE organization_id = $1 AND id = $2 " +
-            "AND accepted_at IS NULL AND revoked_at IS NULL",
-          [organizationId, input.invitationId, input.revokedAt],
-        );
-      },
-    );
+    await withTenantTransaction(this.pool, organizationId, async (client) => {
+      await client.query(
+        "UPDATE organization_invitations SET revoked_at = $3 " +
+          "WHERE organization_id = $1 AND id = $2 " +
+          "AND accepted_at IS NULL AND revoked_at IS NULL",
+        [organizationId, input.invitationId, input.revokedAt],
+      );
+    });
   }
 
   async acceptPendingInvitationAtomically(
