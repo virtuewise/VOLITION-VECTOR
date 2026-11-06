@@ -254,44 +254,62 @@ describe("PostgresOpportunityRepository", () => {
   });
 
   it.each([
-    { action: "pause" as const, source: "published" as const, target: "paused" as const },
-    { action: "close" as const, source: "paused" as const, target: "closed" as const },
-    { action: "archive" as const, source: "closed" as const, target: "archived" as const },
-  ])("audits the $action lifecycle transition", async ({ action, source, target }) => {
-    const { pool, query } = createTransactionalPool([
-      [],
-      [],
-      [],
-      [{ role: "owner", status: "active" }],
-      [opportunityRow({ status: source })],
-      [opportunityRow({ status: target })],
-      [],
-      [],
-    ]);
-    const authorize = vi.fn(() => true);
-    const repository = new PostgresOpportunityRepository(pool, authorize);
+    {
+      action: "pause" as const,
+      source: "published" as const,
+      target: "paused" as const,
+    },
+    {
+      action: "close" as const,
+      source: "paused" as const,
+      target: "closed" as const,
+    },
+    {
+      action: "archive" as const,
+      source: "closed" as const,
+      target: "archived" as const,
+    },
+  ])(
+    "audits the $action lifecycle transition",
+    async ({ action, source, target }) => {
+      const { pool, query } = createTransactionalPool([
+        [],
+        [],
+        [],
+        [{ role: "owner", status: "active" }],
+        [opportunityRow({ status: source })],
+        [opportunityRow({ status: target })],
+        [],
+        [],
+      ]);
+      const authorize = vi.fn(() => true);
+      const repository = new PostgresOpportunityRepository(pool, authorize);
 
-    await expect(
-      repository[action]({ organizationId, actorAccountId, opportunityId }),
-    ).resolves.toMatchObject({ status: target });
+      await expect(
+        repository[action]({ organizationId, actorAccountId, opportunityId }),
+      ).resolves.toMatchObject({ status: target });
 
-    expect(authorize).toHaveBeenCalledWith({
-      actorAccountId,
-      organizationId,
-      role: "owner",
-      membershipStatus: "active",
-      action,
-      isCreator: true,
-      currentStatus: source,
-    });
-    expect(query.mock.calls[5]?.[1]).toEqual([
-      organizationId,
-      opportunityId,
-      target,
-      action === "pause" ? ["published"] : action === "close" ? ["published", "paused"] : ["draft", "paused", "closed"],
-    ]);
-    expect(query.mock.calls[6]?.[0]).toContain("INSERT INTO audit_events");
-    expect(query.mock.calls[7]?.[0]).toBe("COMMIT");
-  });
-
+      expect(authorize).toHaveBeenCalledWith({
+        actorAccountId,
+        organizationId,
+        role: "owner",
+        membershipStatus: "active",
+        action,
+        isCreator: true,
+        currentStatus: source,
+      });
+      expect(query.mock.calls[5]?.[1]).toEqual([
+        organizationId,
+        opportunityId,
+        target,
+        action === "pause"
+          ? ["published"]
+          : action === "close"
+            ? ["published", "paused"]
+            : ["draft", "paused", "closed"],
+      ]);
+      expect(query.mock.calls[6]?.[0]).toContain("INSERT INTO audit_events");
+      expect(query.mock.calls[7]?.[0]).toBe("COMMIT");
+    },
+  );
 });

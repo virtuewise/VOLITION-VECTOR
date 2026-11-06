@@ -12,12 +12,7 @@ export type OpportunityStatus =
   "draft" | "published" | "paused" | "closed" | "archived";
 export type OpportunityVisibility = "public" | "organization";
 export type OpportunityAction =
-  | "create"
-  | "edit"
-  | "publish"
-  | "pause"
-  | "close"
-  | "archive";
+  "create" | "edit" | "publish" | "pause" | "close" | "archive";
 
 export interface OpportunityAuthorizationInput {
   readonly actorAccountId: string;
@@ -57,12 +52,15 @@ export interface PublishOpportunityInput {
   readonly opportunityId: string;
 }
 
-export interface UpdateOpportunityDraftInput
-  extends Omit<CreateOpportunityInput, "slug" | "opportunityType"> {
+export interface UpdateOpportunityDraftInput extends Omit<
+  CreateOpportunityInput,
+  "slug" | "opportunityType"
+> {
   readonly opportunityId: string;
 }
 
-export type OpportunityTransitionAction = "publish" | "pause" | "close" | "archive";
+export type OpportunityTransitionAction =
+  "publish" | "pause" | "close" | "archive";
 
 export interface OpportunityRecord {
   readonly id: string;
@@ -523,8 +521,10 @@ export class PostgresOpportunityRepository {
           input.compensationCurrency === undefined
             ? current.compensation_currency
             : input.compensationCurrency,
-        startsAt: input.startsAt === undefined ? current.starts_at : input.startsAt,
-        expiresAt: input.expiresAt === undefined ? current.expires_at : input.expiresAt,
+        startsAt:
+          input.startsAt === undefined ? current.starts_at : input.startsAt,
+        expiresAt:
+          input.expiresAt === undefined ? current.expires_at : input.expiresAt,
       };
       validateCreateInput(candidate);
 
