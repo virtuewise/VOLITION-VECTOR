@@ -11,7 +11,8 @@ export type OpportunityType =
 export type OpportunityStatus =
   "draft" | "published" | "paused" | "closed" | "archived";
 export type OpportunityVisibility = "public" | "organization";
-export type OpportunityAction = "create" | "publish";
+export type OpportunityAction =
+  "create" | "edit" | "publish" | "pause" | "close" | "archive";
 
 export interface OpportunityAuthorizationInput {
   readonly actorAccountId: string;
@@ -50,6 +51,16 @@ export interface PublishOpportunityInput {
   readonly actorAccountId: string;
   readonly opportunityId: string;
 }
+
+export interface UpdateOpportunityDraftInput extends Omit<
+  CreateOpportunityInput,
+  "slug" | "opportunityType"
+> {
+  readonly opportunityId: string;
+}
+
+export type OpportunityTransitionAction =
+  "publish" | "pause" | "close" | "archive";
 
 export interface OpportunityRecord {
   readonly id: string;
@@ -149,7 +160,7 @@ export class OpportunityInputError extends Error {
 
 export class OpportunityTransitionError extends Error {
   constructor() {
-    super("Opportunity cannot be published in its current state.");
+    super("Opportunity cannot transition from its current state.");
     this.name = "OpportunityTransitionError";
   }
 }
@@ -286,6 +297,11 @@ function validateCreateInput(input: CreateOpportunityInput): void {
   }
   if (!isValidDate(input.startsAt) || !isValidDate(input.expiresAt)) {
     throw new OpportunityInputError("Opportunity dates must be valid.");
+  }
+  if (input.expiresAt && input.expiresAt.getTime() <= Date.now()) {
+    throw new OpportunityInputError(
+      "Opportunity expiry must be in the future.",
+    );
   }
   if (
     input.startsAt &&
@@ -434,8 +450,8 @@ export class PostgresOpportunityRepository {
     });
   }
 
-  async publish(
-    input: PublishOpportunityInput,
+  async updateDraft(
+    input: UpdateOpportunityDraftInput,
   ): Promise<OpportunityRecord | null> {
     const organizationId = normalizeTenantId(input.organizationId);
     const actorAccountId = normalizeTenantId(input.actorAccountId);
@@ -472,38 +488,212 @@ export class PostgresOpportunityRepository {
           organizationId,
           role: actor.role,
           membershipStatus: actor.status,
-          action: "publish",
+          action: "edit",
           isCreator: current.created_by_account_id === actorAccountId,
           currentStatus: current.status,
         })
       ) {
         throw new OpportunityAuthorizationError();
       }
-      if (current.expires_at && current.expires_at.getTime() <= Date.now()) {
-        throw new OpportunityTransitionError();
-      }
 
-      const published = firstRow<OpportunityRow>(
+      const candidate: CreateOpportunityInput = {
+        organizationId,
+        actorAccountId,
+        slug: current.slug,
+        title: input.title,
+        summary: input.summary,
+        description: input.description,
+        opportunityType: current.opportunity_type,
+        visibility: input.visibility ?? current.visibility,
+        locationLabel:
+          input.locationLabel === undefined
+            ? current.location_label
+            : input.locationLabel,
+        isRemote: input.isRemote ?? current.is_remote,
+        compensationMin:
+          input.compensationMin === undefined
+            ? current.compensation_min === null
+              ? null
+              : Number(current.compensation_min)
+            : input.compensationMin,
+        compensationMax:
+          input.compensationMax === undefined
+            ? current.compensation_max === null
+              ? null
+              : Number(current.compensation_max)
+            : input.compensationMax,
+        compensationCurrency:
+          input.compensationCurrency === undefined
+            ? current.compensation_currency
+            : input.compensationCurrency,
+        startsAt:
+          input.startsAt === undefined ? current.starts_at : input.startsAt,
+        expiresAt:
+          input.expiresAt === undefined ? current.expires_at : input.expiresAt,
+      };
+      validateCreateInput(candidate);
+
+      const updated = firstRow<OpportunityRow>(
         await client.query(
-          "UPDATE opportunities SET status = 'published', " +
-            "published_at = clock_timestamp(), updated_at = clock_timestamp() " +
-            "WHERE organization_id = $1 AND id = $2 " +
-            "AND status IN ('draft', 'paused') " +
-            "AND (expires_at IS NULL OR expires_at > clock_timestamp()) " +
+          "UPDATE opportunities SET title = $3, summary = $4, description = $5, " +
+            "visibility = $6, location_label = $7, is_remote = $8, " +
+            "compensation_min = $9, compensation_max = $10, compensation_currency = $11, " +
+            "starts_at = $12, expires_at = $13, updated_at = clock_timestamp() " +
+            "WHERE organization_id = $1 AND id = $2 AND status IN ('draft', 'paused') " +
             "RETURNING *",
-          [organizationId, opportunityId],
+          [
+            organizationId,
+            opportunityId,
+            candidate.title.trim(),
+            candidate.summary.trim(),
+            candidate.description.trim(),
+            candidate.visibility ?? "public",
+            candidate.locationLabel?.trim() || null,
+            candidate.isRemote ?? false,
+            candidate.compensationMin ?? null,
+            candidate.compensationMax ?? null,
+            candidate.compensationCurrency?.trim().toUpperCase() ?? null,
+            candidate.startsAt ?? null,
+            candidate.expiresAt ?? null,
+          ],
         ),
       );
-      if (!published) throw new OpportunityTransitionError();
+      if (!updated) throw new OpportunityTransitionError();
 
       await client.query(
         "INSERT INTO audit_events " +
           "(organization_id, actor_account_id, event_name, resource_type, resource_id, metadata) " +
-          "VALUES ($1, $2, 'opportunity.published', 'opportunity', $3, '{}'::jsonb)",
-        [organizationId, actorAccountId, opportunityId],
+          "VALUES ($1, $2, 'opportunity.updated', 'opportunity', $3, $4::jsonb)",
+        [
+          organizationId,
+          actorAccountId,
+          opportunityId,
+          JSON.stringify({
+            updatedFields: Object.keys(input).filter(
+              (field) =>
+                field !== "organizationId" &&
+                field !== "actorAccountId" &&
+                field !== "opportunityId",
+            ),
+          }),
+        ],
       );
 
-      return mapOpportunity(published);
+      return mapOpportunity(updated);
+    });
+  }
+
+  async publish(
+    input: PublishOpportunityInput,
+  ): Promise<OpportunityRecord | null> {
+    return this.transition(input, "publish", "published", ["draft", "paused"]);
+  }
+
+  async pause(
+    input: PublishOpportunityInput,
+  ): Promise<OpportunityRecord | null> {
+    return this.transition(input, "pause", "paused", ["published"]);
+  }
+
+  async close(
+    input: PublishOpportunityInput,
+  ): Promise<OpportunityRecord | null> {
+    return this.transition(input, "close", "closed", ["published", "paused"]);
+  }
+
+  async archive(
+    input: PublishOpportunityInput,
+  ): Promise<OpportunityRecord | null> {
+    return this.transition(input, "archive", "archived", [
+      "draft",
+      "paused",
+      "closed",
+    ]);
+  }
+
+  private async transition(
+    input: PublishOpportunityInput,
+    action: OpportunityTransitionAction,
+    targetStatus: OpportunityStatus,
+    allowedSourceStatuses: readonly OpportunityStatus[],
+  ): Promise<OpportunityRecord | null> {
+    const organizationId = normalizeTenantId(input.organizationId);
+    const actorAccountId = normalizeTenantId(input.actorAccountId);
+    const opportunityId = normalizeTenantId(input.opportunityId);
+
+    return withTenantTransaction(this.pool, organizationId, async (client) => {
+      await lockOrganizationMemberships(client, organizationId);
+      const actor = firstRow<MembershipRow>(
+        await client.query(
+          "SELECT role, status FROM organization_memberships " +
+            "WHERE organization_id = $1 AND account_id = $2 FOR UPDATE",
+          [organizationId, actorAccountId],
+        ),
+      );
+      if (
+        !actor ||
+        !isMembershipRole(actor.role) ||
+        !isMembershipStatus(actor.status)
+      ) {
+        throw new OpportunityAuthorizationError();
+      }
+
+      const current = firstRow<OpportunityRow>(
+        await client.query(
+          "SELECT * FROM opportunities WHERE organization_id = $1 AND id = $2 FOR UPDATE",
+          [organizationId, opportunityId],
+        ),
+      );
+      if (!current) return null;
+
+      if (
+        !this.authorize({
+          actorAccountId,
+          organizationId,
+          role: actor.role,
+          membershipStatus: actor.status,
+          action,
+          isCreator: current.created_by_account_id === actorAccountId,
+          currentStatus: current.status,
+        })
+      ) {
+        throw new OpportunityAuthorizationError();
+      }
+      if (
+        targetStatus === "published" &&
+        current.expires_at &&
+        current.expires_at.getTime() <= Date.now()
+      ) {
+        throw new OpportunityTransitionError();
+      }
+
+      const transitioned = firstRow<OpportunityRow>(
+        await client.query(
+          "UPDATE opportunities SET status = $3, " +
+            "published_at = CASE WHEN $3 = 'published' THEN clock_timestamp() ELSE published_at END, " +
+            "updated_at = clock_timestamp() " +
+            "WHERE organization_id = $1 AND id = $2 AND status = ANY($4::text[]) " +
+            "AND ($3 <> 'published' OR expires_at IS NULL OR expires_at > clock_timestamp()) " +
+            "RETURNING *",
+          [organizationId, opportunityId, targetStatus, allowedSourceStatuses],
+        ),
+      );
+      if (!transitioned) throw new OpportunityTransitionError();
+
+      await client.query(
+        "INSERT INTO audit_events " +
+          "(organization_id, actor_account_id, event_name, resource_type, resource_id, metadata) " +
+          "VALUES ($1, $2, $3, 'opportunity', $4, $5::jsonb)",
+        [
+          organizationId,
+          actorAccountId,
+          "opportunity." + targetStatus,
+          opportunityId,
+          JSON.stringify({ from: current.status, to: targetStatus }),
+        ],
+      );
+
+      return mapOpportunity(transitioned);
     });
   }
 
@@ -519,6 +709,7 @@ export class PostgresOpportunityRepository {
       limit > 50 ||
       !Number.isSafeInteger(offset) ||
       offset < 0 ||
+      offset > 10_000 ||
       (query !== null && query.length > 200) ||
       (input.opportunityType !== undefined &&
         !isOpportunityType(input.opportunityType))

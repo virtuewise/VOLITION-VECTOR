@@ -227,7 +227,12 @@ export function canManageOpportunity(
   }
 
   if (request.action === "create") {
-    return request.currentStatus === null;
+    return (
+      request.currentStatus === null &&
+      (request.role === "owner" ||
+        request.role === "admin" ||
+        request.role === "member")
+    );
   }
 
   if (request.currentStatus === null) return false;

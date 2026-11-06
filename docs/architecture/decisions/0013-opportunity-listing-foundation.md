@@ -16,13 +16,14 @@ creator-account data.
 - Store employment, project, tender, partnership and volunteering listings in
   the tenant-owned `opportunities` table.
 - New records begin as drafts. An active owner, admin or member may create a
-  draft; only an owner or admin may publish it. A member may not publish even
-  their own draft.
+  draft. A creator member may edit only their own draft; owners/admins may edit
+  drafts or paused listings. Only owners/admins may publish, pause, close or
+  archive, with explicit allowed source states.
 - Revalidate the actor's active organization membership inside the same
   transaction as create/publish, after taking the same organization-membership
   advisory lock used by membership mutations and invitation creation.
-- Append an audit event in the same transaction as each create/publish state
-  transition.
+- Append an audit event in the same transaction as each create, edit or
+  lifecycle state transition.
 - Enforce tenant writes and private/draft reads with ENABLE/FORCE RLS.
   A separate SELECT policy permits only rows with status `published` and
   visibility `public` to be read across tenants.

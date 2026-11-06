@@ -46,4 +46,6 @@ export type {
   PublicOpportunityRecord,
   PublicOpportunitySearchInput,
   PublishOpportunityInput,
+  UpdateOpportunityDraftInput,
+  OpportunityTransitionAction,
 } from "./opportunity-repository.js";
