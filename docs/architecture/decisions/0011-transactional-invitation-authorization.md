@@ -28,8 +28,13 @@ owner state inside their transaction.
 - Only after authorization, acquire a second namespaced advisory lock for the
   canonical tenant UUID and normalized email, revoke the previous pending
   invitation and insert the new token hash.
-- Keep the invitation API unexposed until trusted identity context, rate
-  limiting and notification/outbox integrations are selected and tested.
+- A PostgreSQL-backed distributed rate limiter is implemented with separate
+  actor/hour and email/day fixed windows, hashed scope identifiers, atomic
+  upserts, tenant RLS and seven-day opportunistic cleanup. Defaults are
+  configurable at construction.
+- Keep the invitation API unexposed until trusted identity context and
+  notification/outbox integrations are selected and tested. The rate-limit
+  adapter is registered as a provider but does not yet gate public traffic.
 
 ## Lock ordering
 
@@ -40,6 +45,6 @@ ordering to avoid introducing lock-order deadlocks.
 
 ## Security and operational boundaries
 
-The notifier remains a provider port; no mail service is configured. The
-rate-limit adapter is not implemented. OIDC/session verification and verified
-email claims remain unconfigured. This ADR does not authorize production use.
+The notifier remains a provider port; no mail service is configured.
+OIDC/session verification and verified email claims remain unconfigured.
+This ADR does not authorize production use.
