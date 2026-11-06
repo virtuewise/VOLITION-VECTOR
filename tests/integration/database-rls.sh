@@ -21,6 +21,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106150000_service_listings/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106170000_opportunity_applications/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106190000_project_workspaces/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -31,7 +33,7 @@ GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, opportunities, opportunity_applications, service_listings, audit_events
+     organization_invitation_rate_limits, opportunities, opportunity_applications, project_workspaces, project_milestones, service_listings, audit_events
   TO vv_runtime;
 GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 
@@ -229,6 +231,34 @@ SELECT
 FROM opportunities
 WHERE slug = 'tenant-two-public';
 
+UPDATE opportunity_applications
+SET status = 'accepted',
+    reviewed_at = clock_timestamp(),
+    reviewed_by_account_id = '11111111-1111-4111-8111-111111111111'
+WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO project_workspaces (
+  id, organization_id, opportunity_application_id, opportunity_id,
+  client_account_id, provider_account_id, title, description
+)
+SELECT
+  '99999999-9999-4999-8999-999999999998',
+  application.organization_id, application.id, application.opportunity_id,
+  '11111111-1111-4111-8111-111111111111',
+  application.applicant_account_id,
+  'Tenant One Project', 'Project created from an accepted opportunity application'
+FROM opportunity_applications AS application
+WHERE application.applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO project_milestones (
+  organization_id, project_id, title, description, sequence_number
+)
+VALUES (
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  '99999999-9999-4999-8999-999999999998',
+  'Discovery', 'Complete discovery and agree scope', 1
+);
+
 INSERT INTO audit_events
   (id, organization_id, actor_account_id, event_name, resource_type, resource_id)
 VALUES
@@ -298,6 +328,8 @@ SELECT
         'organization_invitation_rate_limits',
         'opportunities',
         'opportunity_applications',
+        'project_workspaces',
+        'project_milestones',
         'service_listings',
         'audit_events'
       ]::text[])
@@ -317,7 +349,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 8
+    SELECT count(*) = 10
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
