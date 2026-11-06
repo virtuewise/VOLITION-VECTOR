@@ -31,7 +31,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
      organization_invitation_rate_limits, opportunities, service_listings, audit_events
   TO vv_runtime;
-GRANT SELECT ON public_opportunities TO vv_runtime;
+GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
