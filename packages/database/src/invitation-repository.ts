@@ -1,4 +1,8 @@
 import { normalizeTenantId } from "./tenant-context.js";
+import type {
+  MembershipRole,
+  MembershipStatus,
+} from "./membership-repository.js";
 import {
   withTenantTransaction,
   type TenantConnectionPool,
@@ -23,6 +27,26 @@ export interface AcceptInvitationRecord {
   readonly tokenHash: Uint8Array;
   readonly accountId: string;
   readonly verifiedEmail: string;
+}
+
+export interface InvitationAuthorizationInput {
+  readonly actorAccountId: string;
+  readonly organizationId: string;
+  readonly membershipStatus: MembershipStatus;
+  readonly role: MembershipRole;
+  readonly requestedRole: "admin" | "member" | "viewer";
+  readonly activeOwnerCount: number;
+}
+
+export type InvitationAuthorizer = (
+  input: InvitationAuthorizationInput,
+) => boolean;
+
+export class InvitationAuthorizationError extends Error {
+  constructor() {
+    super("Invitation creation is not permitted.");
+    this.name = "InvitationAuthorizationError";
+  }
 }
 
 interface OrganizationRow {
@@ -51,6 +75,28 @@ function firstRow<T>(result: TenantQueryResult): T | undefined {
   return result.rows[0] as T | undefined;
 }
 
+function isMembershipRole(value: unknown): value is MembershipRole {
+  return (
+    value === "owner" ||
+    value === "admin" ||
+    value === "member" ||
+    value === "viewer"
+  );
+}
+
+function isMembershipStatus(value: unknown): value is MembershipStatus {
+  return value === "active" || value === "suspended" || value === "revoked";
+}
+
+interface ActorMembershipRow {
+  readonly role: unknown;
+  readonly status: unknown;
+}
+
+interface ActiveOwnerCountRow {
+  readonly active_owner_count: number | string;
+}
+
 function assertInvitationInput(input: CreatePendingInvitationRecord): void {
   if (
     input.tokenHash.byteLength !== 32 ||
@@ -68,7 +114,10 @@ function assertInvitationInput(input: CreatePendingInvitationRecord): void {
  * service.
  */
 export class PostgresInvitationRepository {
-  constructor(private readonly pool: TenantConnectionPool) {}
+  constructor(
+    private readonly pool: TenantConnectionPool,
+    private readonly authorize: InvitationAuthorizer = () => false,
+  ) {}
 
   async createPendingInvitation(
     input: CreatePendingInvitationRecord,
@@ -76,10 +125,50 @@ export class PostgresInvitationRepository {
     assertInvitationInput(input);
     const organizationId = normalizeTenantId(input.organizationId);
     return withTenantTransaction(this.pool, organizationId, async (client) => {
-      // Hash collisions only add contention; they cannot weaken the unique index.
+      // Share the membership mutation lock so role changes cannot race an invite.
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
-        [organizationId + ":" + input.invitedEmail],
+        ["organization-memberships:" + organizationId],
+      );
+
+      const actor = firstRow<ActorMembershipRow>(
+        await client.query(
+          "SELECT role, status FROM organization_memberships " +
+            "WHERE organization_id = $1 AND account_id = $2 FOR UPDATE",
+          [organizationId, input.invitedByAccountId],
+        ),
+      );
+      const ownerCount = firstRow<ActiveOwnerCountRow>(
+        await client.query(
+          "SELECT count(*)::int AS active_owner_count " +
+            "FROM organization_memberships " +
+            "WHERE organization_id = $1 AND role = 'owner' AND status = 'active'",
+          [organizationId],
+        ),
+      );
+      const activeOwnerCount = Number(ownerCount?.active_owner_count);
+      if (
+        !actor ||
+        !isMembershipRole(actor.role) ||
+        !isMembershipStatus(actor.status) ||
+        !Number.isSafeInteger(activeOwnerCount) ||
+        activeOwnerCount < 0 ||
+        !this.authorize({
+          actorAccountId: input.invitedByAccountId,
+          organizationId,
+          membershipStatus: actor.status,
+          role: actor.role,
+          requestedRole: input.role,
+          activeOwnerCount,
+        })
+      ) {
+        throw new InvitationAuthorizationError();
+      }
+
+      // Serialize replacement for this normalized organization/email pair.
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+        ["organization-invitations:" + organizationId + ":" + input.invitedEmail],
       );
       await client.query(
         "UPDATE organization_invitations SET revoked_at = clock_timestamp() " +
