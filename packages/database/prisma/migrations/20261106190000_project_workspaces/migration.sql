@@ -196,6 +196,43 @@ CREATE POLICY project_milestones_organization_update
     AND current_setting('app.actor_type', true) = 'organization'
   );
 
+CREATE FUNCTION enforce_project_milestone_update_actor()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $project_milestone_guard$
+BEGIN
+  IF current_setting('app.actor_type', true) = 'provider' THEN
+    IF NEW.id IS DISTINCT FROM OLD.id
+      OR NEW.organization_id IS DISTINCT FROM OLD.organization_id
+      OR NEW.project_id IS DISTINCT FROM OLD.project_id
+      OR NEW.title IS DISTINCT FROM OLD.title
+      OR NEW.description IS DISTINCT FROM OLD.description
+      OR NEW.sequence_number IS DISTINCT FROM OLD.sequence_number
+      OR NEW.due_at IS DISTINCT FROM OLD.due_at
+      OR NEW.accepted_at IS DISTINCT FROM OLD.accepted_at
+      OR NEW.accepted_by_account_id IS DISTINCT FROM OLD.accepted_by_account_id
+      OR NEW.created_at IS DISTINCT FROM OLD.created_at
+      OR NEW.status <> 'submitted'
+      OR NEW.submitted_at IS NULL
+    THEN
+      RAISE EXCEPTION 'Providers may only submit their assigned milestone'
+        USING ERRCODE = '42501';
+    END IF;
+  ELSIF current_setting('app.actor_type', true) IS DISTINCT FROM 'organization' THEN
+    RAISE EXCEPTION 'Project milestone updates require an authorized actor context'
+      USING ERRCODE = '42501';
+  END IF;
+
+  NEW.updated_at := clock_timestamp();
+  RETURN NEW;
+END;
+$project_milestone_guard$;
+
+CREATE TRIGGER project_milestones_update_actor_guard
+  BEFORE UPDATE ON project_milestones
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_project_milestone_update_actor();
+
 CREATE POLICY project_milestones_provider_submit
   ON project_milestones FOR UPDATE
   USING (
