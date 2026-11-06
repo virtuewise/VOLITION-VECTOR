@@ -111,6 +111,25 @@ describe("PostgresOpportunityRepository", () => {
     expect(query.mock.calls[6]?.[0]).toBe("COMMIT");
   });
 
+  it("rejects an already-expired draft before opening a tenant transaction", async () => {
+    const { pool, connect } = createTransactionalPool([]);
+    const repository = new PostgresOpportunityRepository(pool, () => true);
+
+    await expect(
+      repository.createDraft({
+        organizationId,
+        actorAccountId,
+        slug: "expired-role",
+        title: "Expired role",
+        summary: "This role has expired",
+        description: "An expired opportunity must not be published.",
+        opportunityType: "employment",
+        expiresAt: new Date("2020-01-01T00:00:00.000Z"),
+      }),
+    ).rejects.toBeInstanceOf(OpportunityInputError);
+    expect(connect).not.toHaveBeenCalled();
+  });
+
   it("denies draft creation when the policy callback rejects the actor", async () => {
     const { pool, query } = createTransactionalPool([
       [],
