@@ -21,6 +21,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106150000_service_listings/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106170000_opportunity_applications/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106190000_immutable_journal/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -34,6 +36,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE
      organization_invitation_rate_limits, opportunities, opportunity_applications, service_listings, audit_events
   TO vv_runtime;
 GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
+GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
@@ -299,7 +302,9 @@ SELECT
         'opportunities',
         'opportunity_applications',
         'service_listings',
-        'audit_events'
+        'audit_events',
+        'journal_entries',
+        'journal_entry_lines'
       ]::text[])
       AND (
         c.relowner = role.oid OR
@@ -317,7 +322,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 8
+    SELECT count(*) = 10
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -329,7 +334,9 @@ SELECT
         'opportunities',
         'opportunity_applications',
         'service_listings',
-        'audit_events'
+        'audit_events',
+        'journal_entries',
+        'journal_entry_lines'
       ]::text[])
       AND c.relrowsecurity
       AND c.relforcerowsecurity
@@ -624,5 +631,7 @@ fi
 assert_count organization_memberships "$TENANT_ONE" 2
 assert_count audit_events "$TENANT_ONE" 2
 assert_count audit_events "$TENANT_TWO" 1
+
+bash "$ROOT_DIR/tests/integration/payments-journal.sh"
 
 echo "PostgreSQL tenant RLS, append-only audit and concurrent owner-continuity checks passed."
