@@ -468,6 +468,35 @@ cross_applicant_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM opportunity_applications WHERE applicant_account_id = '55555555-5555-4555-8555-555555555555';"
 )"
+project_provider_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM project_workspaces;"
+)"
+if [[ "$project_provider_count" != "1" ]]; then
+  echo "The accepted applicant could not read their project workspace." >&2
+  exit 1
+fi
+project_nonparticipant_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM project_workspaces;"
+)"
+if [[ "$project_nonparticipant_count" != "0" ]]; then
+  echo "A non-participant read another account's project workspace." >&2
+  exit 1
+fi
+provider_milestone_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM project_milestones;"
+)"
+if [[ "$provider_milestone_count" != "1" ]]; then
+  echo "The project provider could not read the project milestone." >&2
+  exit 1
+fi
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'provider'; UPDATE project_milestones SET status = 'submitted', submitted_at = clock_timestamp() WHERE project_id = '99999999-9999-4999-8999-999999999998' AND sequence_number = 1;"
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SET app.actor_type = 'organization'; UPDATE project_milestones SET status = 'accepted', accepted_at = clock_timestamp(), accepted_by_account_id = '$ACCOUNT_ONE' WHERE project_id = '99999999-9999-4999-8999-999999999998' AND sequence_number = 1;"
+
 if [[ "$cross_applicant_count" != "0" ]]; then
   echo "An applicant read another candidate's application." >&2
   exit 1
