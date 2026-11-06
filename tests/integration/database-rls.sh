@@ -21,7 +21,7 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106150000_service_listings/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106170000_opportunity_applications/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \\
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106190000_application_conversations/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106190000_immutable_journal/migration.sql"
