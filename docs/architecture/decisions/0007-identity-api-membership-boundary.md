@@ -30,14 +30,15 @@ connection string or credentials are supplied by this decision.
 
 ## Security and integration boundaries
 
-No OIDC provider, session store, JWT verifier or production database credentials
-are selected or configured by this decision. The PostgreSQL adapter verifies at
-startup that the configured role is not a superuser, does not have BYPASSRLS,
-does not own tenant tables, and that every tenant table has ENABLE and FORCE
-ROW LEVEL SECURITY. Without `DATABASE_URL`, the default command returns HTTP
-503. In the current application no middleware populates `request.user`, so
-requests fail closed with HTTP 401. This remains a partial integration, not
-production authentication or a production deployment.
+No OIDC provider, session store, JWT verifier or production database
+credentials have been selected or configured by this decision. The
+PostgreSQL adapter verifies at startup that the configured role is not a
+superuser, does not have BYPASSRLS, does not own tenant tables, and that
+every tenant table has ENABLE and FORCE ROW LEVEL SECURITY. Without
+`DATABASE_URL`, the default command returns HTTP 503. In the current
+application no middleware populates `request.user`, so requests fail closed
+with HTTP 401. This remains a partial integration, not production
+authentication or a production deployment.
 
 Before enabling these routes, select and configure the identity provider,
 verify claims and lifecycle at the authentication boundary, supply a
