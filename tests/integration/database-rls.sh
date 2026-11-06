@@ -13,6 +13,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261105145000_audit_event_truncate_guard/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261105153000_invitation_token_lookup/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106110000_invitation_rate_limits/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -22,7 +24,8 @@ CREATE ROLE vv_runtime
 GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
-  ON organizations, organization_memberships, organization_invitations, audit_events
+  ON organizations, organization_memberships, organization_invitations,
+     organization_invitation_rate_limits, audit_events
   TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
@@ -82,6 +85,26 @@ VALUES
     decode(repeat('02', 32), 'hex'),
     '22222222-2222-4222-8222-222222222222',
     now() + interval '1 day'
+  );
+
+INSERT INTO organization_invitation_rate_limits
+  (organization_id, scope, scope_hash, window_started_at, attempt_count, last_attempt_at)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'actor',
+    decode(repeat('11', 32), 'hex'),
+    now(),
+    1,
+    now()
+  ),
+  (
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    'actor',
+    decode(repeat('22', 32), 'hex'),
+    now(),
+    1,
+    now()
   );
 
 INSERT INTO audit_events
@@ -150,6 +173,7 @@ SELECT
         'organizations',
         'organization_memberships',
         'organization_invitations',
+        'organization_invitation_rate_limits',
         'audit_events'
       ]::text[])
       AND (
@@ -168,7 +192,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 4
+    SELECT count(*) = 5
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -176,6 +200,7 @@ SELECT
         'organizations',
         'organization_memberships',
         'organization_invitations',
+        'organization_invitation_rate_limits',
         'audit_events'
       ]::text[])
       AND c.relrowsecurity
@@ -190,7 +215,7 @@ if [[ "$runtime_role_safe" != "t" ]]; then
   exit 1
 fi
 
-for table in organizations organization_memberships organization_invitations audit_events; do
+for table in organizations organization_memberships organization_invitations organization_invitation_rate_limits audit_events; do
   assert_count "$table" "$TENANT_ONE" 1
   assert_count "$table" "$TENANT_TWO" 1
 done
@@ -228,6 +253,9 @@ expect_failure "cross-tenant organization insert" \
 
 expect_failure "cross-tenant membership insert" \
   "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO organization_memberships (organization_id, account_id, role) VALUES ('$TENANT_TWO', '$ACCOUNT_ONE', 'member');"
+
+expect_failure "cross-tenant invitation rate-limit insert" \
+  "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO organization_invitation_rate_limits (organization_id, scope, scope_hash, window_started_at, attempt_count, last_attempt_at) VALUES ('$TENANT_TWO', 'actor', decode(repeat('33', 32), 'hex'), now(), 1, now());"
 
 expect_failure "audit event update" \
   "SET app.tenant_id = '$TENANT_ONE'; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
