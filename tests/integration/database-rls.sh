@@ -302,7 +302,8 @@ SELECT
         'opportunities',
         'opportunity_applications',
         'service_listings',
-        'audit_events'
+        'audit_events',
+        'trust_evidence'
       ]::text[])
       AND (
         c.relowner = role.oid OR
@@ -320,7 +321,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 8
+    SELECT count(*) = 9
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
