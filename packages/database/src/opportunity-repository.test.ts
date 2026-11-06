@@ -186,7 +186,13 @@ describe("PostgresOpportunityRepository", () => {
       isCreator: true,
       currentStatus: "draft",
     });
-    expect(query.mock.calls[5]?.[0]).toContain("status = 'published'");
+    expect(query.mock.calls[5]?.[0]).toContain("SET status = $3");
+    expect(query.mock.calls[5]?.[1]).toEqual([
+      organizationId,
+      opportunityId,
+      "published",
+      ["draft", "paused"],
+    ]);
     expect(query.mock.calls[6]?.[0]).toContain("INSERT INTO audit_events");
     expect(query.mock.calls[7]?.[0]).toBe("COMMIT");
   });
