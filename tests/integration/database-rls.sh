@@ -529,6 +529,12 @@ expect_failure "cross-tenant service listing insert" \
 expect_failure "cross-tenant application insert" \
   "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'applicant'; INSERT INTO opportunity_applications (organization_id, opportunity_id, applicant_account_id, opportunity_slug_snapshot, opportunity_title_snapshot, opportunity_type_snapshot) SELECT organization_id, id, '44444444-4444-4444-8444-444444444444', slug, title, opportunity_type FROM opportunities WHERE slug = 'tenant-two-public';"
 
+expect_failure "project creation from unaccepted application" \
+  "SET app.tenant_id = '$TENANT_TWO'; SET app.actor_type = 'organization'; INSERT INTO project_workspaces (organization_id, opportunity_application_id, opportunity_id, client_account_id, provider_account_id, title, description) SELECT organization_id, id, opportunity_id, '22222222-2222-4222-8222-222222222222', applicant_account_id, 'Premature project', 'Must require accepted application' FROM opportunity_applications WHERE applicant_account_id = '55555555-5555-4555-8555-555555555555';"
+
+expect_failure "project provider must match accepted applicant" \
+  "SET app.tenant_id = '$TENANT_ONE'; SET app.actor_type = 'organization'; INSERT INTO project_workspaces (organization_id, opportunity_application_id, opportunity_id, client_account_id, provider_account_id, title, description) SELECT organization_id, id, opportunity_id, '11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555555', 'Wrong provider', 'Must be the accepted applicant' FROM opportunity_applications WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';"
+
 expect_failure "application insert for another applicant" \
   "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'applicant'; INSERT INTO opportunity_applications (organization_id, opportunity_id, applicant_account_id, opportunity_slug_snapshot, opportunity_title_snapshot, opportunity_type_snapshot) SELECT organization_id, id, '55555555-5555-4555-8555-555555555555', slug, title, opportunity_type FROM opportunities WHERE slug = 'tenant-one-public';"
 
