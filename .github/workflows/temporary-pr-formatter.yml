@@ -1,0 +1,44 @@
+name: Temporary PR formatter
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/temporary-pr-formatter.yml"
+      - "apps/api/identity/invitations/postgres-invitation.repository.ts"
+      - "packages/database/src/invitation-repository.ts"
+      - "packages/database/src/invitation-repository.test.ts"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'identity/invitation-transaction-authorization'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - name: Install pinned pnpm
+        run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format changed files
+        run: pnpm exec prettier --write apps/api/identity/invitations/postgres-invitation.repository.ts packages/database/src/invitation-repository.ts packages/database/src/invitation-repository.test.ts
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+users.noreply.github.com"
+          git add apps/api/identity/invitations/postgres-invitation.repository.ts packages/database/src/invitation-repository.ts packages/database/src/invitation-repository.test.ts
+          git commit -m "style(identity): format invitation authorization adapter"
+          git push
