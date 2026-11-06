@@ -272,6 +272,15 @@ describe("canManageOpportunity", () => {
     expect(canManageOpportunity(opportunityRequest)).toBe(true);
   });
 
+  it("denies viewers from creating opportunity drafts", () => {
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        role: "viewer",
+      }),
+    ).toBe(false);
+  });
+
   it("allows a creator member to edit only their own draft", () => {
     expect(
       canManageOpportunity({
