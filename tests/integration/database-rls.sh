@@ -420,6 +420,27 @@ if [[ "$private_service_count" != "0" ]]; then
   exit 1
 fi
 
+tenant_one_applications="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM opportunity_applications;"
+)"
+tenant_two_applications="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM opportunity_applications;"
+)"
+if [[ "$tenant_one_applications" != "1" || "$tenant_two_applications" != "1" ]]; then
+  echo "Applicant-scoped RLS did not isolate each candidate's own applications." >&2
+  exit 1
+fi
+cross_applicant_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM opportunity_applications WHERE applicant_account_id = '55555555-5555-4555-8555-555555555555';"
+)"
+if [[ "$cross_applicant_count" != "0" ]]; then
+  echo "An applicant read another candidate's application." >&2
+  exit 1
+fi
+
 private_public_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT count(*) FROM public_opportunities WHERE slug = 'tenant-one-private-draft';"
@@ -443,6 +464,12 @@ expect_failure "cross-tenant opportunity insert" \
 
 expect_failure "cross-tenant service listing insert" \
   "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO service_listings (organization_id, created_by_account_id, slug, title, summary, description, category, pricing_model) VALUES ('$TENANT_TWO', '$ACCOUNT_ONE', 'cross-tenant-service', 'Cross tenant service', 'Must fail', 'Cross tenant service', 'consulting', 'quote');"
+
+expect_failure "cross-tenant application insert" \
+  "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'applicant'; INSERT INTO opportunity_applications (organization_id, opportunity_id, applicant_account_id, opportunity_slug_snapshot, opportunity_title_snapshot, opportunity_type_snapshot) SELECT organization_id, id, '44444444-4444-4444-8444-444444444444', slug, title, opportunity_type FROM opportunities WHERE slug = 'tenant-two-public';"
+
+expect_failure "application insert for another applicant" \
+  "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'applicant'; INSERT INTO opportunity_applications (organization_id, opportunity_id, applicant_account_id, opportunity_slug_snapshot, opportunity_title_snapshot, opportunity_type_snapshot) SELECT organization_id, id, '55555555-5555-4555-8555-555555555555', slug, title, opportunity_type FROM opportunities WHERE slug = 'tenant-one-public';"
 
 expect_failure "audit event update" \
   "SET app.tenant_id = '$TENANT_ONE'; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
