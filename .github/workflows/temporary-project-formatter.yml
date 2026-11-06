@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   format:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'project/workspace-foundation'
+    if: github.repository == 'virtuewise/VOLITION-VECTOR' && github.ref == 'refs/heads/project/workspace-foundation'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
