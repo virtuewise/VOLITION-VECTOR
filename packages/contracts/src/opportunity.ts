@@ -24,7 +24,7 @@ export interface PublicOpportunity {
   readonly slug: string;
   readonly title: string;
   readonly summary: string;
-  readonly type: OpportunityType;
+  readonly opportunityType: OpportunityType;
   readonly locationLabel: string | null;
   readonly isRemote: boolean;
   readonly compensationMin: string | null;
@@ -36,7 +36,7 @@ export interface PublicOpportunity {
 
 export interface PublicOpportunitySearch {
   readonly query?: string;
-  readonly type?: OpportunityType;
+  readonly opportunityType?: OpportunityType;
   readonly limit?: number;
   readonly offset?: number;
 }
