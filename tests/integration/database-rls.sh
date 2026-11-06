@@ -492,6 +492,9 @@ if [[ "$provider_milestone_count" != "1" ]]; then
   echo "The project provider could not read the project milestone." >&2
   exit 1
 fi
+expect_failure "provider cannot rewrite milestone scope while submitting" \
+  "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'provider'; UPDATE project_milestones SET status = 'submitted', submitted_at = clock_timestamp(), title = 'Changed scope' WHERE project_id = '99999999-9999-4999-8999-999999999998' AND sequence_number = 1;"
+
 psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'provider'; UPDATE project_milestones SET status = 'submitted', submitted_at = clock_timestamp() WHERE project_id = '99999999-9999-4999-8999-999999999998' AND sequence_number = 1;"
 psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
