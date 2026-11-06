@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  assertBalancedJournalEntry,
-  JournalEntryValidationError,
-  type JournalEntryDraft,
-} from "./journal.js";
+import { assertBalancedJournalEntry, type JournalEntryDraft } from "./journal.js";
 
 const balancedEntry: JournalEntryDraft = {
   idempotencyKey: "provider-event-001",
@@ -43,19 +39,16 @@ describe("assertBalancedJournalEntry", () => {
           { accountCode: "customer_payable", side: "credit", amountMinor: 12499 },
         ],
       }),
-    ).toThrow(
-      expect.objectContaining<Partial<JournalEntryValidationError>>({
-        code: "unbalanced_entry",
-      }),
-    );
+    ).toThrow(expect.objectContaining({ code: "unbalanced_entry" }));
   });
 
   it("rejects entries with fewer than two lines", () => {
     expect(() =>
-      assertBalancedJournalEntry({ ...balancedEntry, lines: [balancedEntry.lines[0]!] }),
-    ).toThrow(
-      expect.objectContaining({ code: "invalid_lines" }),
-    );
+      assertBalancedJournalEntry({
+        ...balancedEntry,
+        lines: [balancedEntry.lines[0]!],
+      }),
+    ).toThrow(expect.objectContaining({ code: "invalid_lines" }));
   });
 
   it("rejects fractional, zero, negative and unsafe minor-unit amounts", () => {
