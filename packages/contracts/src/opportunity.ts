@@ -3,18 +3,10 @@ export type OpportunityId = string & {
 };
 
 export type OpportunityType =
-  | "employment"
-  | "project"
-  | "tender"
-  | "partnership"
-  | "volunteering";
+  "employment" | "project" | "tender" | "partnership" | "volunteering";
 
 export type OpportunityStatus =
-  | "draft"
-  | "published"
-  | "paused"
-  | "closed"
-  | "archived";
+  "draft" | "published" | "paused" | "closed" | "archived";
 
 export type OpportunityVisibility = "public" | "organization";
 

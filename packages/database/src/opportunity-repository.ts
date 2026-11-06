@@ -7,17 +7,9 @@ import {
 } from "./tenant-transaction.js";
 
 export type OpportunityType =
-  | "employment"
-  | "project"
-  | "tender"
-  | "partnership"
-  | "volunteering";
+  "employment" | "project" | "tender" | "partnership" | "volunteering";
 export type OpportunityStatus =
-  | "draft"
-  | "published"
-  | "paused"
-  | "closed"
-  | "archived";
+  "draft" | "published" | "paused" | "closed" | "archived";
 export type OpportunityVisibility = "public" | "organization";
 export type OpportunityAction = "create" | "publish";
 
@@ -114,7 +106,9 @@ interface PublicOpportunityRow {
   readonly expires_at: Date | null;
 }
 
-function mapPublicOpportunity(row: PublicOpportunityRow): PublicOpportunityRecord {
+function mapPublicOpportunity(
+  row: PublicOpportunityRow,
+): PublicOpportunityRecord {
   return {
     id: row.id,
     organizationId: row.organization_id,
@@ -232,19 +226,27 @@ function validateCreateInput(input: CreateOpportunityInput): void {
     input.slug.length > 64 ||
     !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(input.slug)
   ) {
-    throw new OpportunityInputError("A valid lowercase opportunity slug is required.");
+    throw new OpportunityInputError(
+      "A valid lowercase opportunity slug is required.",
+    );
   }
   if (input.title.trim().length < 1 || input.title.trim().length > 160) {
-    throw new OpportunityInputError("Opportunity title must be 1 to 160 characters.");
+    throw new OpportunityInputError(
+      "Opportunity title must be 1 to 160 characters.",
+    );
   }
   if (input.summary.trim().length < 1 || input.summary.trim().length > 320) {
-    throw new OpportunityInputError("Opportunity summary must be 1 to 320 characters.");
+    throw new OpportunityInputError(
+      "Opportunity summary must be 1 to 320 characters.",
+    );
   }
   if (
     input.description.trim().length < 1 ||
     input.description.trim().length > 10_000
   ) {
-    throw new OpportunityInputError("Opportunity description must be 1 to 10000 characters.");
+    throw new OpportunityInputError(
+      "Opportunity description must be 1 to 10000 characters.",
+    );
   }
   if (!isOpportunityType(input.opportunityType)) {
     throw new OpportunityInputError("Opportunity type is invalid.");
@@ -252,11 +254,10 @@ function validateCreateInput(input: CreateOpportunityInput): void {
   if (!isVisibility(input.visibility ?? "public")) {
     throw new OpportunityInputError("Opportunity visibility is invalid.");
   }
-  if (
-    input.locationLabel != null &&
-    input.locationLabel.trim().length > 200
-  ) {
-    throw new OpportunityInputError("Opportunity location must be at most 200 characters.");
+  if (input.locationLabel != null && input.locationLabel.trim().length > 200) {
+    throw new OpportunityInputError(
+      "Opportunity location must be at most 200 characters.",
+    );
   }
   if (input.isRemote != null && typeof input.isRemote !== "boolean") {
     throw new OpportunityInputError("Opportunity remote flag must be boolean.");
@@ -270,14 +271,18 @@ function validateCreateInput(input: CreateOpportunityInput): void {
     (maximum !== null && (!Number.isFinite(maximum) || maximum < 0)) ||
     (minimum !== null && maximum !== null && maximum < minimum)
   ) {
-    throw new OpportunityInputError("Opportunity compensation range is invalid.");
+    throw new OpportunityInputError(
+      "Opportunity compensation range is invalid.",
+    );
   }
   if (
     ((minimum !== null || maximum !== null) &&
       (!currency || !/^[A-Z]{3}$/.test(currency))) ||
     (minimum === null && maximum === null && currency !== null)
   ) {
-    throw new OpportunityInputError("A three-letter currency is required with compensation.");
+    throw new OpportunityInputError(
+      "A three-letter currency is required with compensation.",
+    );
   }
   if (!isValidDate(input.startsAt) || !isValidDate(input.expiresAt)) {
     throw new OpportunityInputError("Opportunity dates must be valid.");
@@ -287,7 +292,9 @@ function validateCreateInput(input: CreateOpportunityInput): void {
     input.expiresAt &&
     input.expiresAt.getTime() <= input.startsAt.getTime()
   ) {
-    throw new OpportunityInputError("Opportunity expiry must follow its start date.");
+    throw new OpportunityInputError(
+      "Opportunity expiry must follow its start date.",
+    );
   }
 }
 
@@ -320,10 +327,9 @@ async function lockOrganizationMemberships(
   client: TenantTransactionClient,
   organizationId: string,
 ): Promise<void> {
-  await client.query(
-    "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
-    ["organization-memberships:" + organizationId],
-  );
+  await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [
+    "organization-memberships:" + organizationId,
+  ]);
 }
 
 export class PostgresOpportunityRepository {
@@ -428,7 +434,9 @@ export class PostgresOpportunityRepository {
     });
   }
 
-  async publish(input: PublishOpportunityInput): Promise<OpportunityRecord | null> {
+  async publish(
+    input: PublishOpportunityInput,
+  ): Promise<OpportunityRecord | null> {
     const organizationId = normalizeTenantId(input.organizationId);
     const actorAccountId = normalizeTenantId(input.actorAccountId);
     const opportunityId = normalizeTenantId(input.opportunityId);
@@ -515,7 +523,9 @@ export class PostgresOpportunityRepository {
       (input.opportunityType !== undefined &&
         !isOpportunityType(input.opportunityType))
     ) {
-      throw new OpportunityInputError("Public opportunity search parameters are invalid.");
+      throw new OpportunityInputError(
+        "Public opportunity search parameters are invalid.",
+      );
     }
 
     const connection = await this.pool.connect();

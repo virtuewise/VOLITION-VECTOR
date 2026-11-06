@@ -197,19 +197,10 @@ export function canManageOrganizationMembership(
 }
 
 export type OpportunityLifecycleStatus =
-  | "draft"
-  | "published"
-  | "paused"
-  | "closed"
-  | "archived";
+  "draft" | "published" | "paused" | "closed" | "archived";
 
 export type OpportunityManagementAction =
-  | "create"
-  | "edit"
-  | "publish"
-  | "pause"
-  | "close"
-  | "archive";
+  "create" | "edit" | "publish" | "pause" | "close" | "archive";
 
 export interface OpportunityManagementRequest {
   readonly actorAccountId: string | null;

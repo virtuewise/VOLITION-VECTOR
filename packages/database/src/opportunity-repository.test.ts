@@ -97,10 +97,7 @@ describe("PostgresOpportunityRepository", () => {
     expect(query.mock.calls[2]?.[1]).toEqual([
       "organization-memberships:" + organizationId,
     ]);
-    expect(query.mock.calls[3]?.[1]).toEqual([
-      organizationId,
-      actorAccountId,
-    ]);
+    expect(query.mock.calls[3]?.[1]).toEqual([organizationId, actorAccountId]);
     expect(authorize).toHaveBeenCalledWith({
       actorAccountId,
       organizationId,

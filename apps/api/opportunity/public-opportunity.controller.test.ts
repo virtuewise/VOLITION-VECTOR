@@ -44,24 +44,26 @@ describe("PublicOpportunityController", () => {
     await expect(
       controller.list({ unexpected: "value" }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
-      controller.list({ limit: "10items" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.list({ limit: "10items" })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it("maps repository search validation to HTTP 400", async () => {
     const repository: OpportunityRepositoryPort = {
       createDraft: vi.fn(),
       publish: vi.fn(),
-      listPublic: vi.fn().mockRejectedValue(
-        new OpportunityInputError("Invalid opportunity type."),
-      ),
+      listPublic: vi
+        .fn()
+        .mockRejectedValue(
+          new OpportunityInputError("Invalid opportunity type."),
+        ),
     };
     const controller = new PublicOpportunityController(repository);
 
-    await expect(
-      controller.list({ type: "unknown" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.list({ type: "unknown" })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it("fails closed with HTTP 503 when persistence is not configured", async () => {
