@@ -43,6 +43,37 @@ CREATE TABLE project_workspaces (
     )
 );
 
+CREATE FUNCTION enforce_project_workspace_from_accepted_application()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $
+DECLARE
+  source_application opportunity_applications%ROWTYPE;
+BEGIN
+  SELECT * INTO source_application
+  FROM opportunity_applications
+  WHERE organization_id = NEW.organization_id
+    AND id = NEW.opportunity_application_id
+  FOR SHARE;
+
+  IF NOT FOUND
+    OR source_application.status <> 'accepted'
+    OR source_application.applicant_account_id <> NEW.provider_account_id
+    OR source_application.opportunity_id <> NEW.opportunity_id
+  THEN
+    RAISE EXCEPTION 'Project workspaces require the accepted applicant and opportunity'
+      USING ERRCODE = '23514';
+  END IF;
+
+  RETURN NEW;
+END;
+$;
+
+CREATE TRIGGER project_workspaces_accepted_application_guard
+  BEFORE INSERT ON project_workspaces
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_project_workspace_from_accepted_application();
+
 CREATE INDEX project_workspaces_tenant_status_idx
   ON project_workspaces(organization_id, status, updated_at DESC);
 CREATE INDEX project_workspaces_client_idx
