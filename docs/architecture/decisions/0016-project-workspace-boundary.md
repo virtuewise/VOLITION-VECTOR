@@ -29,8 +29,11 @@ the two named participants.
   is a named participant.
 - Milestones are ordered and tenant-bound to their parent project. The
   organization manages milestone definitions and acceptance; only the named
-  provider can submit work on an active project. Acceptance and revision
-  requests are organization-side decisions.
+  provider can submit work on an active project. A database update guard
+  prevents provider submissions from changing milestone scope, sequence,
+  due date or organization acceptance fields. Organization-side decisions
+  include acceptance and revision requests. No milestone delete policy is
+  granted, preserving the delivery record.
 - Project and milestone tables enable and force PostgreSQL RLS and are added
   to the API startup check that refuses runtime roles when tenant tables do
   not enforce RLS.
