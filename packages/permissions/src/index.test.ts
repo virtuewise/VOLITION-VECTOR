@@ -5,6 +5,7 @@ import {
   canManageOpportunity,
   canManageServiceListing,
   canReviewOpportunityApplication,
+  canOpenApplicationConversation,
   type OpportunityManagementAction,
   type OrganizationAccessRequest,
   type OrganizationMembershipManagementRequest,
@@ -502,5 +503,28 @@ describe("canReviewOpportunityApplication", () => {
         currentStatus: "accepted",
       }),
     ).toBe(false);
+  });
+});
+
+
+describe("canOpenApplicationConversation", () => {
+  const request = {
+    actorAccountId: "owner-1",
+    organizationId: "org-1",
+    resourceOrganizationId: "org-1",
+    membershipStatus: "active" as const,
+    role: "owner" as const,
+    applicationStatus: "shortlisted" as const,
+  };
+
+  it("allows an active tenant owner to open a shortlisted application conversation", () => {
+    expect(canOpenApplicationConversation(request)).toBe(true);
+  });
+
+  it("denies members, inactive actors, cross-tenant access and unprogressed applications", () => {
+    expect(canOpenApplicationConversation({ ...request, role: "member" })).toBe(false);
+    expect(canOpenApplicationConversation({ ...request, membershipStatus: "suspended" })).toBe(false);
+    expect(canOpenApplicationConversation({ ...request, resourceOrganizationId: "org-2" })).toBe(false);
+    expect(canOpenApplicationConversation({ ...request, applicationStatus: "submitted" })).toBe(false);
   });
 });
