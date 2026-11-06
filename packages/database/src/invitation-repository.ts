@@ -1,3 +1,4 @@
+import { normalizeTenantId } from "./tenant-context.js";
 import {
   withTenantTransaction,
   type TenantConnectionPool,
@@ -73,20 +74,21 @@ export class PostgresInvitationRepository {
     input: CreatePendingInvitationRecord,
   ): Promise<CreatedInvitationRecord> {
     assertInvitationInput(input);
+    const organizationId = normalizeTenantId(input.organizationId);
     return withTenantTransaction(
       this.pool,
-      input.organizationId,
+      organizationId,
       async (client) => {
         // Hash collisions only add contention; they cannot weaken the unique index.
         await client.query(
           "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
-          [input.organizationId + ":" + input.invitedEmail],
+          [organizationId + ":" + input.invitedEmail],
         );
         await client.query(
           "UPDATE organization_invitations SET revoked_at = clock_timestamp() " +
             "WHERE organization_id = $1 AND lower(invited_email) = $2 " +
             "AND accepted_at IS NULL AND revoked_at IS NULL",
-          [input.organizationId, input.invitedEmail],
+          [organizationId, input.invitedEmail],
         );
         const inserted = firstRow<CreatedRow>(
           await client.query(
@@ -94,7 +96,7 @@ export class PostgresInvitationRepository {
               "(organization_id, invited_email, role, token_hash, invited_by_account_id, expires_at) " +
               "VALUES ($1, $2, $3, $4, $5, $6) RETURNING id::text AS id, expires_at",
             [
-              input.organizationId,
+              organizationId,
               input.invitedEmail,
               input.role,
               input.tokenHash,
@@ -116,15 +118,16 @@ export class PostgresInvitationRepository {
     readonly invitationId: string;
     readonly revokedAt: Date;
   }): Promise<void> {
+    const organizationId = normalizeTenantId(input.organizationId);
     await withTenantTransaction(
       this.pool,
-      input.organizationId,
+      organizationId,
       async (client) => {
         await client.query(
           "UPDATE organization_invitations SET revoked_at = $3 " +
             "WHERE organization_id = $1 AND id = $2 " +
             "AND accepted_at IS NULL AND revoked_at IS NULL",
-          [input.organizationId, input.invitationId, input.revokedAt],
+          [organizationId, input.invitationId, input.revokedAt],
         );
       },
     );
