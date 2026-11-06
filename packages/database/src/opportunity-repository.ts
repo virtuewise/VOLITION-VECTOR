@@ -298,6 +298,9 @@ function validateCreateInput(input: CreateOpportunityInput): void {
   if (!isValidDate(input.startsAt) || !isValidDate(input.expiresAt)) {
     throw new OpportunityInputError("Opportunity dates must be valid.");
   }
+  if (input.expiresAt && input.expiresAt.getTime() <= Date.now()) {
+    throw new OpportunityInputError("Opportunity expiry must be in the future.");
+  }
   if (
     input.startsAt &&
     input.expiresAt &&
