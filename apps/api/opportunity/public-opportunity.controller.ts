@@ -3,10 +3,14 @@ import {
   Controller,
   Get,
   Inject,
+  Query,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { OpportunityInputError } from "@volition/database";
-import type { OpportunityType } from "@volition/contracts";
+import type {
+  OpportunityType,
+  PublicOpportunityRecord,
+} from "@volition/database";
 import {
   OPPORTUNITY_REPOSITORY,
   type OpportunityRepositoryPort,
@@ -41,7 +45,7 @@ export class PublicOpportunityController {
   @Get()
   async list(
     @Query() query: Record<string, string | undefined>,
-  ): Promise<unknown> {
+  ): Promise<readonly PublicOpportunityRecord[]> {
     if (!this.repository) {
       throw new ServiceUnavailableException(
         "Opportunity discovery is not configured.",
