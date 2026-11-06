@@ -3,6 +3,7 @@ import {
   canAccessOrganization,
   canManageOrganizationMembership,
   canManageOpportunity,
+  canManageServiceListing,
   type OpportunityManagementAction,
   type OrganizationAccessRequest,
   type OrganizationMembershipManagementRequest,
