@@ -182,7 +182,14 @@ describe("PostgresOpportunityApplicationRepository", () => {
       }),
     ).rejects.toBeInstanceOf(OpportunityApplicationAuthorizationError);
 
-    expect(authorizeReview).not.toHaveBeenCalled();
+    expect(authorizeReview).toHaveBeenCalledWith({
+      reviewerAccountId,
+      organizationId,
+      role: "member",
+      membershipStatus: "active",
+      currentStatus: "submitted",
+      decision: "shortlisted",
+    });
     expect(
       query.mock.calls.some(([sql]) =>
         sql.startsWith("UPDATE opportunity_applications"),
