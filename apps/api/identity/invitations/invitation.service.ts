@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 export type InvitationRole = "admin" | "member" | "viewer";
 
 export const INVITATION_REPOSITORY = Symbol("INVITATION_REPOSITORY");
+export const INVITATION_RATE_LIMITER = Symbol("INVITATION_RATE_LIMITER");
 
 export interface CreateInvitationInput {
   readonly organizationId: string;

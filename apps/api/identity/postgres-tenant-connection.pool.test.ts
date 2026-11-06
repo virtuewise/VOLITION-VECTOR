@@ -61,6 +61,9 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[0]).toContain("relowner");
     expect(query.mock.calls[0]?.[0]).toContain("pg_has_role");
     expect(query.mock.calls[0]?.[0]).toContain("relforcerowsecurity");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain(
+      "organization_invitation_rate_limits",
+    );
   });
 
   it.each([
