@@ -90,3 +90,13 @@ export {
   ConversationConflictError,
   ConversationInputError,
 } from "./conversation-repository.js";
+export type {
+  ConversationAuthorizationInput,
+  ConversationAuthorizer,
+  ConversationMessageRecord,
+  ConversationParticipantType,
+  ConversationRecord,
+  ConversationStatus,
+  OpenApplicationConversationInput,
+  SendConversationMessageInput,
+} from "./conversation-repository.js";
