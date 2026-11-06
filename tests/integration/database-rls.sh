@@ -352,7 +352,8 @@ SELECT
         'opportunities',
         'opportunity_applications',
         'service_listings',
-        'audit_events'
+        'audit_events',
+        'trust_evidence'
       ]::text[])
       AND c.relrowsecurity
       AND c.relforcerowsecurity
