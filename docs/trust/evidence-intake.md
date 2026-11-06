@@ -15,7 +15,7 @@ The first Trust engine increment accepts private evidence references for an indi
 
 ## Lifecycle boundary
 
-New records enter as `submitted`. A separate `trust_evidence_decisions` table now records append-only decision history (`verified`, `rejected`, `revoked`, `expired`) with reviewer and timestamp metadata. Subjects can read only decisions attached to their own evidence; organization reads remain tenant-scoped through the evidence record. The runtime role receives SELECT only on this history and cannot insert, update, or delete decisions. A future increment must add a narrowly scoped reviewer authorization boundary and same-transaction audit events before any runtime decision write or evidence status transition is enabled. Issuer authority checks, revocation/expiry semantics and reviewer separation-of-duties remain deferred.
+New records enter as `submitted`. A separate `trust_evidence_decisions` table now records append-only decision history (`verified`, `rejected`, `revoked`, `expired`) with reviewer and timestamp metadata. Subjects can read only decisions attached to their own evidence; organization reads remain tenant-scoped through the evidence record. The runtime role receives SELECT only on this history and cannot insert, update, or delete decisions. A database guard also rejects self-review and decisions made by suspended or closed reviewer accounts, including if a future privileged writer is introduced. A future increment must add a narrowly scoped reviewer authorization boundary and same-transaction audit events before any runtime decision write or evidence status transition is enabled. Issuer authority checks, revocation/expiry semantics and reviewer separation-of-duties remain deferred.
 
 ## Deferred
 
