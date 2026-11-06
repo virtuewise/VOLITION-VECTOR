@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canAccessOrganization,
   canManageOrganizationMembership,
+  canManageOpportunity,
   type OrganizationAccessRequest,
   type OrganizationMembershipManagementRequest,
   type OrganizationRole,
@@ -252,4 +253,126 @@ it("fails closed for unknown runtime actions and revoked role changes", () => {
       requestedRole: "viewer",
     }),
   ).toBe(false);
+});
+
+const opportunityRequest = {
+  actorAccountId: "member-1",
+  organizationId: "org-1",
+  resourceOrganizationId: "org-1",
+  membershipStatus: "active" as const,
+  role: "member" as const,
+  action: "create" as const,
+  isCreator: true,
+  currentStatus: null,
+};
+
+describe("canManageOpportunity", () => {
+  it("allows an active member to create a draft opportunity", () => {
+    expect(canManageOpportunity(opportunityRequest)).toBe(true);
+  });
+
+  it("allows a creator member to edit only their own draft", () => {
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        action: "edit",
+        currentStatus: "draft",
+      }),
+    ).toBe(true);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        action: "edit",
+        isCreator: false,
+        currentStatus: "draft",
+      }),
+    ).toBe(false);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        action: "edit",
+        currentStatus: "published",
+      }),
+    ).toBe(false);
+  });
+
+  it("requires an owner or admin to publish, pause, close and archive", () => {
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        action: "publish",
+        currentStatus: "draft",
+      }),
+    ).toBe(false);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        role: "admin",
+        action: "publish",
+        currentStatus: "draft",
+      }),
+    ).toBe(true);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        role: "owner",
+        action: "pause",
+        currentStatus: "published",
+      }),
+    ).toBe(true);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        role: "admin",
+        action: "close",
+        currentStatus: "published",
+      }),
+    ).toBe(true);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        role: "viewer",
+        action: "archive",
+        currentStatus: "closed",
+      }),
+    ).toBe(false);
+  });
+
+  it("denies inactive, unauthenticated and cross-tenant actors", () => {
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        membershipStatus: "suspended",
+      }),
+    ).toBe(false);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        actorAccountId: null,
+      }),
+    ).toBe(false);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        resourceOrganizationId: "org-2",
+      }),
+    ).toBe(false);
+  });
+
+  it("fails closed for unknown actions and missing lifecycle state", () => {
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        action: "delete" as "archive",
+        currentStatus: "draft",
+      }),
+    ).toBe(false);
+    expect(
+      canManageOpportunity({
+        ...opportunityRequest,
+        action: "publish",
+        currentStatus: null,
+      }),
+    ).toBe(false);
+  });
 });
