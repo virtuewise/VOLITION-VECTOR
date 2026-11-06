@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import { normalizeTenantId } from "@volition/database";
 import { normalizeTenantId, withTenantTransaction } from "@volition/database";
 import type {
   TenantConnectionPool,
