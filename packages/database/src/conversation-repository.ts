@@ -27,7 +27,8 @@ export interface ConversationAuthorizationInput {
   readonly organizationId: string;
   readonly role: ConversationMembershipRole;
   readonly membershipStatus: ConversationMembershipStatus;
-  readonly applicationStatus: "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
+  readonly applicationStatus:
+    "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
 }
 
 export type ConversationAuthorizer = (
@@ -74,7 +75,8 @@ interface MessageRow {
 
 interface ApplicationRow {
   readonly applicant_account_id: string;
-  readonly status: "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
+  readonly status:
+    "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
 }
 
 interface MembershipRow {
@@ -90,10 +92,17 @@ function firstRow<T>(result: TenantQueryResult): T | undefined {
 }
 
 function isRole(value: unknown): value is ConversationMembershipRole {
-  return value === "owner" || value === "admin" || value === "member" || value === "viewer";
+  return (
+    value === "owner" ||
+    value === "admin" ||
+    value === "member" ||
+    value === "viewer"
+  );
 }
 
-function isMembershipStatus(value: unknown): value is ConversationMembershipStatus {
+function isMembershipStatus(
+  value: unknown,
+): value is ConversationMembershipStatus {
   return value === "active" || value === "suspended" || value === "revoked";
 }
 
@@ -217,14 +226,17 @@ export class PostgresConversationRepository {
     input: OpenApplicationConversationInput,
   ): Promise<ConversationRecord> {
     const organizationId = normalizeTenantId(input.organizationId);
-    const organizationAccountId = normalizeTenantId(input.organizationAccountId);
+    const organizationAccountId = normalizeTenantId(
+      input.organizationAccountId,
+    );
     const applicationId = normalizeTenantId(input.opportunityApplicationId);
 
     return withTenantTransaction(this.pool, organizationId, async (client) => {
       await setOrganizationActor(client, organizationAccountId);
-      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [
-        "organization-memberships:" + organizationId,
-      ]);
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+        ["organization-memberships:" + organizationId],
+      );
 
       const membership = firstRow<MembershipRow>(
         await client.query(
@@ -346,7 +358,8 @@ export class PostgresConversationRepository {
           [organizationId, conversationId, senderAccountId, body],
         ),
       );
-      if (!message) throw new Error("Conversation message insert returned no record.");
+      if (!message)
+        throw new Error("Conversation message insert returned no record.");
 
       await client.query(
         "INSERT INTO audit_events " +
@@ -380,27 +393,31 @@ export class PostgresConversationRepository {
       throw new ConversationInputError("Conversation pagination is invalid.");
     }
 
-    return withParticipantReadTransaction(this.pool, accountId, async (client) => {
-      const result = await client.query(
-        "SELECT conversation.id, conversation.organization_id, " +
-          "conversation.opportunity_application_id, conversation.created_by_account_id, " +
-          "conversation.status, conversation.created_at, " +
-          "(SELECT max(message.created_at) FROM messages AS message " +
-          " WHERE message.organization_id = conversation.organization_id " +
-          " AND message.conversation_id = conversation.id) AS last_message_at " +
-          "FROM conversations AS conversation " +
-          "JOIN conversation_participants AS participant " +
-          "ON participant.organization_id = conversation.organization_id " +
-          "AND participant.conversation_id = conversation.id " +
-          "WHERE participant.account_id = $1 " +
-          "ORDER BY coalesce((SELECT max(message.created_at) FROM messages AS message " +
-          " WHERE message.organization_id = conversation.organization_id " +
-          " AND message.conversation_id = conversation.id), conversation.created_at) DESC " +
-          "LIMIT $2 OFFSET $3",
-        [normalizeTenantId(accountId), limit, offset],
-      );
-      return (result.rows as readonly ConversationRow[]).map(mapConversation);
-    });
+    return withParticipantReadTransaction(
+      this.pool,
+      accountId,
+      async (client) => {
+        const result = await client.query(
+          "SELECT conversation.id, conversation.organization_id, " +
+            "conversation.opportunity_application_id, conversation.created_by_account_id, " +
+            "conversation.status, conversation.created_at, " +
+            "(SELECT max(message.created_at) FROM messages AS message " +
+            " WHERE message.organization_id = conversation.organization_id " +
+            " AND message.conversation_id = conversation.id) AS last_message_at " +
+            "FROM conversations AS conversation " +
+            "JOIN conversation_participants AS participant " +
+            "ON participant.organization_id = conversation.organization_id " +
+            "AND participant.conversation_id = conversation.id " +
+            "WHERE participant.account_id = $1 " +
+            "ORDER BY coalesce((SELECT max(message.created_at) FROM messages AS message " +
+            " WHERE message.organization_id = conversation.organization_id " +
+            " AND message.conversation_id = conversation.id), conversation.created_at) DESC " +
+            "LIMIT $2 OFFSET $3",
+          [normalizeTenantId(accountId), limit, offset],
+        );
+        return (result.rows as readonly ConversationRow[]).map(mapConversation);
+      },
+    );
   }
 
   async listMessages(
@@ -421,14 +438,18 @@ export class PostgresConversationRepository {
     }
 
     const normalizedConversationId = normalizeTenantId(conversationId);
-    return withParticipantReadTransaction(this.pool, accountId, async (client) => {
-      const result = await client.query(
-        "SELECT id, organization_id, conversation_id, sender_account_id, body, created_at " +
-          "FROM messages WHERE conversation_id = $1 " +
-          "ORDER BY created_at ASC, id LIMIT $2 OFFSET $3",
-        [normalizedConversationId, limit, offset],
-      );
-      return (result.rows as readonly MessageRow[]).map(mapMessage);
-    });
+    return withParticipantReadTransaction(
+      this.pool,
+      accountId,
+      async (client) => {
+        const result = await client.query(
+          "SELECT id, organization_id, conversation_id, sender_account_id, body, created_at " +
+            "FROM messages WHERE conversation_id = $1 " +
+            "ORDER BY created_at ASC, id LIMIT $2 OFFSET $3",
+          [normalizedConversationId, limit, offset],
+        );
+        return (result.rows as readonly MessageRow[]).map(mapMessage);
+      },
+    );
   }
 }

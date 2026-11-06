@@ -98,7 +98,9 @@ describe("PostgresConversationRepository", () => {
       applicationStatus: "shortlisted",
     });
     expect(query.mock.calls[6]?.[0]).toContain("INSERT INTO conversations");
-    expect(query.mock.calls[7]?.[0]).toContain("INSERT INTO conversation_participants");
+    expect(query.mock.calls[7]?.[0]).toContain(
+      "INSERT INTO conversation_participants",
+    );
     expect(query.mock.calls[8]?.[0]).toContain("INSERT INTO audit_events");
     expect(query.mock.calls[9]?.[0]).toBe("COMMIT");
   });
@@ -124,7 +126,9 @@ describe("PostgresConversationRepository", () => {
     ).rejects.toBeInstanceOf(ConversationAuthorizationError);
 
     expect(
-      query.mock.calls.some(([sql]) => sql.startsWith("INSERT INTO conversations")),
+      query.mock.calls.some(([sql]) =>
+        sql.startsWith("INSERT INTO conversations"),
+      ),
     ).toBe(false);
     expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
   });
@@ -223,9 +227,9 @@ describe("PostgresConversationRepository", () => {
     };
     const repository = new PostgresConversationRepository(pool);
 
-    await expect(repository.listMine(applicantAccountId)).resolves.toMatchObject([
-      { id: conversationId, organizationId },
-    ]);
+    await expect(
+      repository.listMine(applicantAccountId),
+    ).resolves.toMatchObject([{ id: conversationId, organizationId }]);
 
     expect(query.mock.calls[1]?.[0]).toContain("app.account_id");
     expect(query.mock.calls[2]?.[0]).toContain("conversation_participants");
@@ -243,7 +247,9 @@ describe("PostgresConversationRepository", () => {
 
     await expect(
       repository.listMessages(applicantAccountId, conversationId),
-    ).resolves.toMatchObject([{ id: messageId, senderAccountId: applicantAccountId }]);
+    ).resolves.toMatchObject([
+      { id: messageId, senderAccountId: applicantAccountId },
+    ]);
 
     expect(query.mock.calls[2]?.[0]).toContain("FROM messages");
     expect(query.mock.calls[2]?.[1]).toEqual([conversationId, 50, 0]);
@@ -251,7 +257,14 @@ describe("PostgresConversationRepository", () => {
   });
 
   it("returns a conflict when the application cannot be found", async () => {
-    const { pool } = createTransactionalPool([[], [], [], [], [{ role: "admin", status: "active" }], []]);
+    const { pool } = createTransactionalPool([
+      [],
+      [],
+      [],
+      [],
+      [{ role: "admin", status: "active" }],
+      [],
+    ]);
     const repository = new PostgresConversationRepository(pool, () => true);
 
     await expect(

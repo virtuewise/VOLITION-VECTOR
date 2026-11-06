@@ -506,7 +506,6 @@ describe("canReviewOpportunityApplication", () => {
   });
 });
 
-
 describe("canOpenApplicationConversation", () => {
   const request = {
     actorAccountId: "owner-1",
@@ -522,9 +521,26 @@ describe("canOpenApplicationConversation", () => {
   });
 
   it("denies members, inactive actors, cross-tenant access and unprogressed applications", () => {
-    expect(canOpenApplicationConversation({ ...request, role: "member" })).toBe(false);
-    expect(canOpenApplicationConversation({ ...request, membershipStatus: "suspended" })).toBe(false);
-    expect(canOpenApplicationConversation({ ...request, resourceOrganizationId: "org-2" })).toBe(false);
-    expect(canOpenApplicationConversation({ ...request, applicationStatus: "submitted" })).toBe(false);
+    expect(canOpenApplicationConversation({ ...request, role: "member" })).toBe(
+      false,
+    );
+    expect(
+      canOpenApplicationConversation({
+        ...request,
+        membershipStatus: "suspended",
+      }),
+    ).toBe(false);
+    expect(
+      canOpenApplicationConversation({
+        ...request,
+        resourceOrganizationId: "org-2",
+      }),
+    ).toBe(false);
+    expect(
+      canOpenApplicationConversation({
+        ...request,
+        applicationStatus: "submitted",
+      }),
+    ).toBe(false);
   });
 });

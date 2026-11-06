@@ -366,11 +366,15 @@ export function canOpenApplicationConversation(request: {
   readonly resourceOrganizationId: string;
   readonly membershipStatus: "active" | "suspended" | "revoked" | null;
   readonly role: OrganizationRole | null;
-  readonly applicationStatus: "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
+  readonly applicationStatus:
+    "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
 }): boolean {
-  return Boolean(request.actorAccountId?.trim()) &&
+  return (
+    Boolean(request.actorAccountId?.trim()) &&
     (request.role === "owner" || request.role === "admin") &&
     request.membershipStatus === "active" &&
     request.organizationId === request.resourceOrganizationId &&
-    (request.applicationStatus === "shortlisted" || request.applicationStatus === "accepted");
+    (request.applicationStatus === "shortlisted" ||
+      request.applicationStatus === "accepted")
+  );
 }
