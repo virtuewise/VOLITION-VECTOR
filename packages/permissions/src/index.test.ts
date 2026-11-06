@@ -507,7 +507,6 @@ describe("canReviewOpportunityApplication", () => {
   });
 });
 
-
 describe("project milestone authorization", () => {
   it("allows only the assigned provider to submit a milestone on an active project", () => {
     const request = {
@@ -540,11 +539,14 @@ describe("project milestone authorization", () => {
       decision: "accepted" as const,
     };
     expect(canReviewProjectMilestone(request)).toBe(true);
+    expect(canReviewProjectMilestone({ ...request, role: "member" })).toBe(
+      false,
+    );
     expect(
-      canReviewProjectMilestone({ ...request, role: "member" }),
-    ).toBe(false);
-    expect(
-      canReviewProjectMilestone({ ...request, resourceOrganizationId: "org-2" }),
+      canReviewProjectMilestone({
+        ...request,
+        resourceOrganizationId: "org-2",
+      }),
     ).toBe(false);
     expect(
       canReviewProjectMilestone({ ...request, milestoneStatus: "in_progress" }),

@@ -360,17 +360,12 @@ export function canReviewOpportunityApplication(
   );
 }
 
-
 export interface ProjectMilestoneSubmissionRequest {
   readonly actorAccountId: string | null;
   readonly providerAccountId: string;
   readonly projectStatus: "active" | "paused" | "completed" | "cancelled";
   readonly milestoneStatus:
-    | "pending"
-    | "in_progress"
-    | "submitted"
-    | "revision_requested"
-    | "accepted";
+    "pending" | "in_progress" | "submitted" | "revision_requested" | "accepted";
 }
 
 export function canSubmitProjectMilestone(
@@ -399,11 +394,7 @@ export interface ProjectMilestoneReviewRequest {
   readonly role: OrganizationRole | null;
   readonly projectStatus: "active" | "paused" | "completed" | "cancelled";
   readonly milestoneStatus:
-    | "pending"
-    | "in_progress"
-    | "submitted"
-    | "revision_requested"
-    | "accepted";
+    "pending" | "in_progress" | "submitted" | "revision_requested" | "accepted";
   readonly decision: "accepted" | "revision_requested";
 }
 
@@ -423,7 +414,6 @@ export function canReviewProjectMilestone(
   }
 
   return (
-    request.decision === "accepted" ||
-    request.decision === "revision_requested"
+    request.decision === "accepted" || request.decision === "revision_requested"
   );
 }

@@ -6,17 +6,10 @@ export type ProjectMilestoneId = string & {
 };
 
 export type ProjectWorkspaceStatus =
-  | "active"
-  | "paused"
-  | "completed"
-  | "cancelled";
+  "active" | "paused" | "completed" | "cancelled";
 
 export type ProjectMilestoneStatus =
-  | "pending"
-  | "in_progress"
-  | "submitted"
-  | "revision_requested"
-  | "accepted";
+  "pending" | "in_progress" | "submitted" | "revision_requested" | "accepted";
 
 export interface ProjectWorkspace {
   readonly id: ProjectWorkspaceId;
