@@ -274,8 +274,22 @@ for table in organizations organization_memberships organization_invitations org
   assert_count "$table" "$TENANT_ONE" 1
   assert_count "$table" "$TENANT_TWO" 1
 done
-assert_count opportunities "$TENANT_ONE" 2
-assert_count opportunities "$TENANT_TWO" 1
+# Public rows are visible across tenants; drafts remain tenant-private.
+assert_count opportunities "$TENANT_ONE" 3
+assert_count opportunities "$TENANT_TWO" 2
+
+tenant_one_drafts="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM opportunities WHERE status = 'draft';"
+)"
+tenant_two_drafts="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_TWO'; SELECT count(*) FROM opportunities WHERE status = 'draft';"
+)"
+if [[ "$tenant_one_drafts" != "1" || "$tenant_two_drafts" != "0" ]]; then
+  echo "Private opportunity drafts crossed tenant boundaries." >&2
+  exit 1
+fi
 
 # A SHA-256 bearer-token hash can locate exactly one invitation before the
 # tenant is known. A non-matching hash must reveal no invitation rows.
