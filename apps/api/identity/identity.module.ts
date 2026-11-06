@@ -12,7 +12,11 @@ import {
   PostgresTenantConnectionPool,
 } from "./postgres-tenant-connection.pool.js";
 import { PostgresMembershipMutationCommand } from "./postgres-membership-mutation.command.js";
-import { INVITATION_REPOSITORY } from "./invitations/invitation.service.js";
+import {
+  INVITATION_RATE_LIMITER,
+  INVITATION_REPOSITORY,
+} from "./invitations/invitation.service.js";
+import { PostgresInvitationRateLimiter } from "./invitations/postgres-invitation.rate-limiter.js";
 import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invitation.repository.js";
 
 @Module({
@@ -28,6 +32,12 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
           ? createPostgresTenantConnectionPool(connectionString)
           : null;
       },
+    },
+    {
+      provide: INVITATION_RATE_LIMITER,
+      inject: [PostgresTenantConnectionPool],
+      useFactory: (pool: PostgresTenantConnectionPool | null) =>
+        pool ? new PostgresInvitationRateLimiter(pool) : null,
     },
     {
       provide: INVITATION_REPOSITORY,
@@ -46,6 +56,10 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
           : new UnconfiguredMembershipMutationCommand(),
     },
   ],
-  exports: [OrganizationMembershipApplicationService, INVITATION_REPOSITORY],
+  exports: [
+    OrganizationMembershipApplicationService,
+    INVITATION_REPOSITORY,
+    INVITATION_RATE_LIMITER,
+  ],
 })
 export class IdentityModule {}
