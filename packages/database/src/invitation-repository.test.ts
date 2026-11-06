@@ -41,7 +41,7 @@ describe("PostgresInvitationRepository", () => {
     const repository = new PostgresInvitationRepository(pool);
     await expect(
       repository.createPendingInvitation({
-        organizationId,
+        organizationId: organizationId.toUpperCase(),
         invitedEmail,
         role: "member",
         tokenHash,
@@ -58,7 +58,32 @@ describe("PostgresInvitationRepository", () => {
       expect.stringContaining("INSERT INTO organization_invitations"),
       "COMMIT",
     ]);
+    expect(query.mock.calls[1]?.[1]).toEqual([organizationId]);
+    expect(query.mock.calls[2]?.[1]).toEqual([
+      organizationId + ":" + invitedEmail,
+    ]);
+    expect(query.mock.calls[3]?.[1]).toEqual([organizationId, invitedEmail]);
     expect(query.mock.calls[4]?.[1]).toContain(tokenHash);
+  });
+
+  it("uses the canonical tenant UUID when revoking an invitation", async () => {
+    const { pool, query } = createPool([[], [], []]);
+    const repository = new PostgresInvitationRepository(pool);
+
+    await expect(
+      repository.revokePendingInvitation({
+        organizationId: organizationId.toUpperCase(),
+        invitationId: "invitation-1",
+        revokedAt: new Date("2026-11-05T10:00:00.000Z"),
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(query.mock.calls[1]?.[1]).toEqual([organizationId]);
+    expect(query.mock.calls[2]?.[1]).toEqual([
+      organizationId,
+      "invitation-1",
+      new Date("2026-11-05T10:00:00.000Z"),
+    ]);
   });
 
   it("rejects a token lookup that does not resolve an invitation", async () => {
