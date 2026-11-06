@@ -15,8 +15,9 @@ discoverable outside their tenant.
 
 - Store service offers in a tenant-owned `service_listings` table.
 - New records begin as drafts. Active owners, admins and members may create
-  drafts. Creator members may edit only their own draft; owners/admins may edit
-  drafts or paused offers and publish them.
+  drafts. Only owners/admins may publish drafts or paused offers. Editing and
+  further lifecycle transitions remain deferred until their application
+  boundary and state machine are implemented.
 - Represent pricing explicitly as fixed, hourly, starting-at or quote-based.
   Quote-based offers must not carry a price or currency; priced offers require
   a non-negative amount and a three-letter ISO currency code.
