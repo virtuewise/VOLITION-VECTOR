@@ -21,9 +21,7 @@ export class PostgresMembershipMutationCommand implements MembershipMutationComm
     );
   }
 
-  mutate(
-    input: MembershipMutationInput,
-  ): Promise<MembershipMutationResult | null> {
+  mutate(input: MembershipMutationInput): Promise<MembershipMutationResult | null> {
     return this.repository.mutate(input);
   }
 }
