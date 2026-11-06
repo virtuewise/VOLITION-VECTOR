@@ -12,6 +12,8 @@ import {
   PostgresTenantConnectionPool,
 } from "./postgres-tenant-connection.pool.js";
 import { PostgresMembershipMutationCommand } from "./postgres-membership-mutation.command.js";
+import { INVITATION_REPOSITORY } from "./invitations/invitation.service.js";
+import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invitation.repository.js";
 
 @Module({
   controllers: [OrganizationMembershipController],
@@ -28,6 +30,12 @@ import { PostgresMembershipMutationCommand } from "./postgres-membership-mutatio
       },
     },
     {
+      provide: INVITATION_REPOSITORY,
+      inject: [PostgresTenantConnectionPool],
+      useFactory: (pool: PostgresTenantConnectionPool | null) =>
+        pool ? new PostgresInvitationRepositoryAdapter(pool) : null,
+    },
+    {
       provide: MEMBERSHIP_MUTATION_COMMAND,
       inject: [PostgresTenantConnectionPool],
       useFactory: (
@@ -38,6 +46,6 @@ import { PostgresMembershipMutationCommand } from "./postgres-membership-mutatio
           : new UnconfiguredMembershipMutationCommand(),
     },
   ],
-  exports: [OrganizationMembershipApplicationService],
+  exports: [OrganizationMembershipApplicationService, INVITATION_REPOSITORY],
 })
 export class IdentityModule {}
