@@ -247,6 +247,44 @@ INSERT INTO trust_evidence_decisions
     'rejected', 'Fixture decision for candidate two'
   );
 
+DO $trust_review_guards$
+BEGIN
+  BEGIN
+    INSERT INTO trust_evidence_decisions
+      (evidence_id, reviewer_account_id, decision)
+    VALUES (
+      '99999999-9999-4999-8999-999999999991',
+      '44444444-4444-4444-8444-444444444444',
+      'verified'
+    );
+    RAISE EXCEPTION 'self-review unexpectedly succeeded';
+  EXCEPTION
+    WHEN check_violation THEN NULL;
+  END;
+
+  UPDATE accounts
+  SET status = 'suspended'
+  WHERE id = '11111111-1111-4111-8111-111111111111';
+
+  BEGIN
+    INSERT INTO trust_evidence_decisions
+      (evidence_id, reviewer_account_id, decision)
+    VALUES (
+      '99999999-9999-4999-8999-999999999992',
+      '11111111-1111-4111-8111-111111111111',
+      'rejected'
+    );
+    RAISE EXCEPTION 'suspended reviewer unexpectedly succeeded';
+  EXCEPTION
+    WHEN check_violation THEN NULL;
+  END;
+
+  UPDATE accounts
+  SET status = 'active'
+  WHERE id = '11111111-1111-4111-8111-111111111111';
+END;
+$trust_review_guards$;
+
 INSERT INTO opportunity_applications (
   organization_id, opportunity_id, applicant_account_id,
   opportunity_slug_snapshot, opportunity_title_snapshot,
