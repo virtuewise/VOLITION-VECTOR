@@ -464,6 +464,27 @@ if [[ "$cross_applicant_count" != "0" ]]; then
   exit 1
 fi
 
+candidate_one_evidence="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM trust_evidence;"
+)"
+candidate_two_evidence="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM trust_evidence;"
+)"
+if [[ "$candidate_one_evidence" != "1" || "$candidate_two_evidence" != "1" ]]; then
+  echo "Account-scoped trust evidence RLS did not isolate each subject." >&2
+  exit 1
+fi
+cross_evidence_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM trust_evidence WHERE subject_account_id = '55555555-5555-4555-8555-555555555555';"
+)"
+if [[ "$cross_evidence_count" != "0" ]]; then
+  echo "An account read another candidate's trust evidence." >&2
+  exit 1
+fi
+
 private_public_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT count(*) FROM public_opportunities WHERE slug = 'tenant-one-private-draft';"
