@@ -183,11 +183,14 @@ export class PostgresInvitationRateLimiter implements InvitationRateLimiter {
           throw new Error("Invitation rate-limit counter returned invalid state.");
         }
 
+        const retryAfterSeconds = [
+          ...(actorAttempts > this.options.actorMaxAttempts ? [actorRetry] : []),
+          ...(emailAttempts > this.options.emailMaxAttempts ? [emailRetry] : []),
+        ];
+
         return {
-          blocked:
-            actorAttempts > this.options.actorMaxAttempts ||
-            emailAttempts > this.options.emailMaxAttempts,
-          retryAfterSeconds: Math.max(1, actorRetry, emailRetry),
+          blocked: retryAfterSeconds.length > 0,
+          retryAfterSeconds: Math.max(1, ...retryAfterSeconds),
         };
       },
     );
