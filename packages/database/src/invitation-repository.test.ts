@@ -3,7 +3,10 @@ import type {
   TenantConnection,
   TenantConnectionPool,
 } from "./tenant-transaction.js";
-import { PostgresInvitationRepository } from "./invitation-repository.js";
+import {
+  InvitationAuthorizationError,
+  PostgresInvitationRepository,
+} from "./invitation-repository.js";
 
 const organizationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const accountId = "22222222-2222-4222-8222-222222222222";
@@ -30,6 +33,9 @@ describe("PostgresInvitationRepository", () => {
       [],
       [],
       [],
+      [{ role: "owner", status: "active" }],
+      [{ active_owner_count: 1 }],
+      [],
       [],
       [
         {
@@ -38,7 +44,7 @@ describe("PostgresInvitationRepository", () => {
         },
       ],
     ]);
-    const repository = new PostgresInvitationRepository(pool);
+    const repository = new PostgresInvitationRepository(pool, () => true);
     await expect(
       repository.createPendingInvitation({
         organizationId: organizationId.toUpperCase(),
@@ -54,16 +60,90 @@ describe("PostgresInvitationRepository", () => {
       "BEGIN",
       "SELECT set_config('app.tenant_id', $1, true)",
       "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+      expect.stringContaining(
+        "SELECT role, status FROM organization_memberships",
+      ),
+      expect.stringContaining("SELECT count(*)::int AS active_owner_count"),
+      "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
       expect.stringContaining("UPDATE organization_invitations"),
       expect.stringContaining("INSERT INTO organization_invitations"),
       "COMMIT",
     ]);
     expect(query.mock.calls[1]?.[1]).toEqual([organizationId]);
     expect(query.mock.calls[2]?.[1]).toEqual([
-      organizationId + ":" + invitedEmail,
+      "organization-memberships:" + organizationId,
     ]);
-    expect(query.mock.calls[3]?.[1]).toEqual([organizationId, invitedEmail]);
-    expect(query.mock.calls[4]?.[1]).toContain(tokenHash);
+    expect(query.mock.calls[3]?.[1]).toEqual([organizationId, accountId]);
+    expect(query.mock.calls[4]?.[1]).toEqual([organizationId]);
+    expect(query.mock.calls[5]?.[1]).toEqual([
+      "organization-invitations:" + organizationId + ":" + invitedEmail,
+    ]);
+    expect(query.mock.calls[7]?.[1]).toContain(tokenHash);
+  });
+
+  it("denies invitation creation in the transaction when current membership policy rejects", async () => {
+    const { pool, query } = createPool([
+      [],
+      [],
+      [],
+      [{ role: "member", status: "active" }],
+      [{ active_owner_count: 1 }],
+    ]);
+    const authorize = vi.fn(() => false);
+    const repository = new PostgresInvitationRepository(pool, authorize);
+
+    await expect(
+      repository.createPendingInvitation({
+        organizationId,
+        invitedEmail,
+        role: "admin",
+        tokenHash,
+        invitedByAccountId: accountId,
+        expiresAt: new Date("2026-11-12T00:00:00Z"),
+      }),
+    ).rejects.toBeInstanceOf(InvitationAuthorizationError);
+
+    expect(authorize).toHaveBeenCalledWith({
+      actorAccountId: accountId,
+      organizationId,
+      membershipStatus: "active",
+      role: "member",
+      requestedRole: "admin",
+      activeOwnerCount: 1,
+    });
+    expect(query.mock.calls.some(([sql]) => sql === "ROLLBACK")).toBe(true);
+    expect(
+      query.mock.calls.some(([sql]) =>
+        sql.startsWith("UPDATE organization_invitations"),
+      ),
+    ).toBe(false);
+    expect(
+      query.mock.calls.some(([sql]) =>
+        sql.startsWith("INSERT INTO organization_invitations"),
+      ),
+    ).toBe(false);
+  });
+
+  it("fails closed when no invitation authorizer is configured", async () => {
+    const { pool } = createPool([
+      [],
+      [],
+      [],
+      [{ role: "owner", status: "active" }],
+      [{ active_owner_count: 1 }],
+    ]);
+    const repository = new PostgresInvitationRepository(pool);
+
+    await expect(
+      repository.createPendingInvitation({
+        organizationId,
+        invitedEmail,
+        role: "member",
+        tokenHash,
+        invitedByAccountId: accountId,
+        expiresAt: new Date("2026-11-12T00:00:00Z"),
+      }),
+    ).rejects.toBeInstanceOf(InvitationAuthorizationError);
   });
 
   it("uses the canonical tenant UUID when revoking an invitation", async () => {

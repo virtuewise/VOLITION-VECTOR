@@ -9,7 +9,10 @@ export type {
   AcceptInvitationRecord,
   CreatedInvitationRecord,
   CreatePendingInvitationRecord,
+  InvitationAuthorizationInput,
+  InvitationAuthorizer,
 } from "./invitation-repository.js";
+export { InvitationAuthorizationError } from "./invitation-repository.js";
 export type {
   MembershipMutationAction,
   MembershipMutationAuthorizer,

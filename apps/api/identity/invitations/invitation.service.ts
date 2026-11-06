@@ -2,6 +2,8 @@ import { createHash, randomBytes } from "node:crypto";
 
 export type InvitationRole = "admin" | "member" | "viewer";
 
+export const INVITATION_REPOSITORY = Symbol("INVITATION_REPOSITORY");
+
 export interface CreateInvitationInput {
   readonly organizationId: string;
   readonly actorAccountId: string;
