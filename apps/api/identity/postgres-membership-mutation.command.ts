@@ -15,13 +15,14 @@ export class PostgresMembershipMutationCommand implements MembershipMutationComm
   private readonly repository: PostgresMembershipRepository;
 
   constructor(pool: TenantConnectionPool) {
-    this.repository = new PostgresMembershipRepository(
-      pool,
-      (input) => canManageOrganizationMembership(input),
+    this.repository = new PostgresMembershipRepository(pool, (input) =>
+      canManageOrganizationMembership(input),
     );
   }
 
-  mutate(input: MembershipMutationInput): Promise<MembershipMutationResult | null> {
+  mutate(
+    input: MembershipMutationInput,
+  ): Promise<MembershipMutationResult | null> {
     return this.repository.mutate(input);
   }
 }
