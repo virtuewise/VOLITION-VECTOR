@@ -231,6 +231,57 @@ SELECT
 FROM opportunities
 WHERE slug = 'tenant-two-public';
 
+UPDATE opportunity_applications
+SET status = 'shortlisted',
+    reviewed_at = now(),
+    reviewed_by_account_id = '11111111-1111-4111-8111-111111111111'
+WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO conversations (
+  id, organization_id, opportunity_application_id, created_by_account_id
+)
+SELECT
+  '99999999-9999-4999-8999-999999999998',
+  organization_id,
+  id,
+  '11111111-1111-4111-8111-111111111111'
+FROM opportunity_applications
+WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO conversation_participants (
+  organization_id, conversation_id, account_id, participant_type
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '44444444-4444-4444-8444-444444444444',
+    'applicant'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '11111111-1111-4111-8111-111111111111',
+    'organization'
+  );
+
+INSERT INTO messages (
+  organization_id, conversation_id, sender_account_id, body
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '44444444-4444-4444-8444-444444444444',
+    'Thank you for considering my application.'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '11111111-1111-4111-8111-111111111111',
+    'We would like to arrange an introductory call.'
+  );
+
 INSERT INTO audit_events
   (id, organization_id, actor_account_id, event_name, resource_type, resource_id)
 VALUES
