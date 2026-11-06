@@ -55,13 +55,27 @@ expect_failure "unbalanced journal commit" \
   "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; INSERT INTO journal_entries (organization_id, idempotency_key, reference_type, reference_id, currency, created_by_account_id) VALUES ('$TENANT_ONE', 'unbalanced-001', 'payment_capture', 'capture-unbalanced', 'EUR', '$ACCOUNT_ONE'); INSERT INTO journal_entry_lines (organization_id, journal_entry_id, account_code, side, amount_minor) SELECT '$TENANT_ONE', id, 'cash', 'debit', 100 FROM journal_entries WHERE idempotency_key = 'unbalanced-001'; INSERT INTO journal_entry_lines (organization_id, journal_entry_id, account_code, side, amount_minor) SELECT '$TENANT_ONE', id, 'payable', 'credit', 99 FROM journal_entries WHERE idempotency_key = 'unbalanced-001'; COMMIT;"
 
 # Exercise immutable triggers with the migration owner, independently of the
-# runtime role's intentionally narrow SQL grants.
-if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "UPDATE journal_entries SET reference_id = 'tampered' WHERE id = 'aaaaaaaa-0000-4000-8000-000000000001';" >/dev/null 2>&1; then
+# runtime role's intentionally narrow SQL grants. FORCE RLS still applies to
+# the owner, so set tenant context to ensure each row-level trigger sees a row
+# rather than allowing an empty UPDATE/DELETE to pass unnoticed.
+if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "SET app.tenant_id = '$TENANT_ONE'; UPDATE journal_entries SET reference_id = 'tampered' WHERE id = 'aaaaaaaa-0000-4000-8000-000000000001';" >/dev/null 2>&1; then
   echo "Journal header update unexpectedly succeeded." >&2
   exit 1
 fi
-if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "DELETE FROM journal_entry_lines WHERE journal_entry_id = 'aaaaaaaa-0000-4000-8000-000000000001';" >/dev/null 2>&1; then
+if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "SET app.tenant_id = '$TENANT_ONE'; DELETE FROM journal_entries WHERE id = 'aaaaaaaa-0000-4000-8000-000000000001';" >/dev/null 2>&1; then
+  echo "Journal header delete unexpectedly succeeded." >&2
+  exit 1
+fi
+if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "SET app.tenant_id = '$TENANT_ONE'; UPDATE journal_entry_lines SET amount_minor = 1 WHERE journal_entry_id = 'aaaaaaaa-0000-4000-8000-000000000001';" >/dev/null 2>&1; then
+  echo "Journal line update unexpectedly succeeded." >&2
+  exit 1
+fi
+if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "SET app.tenant_id = '$TENANT_ONE'; DELETE FROM journal_entry_lines WHERE journal_entry_id = 'aaaaaaaa-0000-4000-8000-000000000001';" >/dev/null 2>&1; then
   echo "Journal line delete unexpectedly succeeded." >&2
+  exit 1
+fi
+if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "TRUNCATE journal_entries;" >/dev/null 2>&1; then
+  echo "Journal header truncate unexpectedly succeeded." >&2
   exit 1
 fi
 if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "TRUNCATE journal_entry_lines;" >/dev/null 2>&1; then
