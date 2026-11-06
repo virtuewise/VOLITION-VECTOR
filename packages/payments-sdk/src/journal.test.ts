@@ -11,7 +11,11 @@ const balancedEntry: JournalEntryDraft = {
   currency: "EUR",
   lines: [
     { accountCode: "provider_clearing", side: "debit", amountMinor: 12500 },
-    { accountCode: "customer_payable", side: "credit", amountMinor: 12500 },
+    {
+      accountCode: "customer_payable",
+      side: "credit",
+      amountMinor: 12500,
+    },
   ],
 };
 
@@ -27,7 +31,11 @@ describe("assertBalancedJournalEntry", () => {
         lines: [
           { accountCode: "cash", side: "debit", amountMinor: 10000 },
           { accountCode: "fee_expense", side: "debit", amountMinor: 2500 },
-          { accountCode: "customer_payable", side: "credit", amountMinor: 12500 },
+          {
+            accountCode: "customer_payable",
+            side: "credit",
+            amountMinor: 12500,
+          },
         ],
       }),
     ).not.toThrow();
@@ -39,7 +47,11 @@ describe("assertBalancedJournalEntry", () => {
         ...balancedEntry,
         lines: [
           { accountCode: "cash", side: "debit", amountMinor: 12500 },
-          { accountCode: "customer_payable", side: "credit", amountMinor: 12499 },
+          {
+            accountCode: "customer_payable",
+            side: "credit",
+            amountMinor: 12499,
+          },
         ],
       }),
     ).toThrow(expect.objectContaining({ code: "unbalanced_entry" }));
