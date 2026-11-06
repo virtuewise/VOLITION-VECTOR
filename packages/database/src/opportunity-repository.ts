@@ -564,16 +564,12 @@ export class PostgresOpportunityRepository {
           actorAccountId,
           opportunityId,
           JSON.stringify({
-            updatedFields: [
-              "title",
-              "summary",
-              "description",
-              "visibility",
-              "locationLabel",
-              "isRemote",
-              "compensation",
-              "dates",
-            ],
+            updatedFields: Object.keys(input).filter(
+              (field) =>
+                field !== "organizationId" &&
+                field !== "actorAccountId" &&
+                field !== "opportunityId",
+            ),
           }),
         ],
       );
@@ -708,6 +704,7 @@ export class PostgresOpportunityRepository {
       limit > 50 ||
       !Number.isSafeInteger(offset) ||
       offset < 0 ||
+      offset > 10_000 ||
       (query !== null && query.length > 200) ||
       (input.opportunityType !== undefined &&
         !isOpportunityType(input.opportunityType))
