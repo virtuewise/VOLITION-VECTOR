@@ -1,0 +1,35 @@
+name: Temporary service listing formatter
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/temporary-service-formatter.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'marketplace/service-listing-foundation'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write apps/api/marketplace/public-service-listing.controller.test.ts packages/contracts/src/service-listing.ts packages/database/src/service-listing-repository.ts packages/permissions/src/index.test.ts
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+users.noreply.github.com"
+          git add apps/api/marketplace/public-service-listing.controller.test.ts packages/contracts/src/service-listing.ts packages/database/src/service-listing-repository.ts packages/permissions/src/index.test.ts
+          git commit -m "style(marketplace): format service listing foundation"
+          git push
