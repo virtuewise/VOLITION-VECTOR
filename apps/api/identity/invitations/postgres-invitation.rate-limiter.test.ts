@@ -50,22 +50,32 @@ describe("PostgresInvitationRateLimiter", () => {
     expect(query.mock.calls.map(([statement]) => statement)).toEqual([
       "BEGIN",
       "SELECT set_config('app.tenant_id', $1, true)",
-      expect.stringContaining("DELETE FROM organization_invitation_rate_limits"),
-      expect.stringContaining("INSERT INTO organization_invitation_rate_limits"),
-      expect.stringContaining("INSERT INTO organization_invitation_rate_limits"),
+      expect.stringContaining(
+        "DELETE FROM organization_invitation_rate_limits",
+      ),
+      expect.stringContaining(
+        "INSERT INTO organization_invitation_rate_limits",
+      ),
+      expect.stringContaining(
+        "INSERT INTO organization_invitation_rate_limits",
+      ),
       "COMMIT",
     ]);
     expect(query.mock.calls[1]?.[1]).toEqual([organizationId]);
     expect(query.mock.calls[3]?.[1]).toEqual([
       organizationId,
       "actor",
-      createHash("sha256").update("actor:" + actorAccountId).digest(),
+      createHash("sha256")
+        .update("actor:" + actorAccountId)
+        .digest(),
       DEFAULT_INVITATION_RATE_LIMITS.actorWindowMs,
     ]);
     expect(query.mock.calls[4]?.[1]).toEqual([
       organizationId,
       "email",
-      createHash("sha256").update("email:" + invitedEmail).digest(),
+      createHash("sha256")
+        .update("email:" + invitedEmail)
+        .digest(),
       DEFAULT_INVITATION_RATE_LIMITS.emailWindowMs,
     ]);
     expect(

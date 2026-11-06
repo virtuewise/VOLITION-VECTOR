@@ -1,9 +1,6 @@
 import { createHash } from "node:crypto";
 import { normalizeTenantId } from "@volition/database";
-import {
-  normalizeTenantId,
-  withTenantTransaction,
-} from "@volition/database";
+import { normalizeTenantId, withTenantTransaction } from "@volition/database";
 import type {
   TenantConnectionPool,
   TenantQueryResult,
@@ -55,12 +52,16 @@ function validateOptions(options: InvitationRateLimitOptions): void {
     !Number.isSafeInteger(options.emailMaxAttempts) ||
     options.emailMaxAttempts < 1
   ) {
-    throw new TypeError("Invitation rate-limit options must be positive integers.");
+    throw new TypeError(
+      "Invitation rate-limit options must be positive integers.",
+    );
   }
 }
 
 function digestScope(scope: "actor" | "email", value: string): Uint8Array {
-  return createHash("sha256").update(scope + ":" + value).digest();
+  return createHash("sha256")
+    .update(scope + ":" + value)
+    .digest();
 }
 
 function upsertScope(
@@ -102,8 +103,7 @@ RETURNING
 export class PostgresInvitationRateLimiter implements InvitationRateLimiter {
   constructor(
     private readonly pool: TenantConnectionPool,
-    private readonly options: InvitationRateLimitOptions =
-      DEFAULT_INVITATION_RATE_LIMITS,
+    private readonly options: InvitationRateLimitOptions = DEFAULT_INVITATION_RATE_LIMITS,
   ) {
     validateOptions(options);
   }
@@ -122,7 +122,9 @@ export class PostgresInvitationRateLimiter implements InvitationRateLimiter {
       invitedEmail.length > 320 ||
       !EMAIL_PATTERN.test(invitedEmail)
     ) {
-      throw new TypeError("A valid actor UUID and normalized invitation email are required.");
+      throw new TypeError(
+        "A valid actor UUID and normalized invitation email are required.",
+      );
     }
 
     const actorHash = digestScope("actor", actorAccountId);
@@ -163,7 +165,9 @@ export class PostgresInvitationRateLimiter implements InvitationRateLimiter {
         );
 
         if (!actor || !email) {
-          throw new Error("Invitation rate-limit counter did not return a row.");
+          throw new Error(
+            "Invitation rate-limit counter did not return a row.",
+          );
         }
 
         const actorAttempts = Number(actor.attempt_count);
@@ -180,12 +184,18 @@ export class PostgresInvitationRateLimiter implements InvitationRateLimiter {
           actorRetry < 0 ||
           emailRetry < 0
         ) {
-          throw new Error("Invitation rate-limit counter returned invalid state.");
+          throw new Error(
+            "Invitation rate-limit counter returned invalid state.",
+          );
         }
 
         const retryAfterSeconds = [
-          ...(actorAttempts > this.options.actorMaxAttempts ? [actorRetry] : []),
-          ...(emailAttempts > this.options.emailMaxAttempts ? [emailRetry] : []),
+          ...(actorAttempts > this.options.actorMaxAttempts
+            ? [actorRetry]
+            : []),
+          ...(emailAttempts > this.options.emailMaxAttempts
+            ? [emailRetry]
+            : []),
         ];
 
         return {
