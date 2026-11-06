@@ -210,6 +210,25 @@ INSERT INTO accounts (id) VALUES
   ('44444444-4444-4444-8444-444444444444'),
   ('55555555-5555-4555-8555-555555555555');
 
+INSERT INTO trust_evidence (
+  id, subject_account_id, submitted_by_account_id, claim_type,
+  claim_title, issuer_name, issuer_reference, evidence_locator
+) VALUES
+  (
+    '99999999-9999-4999-8999-999999999991',
+    '44444444-4444-4444-8444-444444444444',
+    '44444444-4444-4444-8444-444444444444',
+    'qualification', 'Candidate One qualification', 'Example Institute',
+    'credential-001', 'private/evidence/candidate-one/object-001'
+  ),
+  (
+    '99999999-9999-4999-8999-999999999992',
+    '55555555-5555-4555-8555-555555555555',
+    '55555555-5555-4555-8555-555555555555',
+    'capability', 'Candidate Two portfolio', 'Example Portfolio Issuer',
+    NULL, 'private/evidence/candidate-two/object-002'
+  );
+
 INSERT INTO opportunity_applications (
   organization_id, opportunity_id, applicant_account_id,
   opportunity_slug_snapshot, opportunity_title_snapshot,
