@@ -319,6 +319,8 @@ done
 # Public rows are visible across tenants; drafts remain tenant-private.
 assert_count opportunities "$TENANT_ONE" 3
 assert_count opportunities "$TENANT_TWO" 2
+assert_count service_listings "$TENANT_ONE" 1
+assert_count service_listings "$TENANT_TWO" 1
 
 tenant_one_drafts="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
@@ -370,6 +372,23 @@ if [[ "$public_opportunity_count" != "2" ]]; then
   echo "Expected two published public opportunities without tenant context; got $public_opportunity_count" >&2
   exit 1
 fi
+public_service_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM public_service_listings;"
+)"
+if [[ "$public_service_count" != "1" ]]; then
+  echo "Expected one published public service listing; got $public_service_count" >&2
+  exit 1
+fi
+private_service_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM public_service_listings WHERE slug = 'tenant-two-private-service';"
+)"
+if [[ "$private_service_count" != "0" ]]; then
+  echo "A private service draft leaked into the public service listing view." >&2
+  exit 1
+fi
+
 private_public_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT count(*) FROM public_opportunities WHERE slug = 'tenant-one-private-draft';"
@@ -390,6 +409,9 @@ expect_failure "cross-tenant invitation rate-limit insert" \
 
 expect_failure "cross-tenant opportunity insert" \
   "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO opportunities (organization_id, created_by_account_id, slug, title, summary, description, opportunity_type) VALUES ('$TENANT_TWO', '$ACCOUNT_ONE', 'cross-tenant-test', 'Cross tenant', 'Must fail', 'Cross tenant row', 'project');"
+
+expect_failure "cross-tenant service listing insert" \
+  "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO service_listings (organization_id, created_by_account_id, slug, title, summary, description, category, pricing_model) VALUES ('$TENANT_TWO', '$ACCOUNT_ONE', 'cross-tenant-service', 'Cross tenant service', 'Must fail', 'Cross tenant service', 'consulting', 'quote');"
 
 expect_failure "audit event update" \
   "SET app.tenant_id = '$TENANT_ONE'; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
