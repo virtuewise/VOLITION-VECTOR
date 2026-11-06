@@ -168,7 +168,12 @@ export class PostgresInvitationRepository {
       // Serialize replacement for this normalized organization/email pair.
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
-        ["organization-invitations:" + organizationId + ":" + input.invitedEmail],
+        [
+          "organization-invitations:" +
+            organizationId +
+            ":" +
+            input.invitedEmail,
+        ],
       );
       await client.query(
         "UPDATE organization_invitations SET revoked_at = clock_timestamp() " +

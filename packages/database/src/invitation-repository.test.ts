@@ -60,7 +60,9 @@ describe("PostgresInvitationRepository", () => {
       "BEGIN",
       "SELECT set_config('app.tenant_id', $1, true)",
       "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
-      expect.stringContaining("SELECT role, status FROM organization_memberships"),
+      expect.stringContaining(
+        "SELECT role, status FROM organization_memberships",
+      ),
       expect.stringContaining("SELECT count(*)::int AS active_owner_count"),
       "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
       expect.stringContaining("UPDATE organization_invitations"),
@@ -78,7 +80,6 @@ describe("PostgresInvitationRepository", () => {
     ]);
     expect(query.mock.calls[7]?.[1]).toContain(tokenHash);
   });
-
 
   it("denies invitation creation in the transaction when current membership policy rejects", async () => {
     const { pool, query } = createPool([
@@ -112,10 +113,14 @@ describe("PostgresInvitationRepository", () => {
     });
     expect(query.mock.calls.some(([sql]) => sql === "ROLLBACK")).toBe(true);
     expect(
-      query.mock.calls.some(([sql]) => sql.startsWith("UPDATE organization_invitations")),
+      query.mock.calls.some(([sql]) =>
+        sql.startsWith("UPDATE organization_invitations"),
+      ),
     ).toBe(false);
     expect(
-      query.mock.calls.some(([sql]) => sql.startsWith("INSERT INTO organization_invitations")),
+      query.mock.calls.some(([sql]) =>
+        sql.startsWith("INSERT INTO organization_invitations"),
+      ),
     ).toBe(false);
   });
 

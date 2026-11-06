@@ -10,9 +10,7 @@ import type { InvitationRepository } from "./invitation.service.js";
  * repository reloads actor membership under the organization mutation lock
  * and evaluates this policy inside the same PostgreSQL transaction as create.
  */
-export class PostgresInvitationRepositoryAdapter
-  implements InvitationRepository
-{
+export class PostgresInvitationRepositoryAdapter implements InvitationRepository {
   private readonly repository: PostgresInvitationRepository;
 
   constructor(pool: TenantConnectionPool) {
