@@ -203,6 +203,32 @@ VALUES
     NULL
   );
 
+INSERT INTO accounts (id) VALUES
+  ('44444444-4444-4444-8444-444444444444'),
+  ('55555555-5555-4555-8555-555555555555');
+
+INSERT INTO opportunity_applications (
+  organization_id, opportunity_id, applicant_account_id,
+  opportunity_slug_snapshot, opportunity_title_snapshot,
+  opportunity_type_snapshot, cover_note
+)
+SELECT
+  organization_id, id, '44444444-4444-4444-8444-444444444444',
+  slug, title, opportunity_type, 'Application from tenant one candidate'
+FROM opportunities
+WHERE slug = 'tenant-one-public';
+
+INSERT INTO opportunity_applications (
+  organization_id, opportunity_id, applicant_account_id,
+  opportunity_slug_snapshot, opportunity_title_snapshot,
+  opportunity_type_snapshot, cover_note
+)
+SELECT
+  organization_id, id, '55555555-5555-4555-8555-555555555555',
+  slug, title, opportunity_type, 'Application from tenant two candidate'
+FROM opportunities
+WHERE slug = 'tenant-two-public';
+
 INSERT INTO audit_events
   (id, organization_id, actor_account_id, event_name, resource_type, resource_id)
 VALUES
@@ -271,6 +297,7 @@ SELECT
         'organization_invitations',
         'organization_invitation_rate_limits',
         'opportunities',
+        'opportunity_applications',
         'service_listings',
         'audit_events'
       ]::text[])
@@ -300,6 +327,7 @@ SELECT
         'organization_invitations',
         'organization_invitation_rate_limits',
         'opportunities',
+        'opportunity_applications',
         'service_listings',
         'audit_events'
       ]::text[])
@@ -315,7 +343,7 @@ if [[ "$runtime_role_safe" != "t" ]]; then
   exit 1
 fi
 
-for table in organizations organization_memberships organization_invitations organization_invitation_rate_limits audit_events; do
+for table in organizations organization_memberships organization_invitations organization_invitation_rate_limits opportunity_applications audit_events; do
   assert_count "$table" "$TENANT_ONE" 1
   assert_count "$table" "$TENANT_TWO" 1
 done
