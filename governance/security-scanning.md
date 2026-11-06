@@ -6,6 +6,17 @@
 - The CodeQL workflow analyzes JavaScript/TypeScript on pull requests, pushes to main and a weekly schedule. Findings are uploaded to GitHub code scanning; repository owners must confirm that code scanning is enabled and that alerts are visible to the security team.
 - Dependabot is configured for pnpm dependencies and GitHub Actions updates.
 
+## CodeQL setup ownership
+
+GitHub rejected the advanced-workflow SARIF upload during PR validation because this repository currently has CodeQL default setup enabled. GitHub does not accept advanced-workflow analyses while default setup is enabled. This is a repository-level configuration conflict, not a source extraction failure.
+
+Before enabling this workflow, a repository owner must choose one supported operating mode in repository security settings:
+
+1. Keep default setup and remove/close the advanced workflow proposal, or
+2. Disable default setup and use this version-controlled advanced workflow.
+
+Do not change that setting automatically as part of a code PR. Until the owner makes this choice, CodeQL workflow validation remains blocked and code-scanning coverage must be treated as unverified. A successful workflow run and visible alert results are required before calling this gate operational.
+
 ## Required review procedure
 
 1. Review live Dependabot alerts and the dependency graph; issue-search results are not a substitute for the alerts API.
