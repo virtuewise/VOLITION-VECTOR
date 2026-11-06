@@ -84,3 +84,9 @@ export type {
   SubmitOpportunityApplicationInput,
   WithdrawOpportunityApplicationInput,
 } from "./opportunity-application-repository.js";
+export { PostgresConversationRepository } from "./conversation-repository.js";
+export {
+  ConversationAuthorizationError,
+  ConversationConflictError,
+  ConversationInputError,
+} from "./conversation-repository.js";
