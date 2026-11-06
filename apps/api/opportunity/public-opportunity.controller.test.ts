@@ -11,7 +11,11 @@ describe("PublicOpportunityController", () => {
   it("validates query keys and forwards bounded search parameters", async () => {
     const repository: OpportunityRepositoryPort = {
       createDraft: vi.fn(),
+      updateDraft: vi.fn(),
       publish: vi.fn(),
+      pause: vi.fn(),
+      close: vi.fn(),
+      archive: vi.fn(),
       listPublic: vi.fn().mockResolvedValue([]),
     };
     const controller = new PublicOpportunityController(repository);
@@ -36,7 +40,11 @@ describe("PublicOpportunityController", () => {
   it("rejects unknown and malformed query parameters", async () => {
     const repository: OpportunityRepositoryPort = {
       createDraft: vi.fn(),
+      updateDraft: vi.fn(),
       publish: vi.fn(),
+      pause: vi.fn(),
+      close: vi.fn(),
+      archive: vi.fn(),
       listPublic: vi.fn().mockResolvedValue([]),
     };
     const controller = new PublicOpportunityController(repository);
@@ -52,7 +60,11 @@ describe("PublicOpportunityController", () => {
   it("maps repository search validation to HTTP 400", async () => {
     const repository: OpportunityRepositoryPort = {
       createDraft: vi.fn(),
+      updateDraft: vi.fn(),
       publish: vi.fn(),
+      pause: vi.fn(),
+      close: vi.fn(),
+      archive: vi.fn(),
       listPublic: vi
         .fn()
         .mockRejectedValue(
