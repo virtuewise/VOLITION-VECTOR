@@ -25,6 +25,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106200000_trust_evidence_intake/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -37,7 +39,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
      organization_invitation_rate_limits, opportunities, opportunity_applications, service_listings, audit_events
   TO vv_runtime;
-GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;\nGRANT SELECT ON trust_evidence_decisions TO vv_runtime;
+GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
+GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
 GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
