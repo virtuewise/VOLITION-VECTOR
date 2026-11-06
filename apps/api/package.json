@@ -17,12 +17,16 @@
     "class-transformer": "0.5.1",
     "class-validator": "0.14.2",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "@volition/database": "workspace:*",
+    "@volition/permissions": "workspace:*",
+    "pg": "8.23.1"
   },
   "devDependencies": {
     "@nestjs/cli": "12.0.11",
     "@nestjs/schematics": "12.0.11",
     "@nestjs/testing": "12.3.3",
-    "typescript": "6.0.2"
+    "typescript": "6.0.2",
+    "@types/pg": "8.23.1"
   }
 }

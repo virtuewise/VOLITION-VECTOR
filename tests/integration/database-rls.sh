@@ -134,6 +134,62 @@ TENANT_ONE="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 TENANT_TWO="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 ACCOUNT_ONE="11111111-1111-4111-8111-111111111111"
 
+# Exercise the same startup trust checks used by PostgresTenantConnectionPool.
+runtime_role_safe="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<'SQL'
+SELECT
+  NOT role.rolsuper
+  AND NOT role.rolbypassrls
+  AND NOT role.rolreplication
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_class AS c
+    JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND c.relname = ANY(ARRAY[
+        'organizations',
+        'organization_memberships',
+        'organization_invitations',
+        'audit_events'
+      ]::text[])
+      AND (
+        c.relowner = role.oid OR
+        pg_has_role(role.oid, c.relowner, 'MEMBER')
+      )
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_roles AS privileged
+    WHERE (
+      privileged.rolsuper OR
+      privileged.rolbypassrls OR
+      privileged.rolreplication
+    )
+      AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
+  )
+  AND (
+    SELECT count(*) = 4
+    FROM pg_class AS c
+    JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND c.relname = ANY(ARRAY[
+        'organizations',
+        'organization_memberships',
+        'organization_invitations',
+        'audit_events'
+      ]::text[])
+      AND c.relrowsecurity
+      AND c.relforcerowsecurity
+  )
+FROM pg_roles AS role
+WHERE role.rolname = current_user;
+SQL
+)"
+if [[ "$runtime_role_safe" != "t" ]]; then
+  echo "Runtime PostgreSQL role or tenant RLS configuration failed the startup gate." >&2
+  exit 1
+fi
+
 for table in organizations organization_memberships organization_invitations audit_events; do
   assert_count "$table" "$TENANT_ONE" 1
   assert_count "$table" "$TENANT_TWO" 1

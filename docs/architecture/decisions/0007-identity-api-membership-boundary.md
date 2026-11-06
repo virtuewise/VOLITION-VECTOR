@@ -7,9 +7,9 @@
 ## Context
 
 The PostgreSQL membership mutation repository and deny-by-default policy now
-exist, but the API has no selected OIDC/session provider and no production
-PostgreSQL pool adapter. Exposing mutation endpoints without those trust and
-persistence boundaries would create a misleading or unsafe integration.
+exist. The API still has no selected OIDC/session provider. A node-postgres
+adapter is available when `DATABASE_URL` is configured, but no production
+connection string or credentials are supplied by this decision.
 
 ## Decision
 
@@ -22,22 +22,25 @@ persistence boundaries would create a misleading or unsafe integration.
   accept actor IDs from route parameters or request bodies.
 - Expose role-change, suspend, revoke and reactivate endpoints through the
   NestJS identity module.
-- Keep the mutation command behind an application port. Its default provider
-  returns HTTP 503 until a real PostgreSQL adapter and trusted auth middleware
-  are configured. A null result maps to a generic forbidden response to avoid
-  distinguishing missing, cross-tenant and denied memberships.
+- Keep the mutation command behind an application port. When `DATABASE_URL`
+  is present, bind it to `PostgresMembershipRepository` and the shared
+  `canManageOrganizationMembership` policy; otherwise return HTTP 503.
+  A null result maps to a generic forbidden response to avoid distinguishing
+  missing, cross-tenant and denied memberships.
 
 ## Security and integration boundaries
 
-No OIDC provider, session store, JWT verifier, database pool or production
-membership command is selected or configured by this decision. In the current
+No OIDC provider, session store, JWT verifier or production database
+credentials have been selected or configured by this decision. The
+PostgreSQL adapter verifies at startup that the configured role is not a
+superuser, does not have BYPASSRLS, does not own tenant tables, and that
+every tenant table has ENABLE and FORCE ROW LEVEL SECURITY. Without
+`DATABASE_URL`, the default command returns HTTP 503. In the current
 application no middleware populates `request.user`, so requests fail closed
-with HTTP 401; if a verified principal is supplied, the unconfigured command
-fails closed with HTTP 503. This is an API contract and safe integration seam,
-not a functioning production authentication or persistence integration.
+with HTTP 401. This remains a partial integration, not production
+authentication or a production deployment.
 
 Before enabling these routes, select and configure the identity provider,
-verify claims and lifecycle at the authentication boundary, provision a
-non-owner PostgreSQL runtime role without BYPASSRLS, implement the pool adapter,
-bind the membership command to `PostgresMembershipRepository` and the shared
-`canManageOrganizationMembership` policy, and add end-to-end API tests.
+verify claims and lifecycle at the authentication boundary, supply a
+least-privilege runtime connection string with verified TLS settings, and add
+end-to-end API tests.
