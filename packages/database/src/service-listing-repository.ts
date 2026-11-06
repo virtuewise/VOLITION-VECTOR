@@ -14,7 +14,7 @@ export type ServiceListingStatus =
   | "paused"
   | "closed"
   | "archived";
-export type ServiceListingAction = "create" | "edit" | "publish";
+export type ServiceListingAction = "create" | "publish";
 
 export interface ServiceListingAuthorizationInput {
   readonly actorAccountId: string;
