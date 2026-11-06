@@ -3,11 +3,12 @@ import { PostgresOpportunityRepository } from "@volition/database";
 import { canManageOpportunity } from "@volition/permissions";
 import { IdentityModule } from "../identity/identity.module.js";
 import { PostgresTenantConnectionPool } from "../identity/postgres-tenant-connection.pool.js";
-
-export const OPPORTUNITY_REPOSITORY = Symbol("OPPORTUNITY_REPOSITORY");
+import { PublicOpportunityController } from "./public-opportunity.controller.js";
+import { OPPORTUNITY_REPOSITORY } from "./opportunity.repository.js";
 
 @Module({
   imports: [IdentityModule],
+  controllers: [PublicOpportunityController],
   providers: [
     {
       provide: OPPORTUNITY_REPOSITORY,
