@@ -29,6 +29,8 @@ CREATE TABLE project_workspaces (
     ON DELETE RESTRICT,
   CONSTRAINT project_workspaces_one_per_application
     UNIQUE (opportunity_application_id),
+  CONSTRAINT project_workspaces_organization_id_id_unique
+    UNIQUE (organization_id, id),
   CONSTRAINT project_workspaces_distinct_participants
     CHECK (client_account_id <> provider_account_id),
   CONSTRAINT project_workspaces_completion_check
