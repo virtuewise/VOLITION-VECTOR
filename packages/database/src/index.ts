@@ -68,3 +68,20 @@ export type {
   ServiceListingStatus,
   ServicePricingModel,
 } from "./service-listing-repository.js";
+export { PostgresOpportunityApplicationRepository } from "./opportunity-application-repository.js";
+export {
+  OpportunityApplicationAuthorizationError,
+  OpportunityApplicationConflictError,
+  OpportunityApplicationInputError,
+} from "./opportunity-application-repository.js";
+export type {
+  OpportunityApplicationAction,
+  OpportunityApplicationAuthorizationInput,
+  OpportunityApplicationAuthorizer,
+  OpportunityApplicationRecord,
+  OpportunityApplicationReviewDecision,
+  OpportunityApplicationStatus,
+  ReviewOpportunityApplicationInput,
+  SubmitOpportunityApplicationInput,
+  WithdrawOpportunityApplicationInput,
+} from "./opportunity-application-repository.js";
