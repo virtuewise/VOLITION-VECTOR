@@ -3,6 +3,7 @@ import {
   canAccessOrganization,
   canManageOrganizationMembership,
   canManageOpportunity,
+  type OpportunityManagementAction,
   type OrganizationAccessRequest,
   type OrganizationMembershipManagementRequest,
   type OrganizationRole,
@@ -363,7 +364,7 @@ describe("canManageOpportunity", () => {
     expect(
       canManageOpportunity({
         ...opportunityRequest,
-        action: "delete" as "archive",
+        action: "delete" as OpportunityManagementAction,
         currentStatus: "draft",
       }),
     ).toBe(false);
