@@ -195,3 +195,85 @@ export function canManageOrganizationMembership(
 
   return true;
 }
+
+export type OpportunityLifecycleStatus =
+  | "draft"
+  | "published"
+  | "paused"
+  | "closed"
+  | "archived";
+
+export type OpportunityManagementAction =
+  | "create"
+  | "edit"
+  | "publish"
+  | "pause"
+  | "close"
+  | "archive";
+
+export interface OpportunityManagementRequest {
+  readonly actorAccountId: string | null;
+  readonly organizationId: string;
+  readonly resourceOrganizationId: string;
+  readonly membershipStatus: "active" | "suspended" | "revoked" | null;
+  readonly role: OrganizationRole | null;
+  readonly action: OpportunityManagementAction;
+  readonly isCreator: boolean;
+  readonly currentStatus: OpportunityLifecycleStatus | null;
+}
+
+/** Deny-by-default opportunity lifecycle policy; the repository must load all facts server-side. */
+export function canManageOpportunity(
+  request: OpportunityManagementRequest,
+): boolean {
+  if (
+    !request.actorAccountId?.trim() ||
+    !isOrganizationRole(request.role) ||
+    request.membershipStatus !== "active" ||
+    request.organizationId !== request.resourceOrganizationId
+  ) {
+    return false;
+  }
+
+  if (request.action === "create") {
+    return request.currentStatus === null;
+  }
+
+  if (request.currentStatus === null) return false;
+
+  const privileged = request.role === "owner" || request.role === "admin";
+  switch (request.action) {
+    case "edit":
+      return (
+        (privileged &&
+          (request.currentStatus === "draft" ||
+            request.currentStatus === "paused")) ||
+        (request.role === "member" &&
+          request.isCreator &&
+          request.currentStatus === "draft")
+      );
+    case "publish":
+      return (
+        privileged &&
+        (request.currentStatus === "draft" ||
+          request.currentStatus === "paused")
+      );
+    case "pause":
+      return privileged && request.currentStatus === "published";
+    case "close":
+      return (
+        privileged &&
+        (request.currentStatus === "published" ||
+          request.currentStatus === "paused")
+      );
+    case "archive":
+      return (
+        privileged &&
+        (request.currentStatus === "draft" ||
+          request.currentStatus === "paused" ||
+          request.currentStatus === "closed")
+      );
+    default:
+      return false;
+  }
+}
