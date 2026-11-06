@@ -298,6 +298,7 @@ SELECT
         'organization_invitations',
         'organization_invitation_rate_limits',
         'opportunities',
+        'service_listings',
         'audit_events'
       ]::text[])
       AND c.relrowsecurity
