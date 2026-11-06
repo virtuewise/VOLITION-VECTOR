@@ -46,7 +46,7 @@ CREATE TABLE project_workspaces (
 CREATE FUNCTION enforce_project_workspace_from_accepted_application()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $
+AS $project_guard$
 DECLARE
   source_application opportunity_applications%ROWTYPE;
 BEGIN
@@ -67,7 +67,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$project_guard$;
 
 CREATE TRIGGER project_workspaces_accepted_application_guard
   BEFORE INSERT ON project_workspaces
@@ -178,8 +178,15 @@ CREATE POLICY project_milestones_participant_read
     )
   );
 
-CREATE POLICY project_milestones_organization_write
-  ON project_milestones FOR ALL
+CREATE POLICY project_milestones_organization_insert
+  ON project_milestones FOR INSERT
+  WITH CHECK (
+    organization_id = nullif(current_setting('app.tenant_id', true), '')::uuid
+    AND current_setting('app.actor_type', true) = 'organization'
+  );
+
+CREATE POLICY project_milestones_organization_update
+  ON project_milestones FOR UPDATE
   USING (
     organization_id = nullif(current_setting('app.tenant_id', true), '')::uuid
     AND current_setting('app.actor_type', true) = 'organization'
