@@ -12,8 +12,7 @@ import type {
 
 @Injectable()
 export class PostgresMembershipMutationCommand
-  implements MembershipMutationCommand
-{
+  implements MembershipMutationCommand {
   private readonly repository: PostgresMembershipRepository;
 
   constructor(pool: TenantConnectionPool) {
