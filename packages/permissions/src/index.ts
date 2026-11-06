@@ -274,7 +274,7 @@ export function canManageOpportunity(
   }
 }
 
-export type ServiceListingManagementAction = "create" | "edit" | "publish";
+export type ServiceListingManagementAction = "create" | "publish";
 
 export interface ServiceListingManagementRequest {
   readonly actorAccountId: string | null;
@@ -308,19 +308,11 @@ export function canManageServiceListing(
         request.role === "member")
     );
   }
-  if (request.currentStatus === null) return false;
+  if (request.action !== "publish" || request.currentStatus === null) {
+    return false;
+  }
 
   const privileged = request.role === "owner" || request.role === "admin";
-  if (request.action === "edit") {
-    return (
-      (privileged &&
-        (request.currentStatus === "draft" ||
-          request.currentStatus === "paused")) ||
-      (request.role === "member" &&
-        request.isCreator &&
-        request.currentStatus === "draft")
-    );
-  }
   return (
     privileged &&
     (request.currentStatus === "draft" || request.currentStatus === "paused")
