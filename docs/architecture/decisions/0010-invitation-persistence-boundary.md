@@ -32,15 +32,22 @@ advisory locks and defeat serialization of invitation replacement.
 
 ## Explicitly deferred
 
-The API does not expose invitation endpoints yet. The repository alone is not
-an authorization boundary. Before enabling create/revoke operations, the
-inviter's current active membership and `members:invite` policy must be
-revalidated in the same transaction as the write. A concrete distributed
-rate-limit adapter and a notification/outbox adapter are also required.
-Acceptance must only receive account ID and verified email from a trusted
-authentication boundary; no OIDC/session verifier is selected or configured.
-No mail delivery, rate limiting, live invitation API or production identity
-integration is claimed complete.
+The API does not expose invitation endpoints yet. Invitation creation now
+reloads the inviter's membership under the shared organization advisory lock,
+loads the active-owner count and applies the shared `members:invite` policy
+inside the same transaction as replacement and insertion. The adapter defaults
+to deny when no policy callback is configured. The create path is serialized
+with membership role/status mutations; per-email replacement has a second,
+namespaced advisory lock.
+
+A concrete distributed rate-limit adapter and a notification/outbox adapter
+are still required. Acceptance must only receive account ID and verified email
+from a trusted authentication boundary; no OIDC/session verifier is selected
+or configured. No mail delivery, rate limiting, live invitation API or
+production identity integration is claimed complete. Public invitation
+revocation is not exposed; the repository's revoke operation remains the
+delivery-failure compensation path until its own authorization boundary is
+implemented.
 
 ## Validation
 
