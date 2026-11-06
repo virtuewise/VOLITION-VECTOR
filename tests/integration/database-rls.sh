@@ -23,6 +23,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106170000_opportunity_applications/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106200000_trust_evidence_intake/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -229,6 +231,21 @@ INSERT INTO trust_evidence (
     NULL, 'private/evidence/candidate-two/object-002'
   );
 
+INSERT INTO trust_evidence_decisions
+  (id, evidence_id, reviewer_account_id, decision, decision_note) VALUES
+  (
+    '99999999-9999-4999-8999-999999999981',
+    '99999999-9999-4999-8999-999999999991',
+    '11111111-1111-4111-8111-111111111111',
+    'verified', 'Fixture decision for candidate one'
+  ),
+  (
+    '99999999-9999-4999-8999-999999999982',
+    '99999999-9999-4999-8999-999999999992',
+    '22222222-2222-4222-8222-222222222222',
+    'rejected', 'Fixture decision for candidate two'
+  );
+
 INSERT INTO opportunity_applications (
   organization_id, opportunity_id, applicant_account_id,
   opportunity_slug_snapshot, opportunity_title_snapshot,
@@ -322,7 +339,8 @@ SELECT
         'opportunity_applications',
         'service_listings',
         'audit_events',
-        'trust_evidence'
+        'trust_evidence',
+        'trust_evidence_decisions'
       ]::text[])
       AND (
         c.relowner = role.oid OR
@@ -353,7 +371,8 @@ SELECT
         'opportunity_applications',
         'service_listings',
         'audit_events',
-        'trust_evidence'
+        'trust_evidence',
+        'trust_evidence_decisions'
       ]::text[])
       AND c.relrowsecurity
       AND c.relforcerowsecurity
@@ -485,6 +504,23 @@ if [[ "$cross_evidence_count" != "0" ]]; then
   echo "An account read another candidate's trust evidence." >&2
   exit 1
 fi
+
+candidate_one_decisions="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM trust_evidence_decisions;"
+)"
+candidate_two_decisions="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM trust_evidence_decisions;"
+)"
+if [[ "$candidate_one_decisions" != "1" || "$candidate_two_decisions" != "1" ]]; then
+  echo "Account-scoped trust decision RLS did not isolate each subject." >&2
+  exit 1
+fi
+expect_failure "runtime trust decision insert" \
+  "INSERT INTO trust_evidence_decisions (evidence_id, reviewer_account_id, decision) VALUES ('99999999-9999-4999-8999-999999999991', '$ACCOUNT_ONE', 'verified');"
+expect_failure "runtime trust decision update" \
+  "UPDATE trust_evidence_decisions SET decision = 'rejected' WHERE id = '99999999-9999-4999-8999-999999999981';"
 
 expect_failure "cross-account trust evidence submission" \
   "SET app.account_id = '44444444-4444-4444-8444-444444444444'; INSERT INTO trust_evidence (subject_account_id, submitted_by_account_id, claim_type, claim_title, issuer_name, evidence_locator) VALUES ('55555555-5555-4555-8555-555555555555', '44444444-4444-4444-8444-444444444444', 'qualification', 'Spoofed claim', 'Example Institute', 'private/evidence/spoofed');"
