@@ -6,7 +6,6 @@ import type {
 import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_INVITATION_RATE_LIMITS,
-  InvitationRateLimitExceededError,
   PostgresInvitationRateLimiter,
 } from "./postgres-invitation.rate-limiter.js";
 
