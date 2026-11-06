@@ -25,8 +25,6 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106200000_trust_evidence_intake/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
