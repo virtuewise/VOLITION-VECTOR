@@ -273,3 +273,56 @@ export function canManageOpportunity(
       return false;
   }
 }
+
+export type ServiceListingManagementAction = "create" | "edit" | "publish";
+
+export interface ServiceListingManagementRequest {
+  readonly actorAccountId: string | null;
+  readonly organizationId: string;
+  readonly resourceOrganizationId: string;
+  readonly membershipStatus: "active" | "suspended" | "revoked" | null;
+  readonly role: OrganizationRole | null;
+  readonly action: ServiceListingManagementAction;
+  readonly isCreator: boolean;
+  readonly currentStatus: OpportunityLifecycleStatus | null;
+}
+
+/** Service listing lifecycle policy. Callers must load membership and creator facts server-side. */
+export function canManageServiceListing(
+  request: ServiceListingManagementRequest,
+): boolean {
+  if (
+    !request.actorAccountId?.trim() ||
+    !isOrganizationRole(request.role) ||
+    request.membershipStatus !== "active" ||
+    request.organizationId !== request.resourceOrganizationId
+  ) {
+    return false;
+  }
+
+  if (request.action === "create") {
+    return (
+      request.currentStatus === null &&
+      (request.role === "owner" ||
+        request.role === "admin" ||
+        request.role === "member")
+    );
+  }
+  if (request.currentStatus === null) return false;
+
+  const privileged = request.role === "owner" || request.role === "admin";
+  if (request.action === "edit") {
+    return (
+      (privileged &&
+        (request.currentStatus === "draft" ||
+          request.currentStatus === "paused")) ||
+      (request.role === "member" &&
+        request.isCreator &&
+        request.currentStatus === "draft")
+    );
+  }
+  return (
+    privileged &&
+    (request.currentStatus === "draft" || request.currentStatus === "paused")
+  );
+}
