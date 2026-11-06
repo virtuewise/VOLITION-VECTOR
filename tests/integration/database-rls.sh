@@ -360,6 +360,8 @@ SELECT
         'organization_invitation_rate_limits',
         'opportunities',
         'opportunity_applications',
+        'project_workspaces',
+        'project_milestones',
         'service_listings',
         'audit_events'
       ]::text[])
