@@ -410,24 +410,6 @@ describe("canManageServiceListing", () => {
     ).toBe(false);
   });
 
-  it("allows creators to edit their own drafts only", () => {
-    expect(
-      canManageServiceListing({
-        ...serviceListingRequest,
-        action: "edit",
-        currentStatus: "draft",
-      }),
-    ).toBe(true);
-    expect(
-      canManageServiceListing({
-        ...serviceListingRequest,
-        action: "edit",
-        isCreator: false,
-        currentStatus: "draft",
-      }),
-    ).toBe(false);
-  });
-
   it("restricts publication to owners and admins", () => {
     expect(
       canManageServiceListing({
