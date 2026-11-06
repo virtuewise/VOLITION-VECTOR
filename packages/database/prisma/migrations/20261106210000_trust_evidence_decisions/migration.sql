@@ -17,6 +17,46 @@ CREATE TABLE trust_evidence_decisions (
 CREATE INDEX trust_evidence_decisions_evidence_idx
   ON trust_evidence_decisions(evidence_id, decided_at DESC, id);
 
+-- Even a future privileged reviewer writer must not permit self-review or
+-- decisions by suspended/closed accounts. This is a guardrail, not a substitute
+-- for a separately authorized reviewer role.
+CREATE FUNCTION enforce_trust_evidence_reviewer_separation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+  evidence_subject_id uuid;
+  reviewer_status text;
+BEGIN
+  SELECT subject_account_id
+    INTO evidence_subject_id
+    FROM trust_evidence
+    WHERE id = NEW.evidence_id;
+
+  IF evidence_subject_id = NEW.reviewer_account_id THEN
+    RAISE EXCEPTION 'evidence subjects cannot review their own evidence'
+      USING ERRCODE = '23514';
+  END IF;
+
+  SELECT status
+    INTO reviewer_status
+    FROM accounts
+    WHERE id = NEW.reviewer_account_id;
+
+  IF reviewer_status IS DISTINCT FROM 'active' THEN
+    RAISE EXCEPTION 'trust evidence reviewer account must be active'
+      USING ERRCODE = '23514';
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER trust_evidence_decisions_reviewer_separation
+  BEFORE INSERT ON trust_evidence_decisions
+  FOR EACH ROW
+  EXECUTE FUNCTION enforce_trust_evidence_reviewer_separation();
+
 ALTER TABLE trust_evidence_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trust_evidence_decisions FORCE ROW LEVEL SECURITY;
 
