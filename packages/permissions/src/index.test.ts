@@ -3,6 +3,7 @@ import {
   canAccessOrganization,
   canManageOrganizationMembership,
   canManageOpportunity,
+  canManageServiceListing,
   type OpportunityManagementAction,
   type OrganizationAccessRequest,
   type OrganizationMembershipManagementRequest,
@@ -382,6 +383,62 @@ describe("canManageOpportunity", () => {
         ...opportunityRequest,
         action: "publish",
         currentStatus: null,
+      }),
+    ).toBe(false);
+  });
+});
+
+const serviceListingRequest = {
+  actorAccountId: "member-1",
+  organizationId: "org-1",
+  resourceOrganizationId: "org-1",
+  membershipStatus: "active" as const,
+  role: "member" as const,
+  action: "create" as const,
+  isCreator: true,
+  currentStatus: null,
+};
+
+describe("canManageServiceListing", () => {
+  it("allows active members to create service drafts but denies viewers", () => {
+    expect(canManageServiceListing(serviceListingRequest)).toBe(true);
+    expect(
+      canManageServiceListing({
+        ...serviceListingRequest,
+        role: "viewer",
+      }),
+    ).toBe(false);
+  });
+
+  it("restricts publication to owners and admins", () => {
+    expect(
+      canManageServiceListing({
+        ...serviceListingRequest,
+        action: "publish",
+        currentStatus: "draft",
+      }),
+    ).toBe(false);
+    expect(
+      canManageServiceListing({
+        ...serviceListingRequest,
+        role: "admin",
+        action: "publish",
+        currentStatus: "draft",
+      }),
+    ).toBe(true);
+  });
+
+  it("denies inactive and cross-tenant actors", () => {
+    expect(
+      canManageServiceListing({
+        ...serviceListingRequest,
+        membershipStatus: "suspended",
+      }),
+    ).toBe(false);
+    expect(
+      canManageServiceListing({
+        ...serviceListingRequest,
+        resourceOrganizationId: "org-2",
       }),
     ).toBe(false);
   });

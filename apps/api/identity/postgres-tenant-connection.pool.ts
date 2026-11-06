@@ -13,6 +13,7 @@ const TENANT_OWNED_TABLES = [
   "organization_invitations",
   "organization_invitation_rate_limits",
   "opportunities",
+  "service_listings",
   "audit_events",
 ] as const;
 

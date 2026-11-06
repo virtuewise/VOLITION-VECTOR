@@ -17,6 +17,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106110000_invitation_rate_limits/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106130000_opportunities/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106150000_service_listings/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -27,9 +29,9 @@ GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, opportunities, audit_events
+     organization_invitation_rate_limits, opportunities, service_listings, audit_events
   TO vv_runtime;
-GRANT SELECT ON public_opportunities TO vv_runtime;
+GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
@@ -160,6 +162,45 @@ VALUES
     NULL
   );
 
+INSERT INTO service_listings (
+  organization_id, created_by_account_id, slug, title, summary, description,
+  category, status, visibility, delivery_mode, pricing_model, price_amount,
+  price_currency, published_at
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '11111111-1111-4111-8111-111111111111',
+    'tenant-one-public-service',
+    'Tenant One Public Consulting',
+    'Public consulting service',
+    'Consulting description',
+    'consulting',
+    'published',
+    'public',
+    'remote',
+    'hourly',
+    125.00,
+    'USD',
+    now()
+  ),
+  (
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    '22222222-2222-4222-8222-222222222222',
+    'tenant-two-private-service',
+    'Tenant Two Private Draft Service',
+    'Private service draft',
+    'Private service description',
+    'design',
+    'draft',
+    'organization',
+    'hybrid',
+    'quote',
+    NULL,
+    NULL,
+    NULL
+  );
+
 INSERT INTO audit_events
   (id, organization_id, actor_account_id, event_name, resource_type, resource_id)
 VALUES
@@ -228,6 +269,7 @@ SELECT
         'organization_invitations',
         'organization_invitation_rate_limits',
         'opportunities',
+        'service_listings',
         'audit_events'
       ]::text[])
       AND (
@@ -246,7 +288,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 6
+    SELECT count(*) = 7
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -256,6 +298,7 @@ SELECT
         'organization_invitations',
         'organization_invitation_rate_limits',
         'opportunities',
+        'service_listings',
         'audit_events'
       ]::text[])
       AND c.relrowsecurity
@@ -277,6 +320,8 @@ done
 # Public rows are visible across tenants; drafts remain tenant-private.
 assert_count opportunities "$TENANT_ONE" 3
 assert_count opportunities "$TENANT_TWO" 2
+assert_count service_listings "$TENANT_ONE" 1
+assert_count service_listings "$TENANT_TWO" 2
 
 tenant_one_drafts="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
@@ -328,6 +373,23 @@ if [[ "$public_opportunity_count" != "2" ]]; then
   echo "Expected two published public opportunities without tenant context; got $public_opportunity_count" >&2
   exit 1
 fi
+public_service_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM public_service_listings;"
+)"
+if [[ "$public_service_count" != "1" ]]; then
+  echo "Expected one published public service listing; got $public_service_count" >&2
+  exit 1
+fi
+private_service_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM public_service_listings WHERE slug = 'tenant-two-private-service';"
+)"
+if [[ "$private_service_count" != "0" ]]; then
+  echo "A private service draft leaked into the public service listing view." >&2
+  exit 1
+fi
+
 private_public_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT count(*) FROM public_opportunities WHERE slug = 'tenant-one-private-draft';"
@@ -348,6 +410,9 @@ expect_failure "cross-tenant invitation rate-limit insert" \
 
 expect_failure "cross-tenant opportunity insert" \
   "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO opportunities (organization_id, created_by_account_id, slug, title, summary, description, opportunity_type) VALUES ('$TENANT_TWO', '$ACCOUNT_ONE', 'cross-tenant-test', 'Cross tenant', 'Must fail', 'Cross tenant row', 'project');"
+
+expect_failure "cross-tenant service listing insert" \
+  "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO service_listings (organization_id, created_by_account_id, slug, title, summary, description, category, pricing_model) VALUES ('$TENANT_TWO', '$ACCOUNT_ONE', 'cross-tenant-service', 'Cross tenant service', 'Must fail', 'Cross tenant service', 'consulting', 'quote');"
 
 expect_failure "audit event update" \
   "SET app.tenant_id = '$TENANT_ONE'; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"

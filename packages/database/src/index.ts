@@ -49,3 +49,22 @@ export type {
   UpdateOpportunityDraftInput,
   OpportunityTransitionAction,
 } from "./opportunity-repository.js";
+export { PostgresServiceListingRepository } from "./service-listing-repository.js";
+export {
+  ServiceListingAuthorizationError,
+  ServiceListingInputError,
+  ServiceListingTransitionError,
+} from "./service-listing-repository.js";
+export type {
+  CreateServiceListingInput,
+  PublishServiceListingInput,
+  PublicServiceListingRecord,
+  PublicServiceListingSearchInput,
+  ServiceDeliveryMode,
+  ServiceListingAction,
+  ServiceListingAuthorizationInput,
+  ServiceListingAuthorizer,
+  ServiceListingRecord,
+  ServiceListingStatus,
+  ServicePricingModel,
+} from "./service-listing-repository.js";
