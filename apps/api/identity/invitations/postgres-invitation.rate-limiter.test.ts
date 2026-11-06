@@ -108,10 +108,10 @@ describe("PostgresInvitationRateLimiter", () => {
 
     await expect(
       limiter.assertAllowed({ organizationId, actorAccountId, invitedEmail }),
-    ).rejects.toBeInstanceOf(InvitationRateLimitExceededError);
-    await expect(
-      limiter.assertAllowed({ organizationId, actorAccountId, invitedEmail }),
-    ).rejects.toMatchObject({ retryAfterSeconds: 240 });
+    ).rejects.toMatchObject({
+      name: "InvitationRateLimitExceededError",
+      retryAfterSeconds: 240,
+    });
   });
 
   it("rejects invalid actor, tenant and email input before connecting", async () => {
