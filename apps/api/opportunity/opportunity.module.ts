@@ -41,18 +41,16 @@ import { OPPORTUNITY_APPLICATION_REPOSITORY } from "./opportunity-application.re
       inject: [PostgresTenantConnectionPool],
       useFactory: (pool: PostgresTenantConnectionPool | null) =>
         pool
-          ? new PostgresOpportunityApplicationRepository(
-              pool,
-              (input) =>
-                canReviewOpportunityApplication({
-                  actorAccountId: input.reviewerAccountId,
-                  organizationId: input.organizationId,
-                  resourceOrganizationId: input.organizationId,
-                  membershipStatus: input.membershipStatus,
-                  role: input.role,
-                  currentStatus: input.currentStatus,
-                  decision: input.decision,
-                }),
+          ? new PostgresOpportunityApplicationRepository(pool, (input) =>
+              canReviewOpportunityApplication({
+                actorAccountId: input.reviewerAccountId,
+                organizationId: input.organizationId,
+                resourceOrganizationId: input.organizationId,
+                membershipStatus: input.membershipStatus,
+                role: input.role,
+                currentStatus: input.currentStatus,
+                decision: input.decision,
+              }),
             )
           : null,
     },

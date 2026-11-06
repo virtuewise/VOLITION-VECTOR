@@ -7,15 +7,9 @@ import {
 } from "./tenant-transaction.js";
 
 export type OpportunityApplicationStatus =
-  | "submitted"
-  | "withdrawn"
-  | "shortlisted"
-  | "rejected"
-  | "accepted";
+  "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
 export type OpportunityApplicationReviewDecision =
-  | "shortlisted"
-  | "rejected"
-  | "accepted";
+  "shortlisted" | "rejected" | "accepted";
 
 export interface SubmitOpportunityApplicationInput {
   readonly organizationId: string;
@@ -152,7 +146,9 @@ export class OpportunityApplicationInputError extends Error {
 
 export class OpportunityApplicationConflictError extends Error {
   constructor() {
-    super("An application already exists or the requested transition is unavailable.");
+    super(
+      "An application already exists or the requested transition is unavailable.",
+    );
     this.name = "OpportunityApplicationConflictError";
   }
 }
@@ -342,9 +338,10 @@ export class PostgresOpportunityApplicationRepository {
 
     return withTenantTransaction(this.pool, organizationId, async (client) => {
       await setOrganizationContext(client, reviewerAccountId);
-      await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [
-        "organization-memberships:" + organizationId,
-      ]);
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+        ["organization-memberships:" + organizationId],
+      );
 
       const membership = firstRow<MembershipRow>(
         await client.query(

@@ -3,16 +3,10 @@ export type OpportunityApplicationId = string & {
 };
 
 export type OpportunityApplicationStatus =
-  | "submitted"
-  | "withdrawn"
-  | "shortlisted"
-  | "rejected"
-  | "accepted";
+  "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
 
 export type OpportunityApplicationReviewDecision =
-  | "shortlisted"
-  | "rejected"
-  | "accepted";
+  "shortlisted" | "rejected" | "accepted";
 
 export interface OpportunityApplication {
   readonly id: OpportunityApplicationId;

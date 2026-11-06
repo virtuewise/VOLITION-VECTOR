@@ -445,7 +445,6 @@ describe("canManageServiceListing", () => {
   });
 });
 
-
 const applicationReviewRequest = {
   actorAccountId: "reviewer-1",
   organizationId: "org-1",
@@ -458,7 +457,9 @@ const applicationReviewRequest = {
 
 describe("canReviewOpportunityApplication", () => {
   it("allows an active tenant admin to review submitted applications", () => {
-    expect(canReviewOpportunityApplication(applicationReviewRequest)).toBe(true);
+    expect(canReviewOpportunityApplication(applicationReviewRequest)).toBe(
+      true,
+    );
   });
 
   it("denies members, viewers, inactive actors and cross-tenant review", () => {

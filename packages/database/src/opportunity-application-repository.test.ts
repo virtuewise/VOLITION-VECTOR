@@ -108,9 +108,11 @@ describe("PostgresOpportunityApplicationRepository", () => {
       }),
     ).rejects.toBeInstanceOf(OpportunityApplicationConflictError);
 
-    expect(query.mock.calls.some(([sql]) =>
-      sql.startsWith("INSERT INTO opportunity_applications"),
-    )).toBe(false);
+    expect(
+      query.mock.calls.some(([sql]) =>
+        sql.startsWith("INSERT INTO opportunity_applications"),
+      ),
+    ).toBe(false);
     expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
   });
 
@@ -196,7 +198,13 @@ describe("PostgresOpportunityApplicationRepository", () => {
       [],
       [{ role: "admin", status: "active" }],
       [applicationRow()],
-      [applicationRow({ status: "accepted", reviewed_at: timestamp, reviewed_by_account_id: reviewerAccountId })],
+      [
+        applicationRow({
+          status: "accepted",
+          reviewed_at: timestamp,
+          reviewed_by_account_id: reviewerAccountId,
+        }),
+      ],
       [],
       [],
     ]);
@@ -237,14 +245,12 @@ describe("PostgresOpportunityApplicationRepository", () => {
     };
     const repository = new PostgresOpportunityApplicationRepository(pool);
 
-    await expect(repository.listMine(applicantAccountId)).resolves.toMatchObject([
-      { id: applicationId, applicantAccountId },
-    ]);
+    await expect(
+      repository.listMine(applicantAccountId),
+    ).resolves.toMatchObject([{ id: applicationId, applicantAccountId }]);
 
     expect(query.mock.calls[1]?.[0]).toContain("app.account_id");
-    expect(query.mock.calls[2]?.[0]).toContain(
-      "FROM opportunity_applications",
-    );
+    expect(query.mock.calls[2]?.[0]).toContain("FROM opportunity_applications");
     expect(release).toHaveBeenCalledOnce();
   });
 });

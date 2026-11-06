@@ -319,11 +319,8 @@ export function canManageServiceListing(
   );
 }
 
-
 export type OpportunityApplicationReviewDecision =
-  | "shortlisted"
-  | "rejected"
-  | "accepted";
+  "shortlisted" | "rejected" | "accepted";
 
 export interface OpportunityApplicationReviewRequest {
   readonly actorAccountId: string | null;
@@ -332,11 +329,7 @@ export interface OpportunityApplicationReviewRequest {
   readonly membershipStatus: "active" | "suspended" | "revoked" | null;
   readonly role: OrganizationRole | null;
   readonly currentStatus:
-    | "submitted"
-    | "shortlisted"
-    | "withdrawn"
-    | "rejected"
-    | "accepted";
+    "submitted" | "shortlisted" | "withdrawn" | "rejected" | "accepted";
   readonly decision: OpportunityApplicationReviewDecision;
 }
 
