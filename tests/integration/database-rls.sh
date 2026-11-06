@@ -15,6 +15,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261105153000_invitation_token_lookup/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106110000_invitation_rate_limits/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106130000_opportunities/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -25,8 +27,9 @@ GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, audit_events
+     organization_invitation_rate_limits, opportunities, audit_events
   TO vv_runtime;
+GRANT SELECT ON public_opportunities TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
@@ -107,6 +110,56 @@ VALUES
     now()
   );
 
+INSERT INTO opportunities (
+  organization_id,
+  created_by_account_id,
+  slug,
+  title,
+  summary,
+  description,
+  opportunity_type,
+  status,
+  visibility,
+  published_at
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '11111111-1111-4111-8111-111111111111',
+    'tenant-one-public',
+    'Tenant One Public Role',
+    'Public opportunity for tenant one',
+    'Detailed public role description',
+    'employment',
+    'published',
+    'public',
+    now()
+  ),
+  (
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    '22222222-2222-4222-8222-222222222222',
+    'tenant-two-public',
+    'Tenant Two Public Project',
+    'Public opportunity for tenant two',
+    'Detailed public project description',
+    'project',
+    'published',
+    'public',
+    now()
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '11111111-1111-4111-8111-111111111111',
+    'tenant-one-private-draft',
+    'Tenant One Private Draft',
+    'Draft must not be publicly discoverable',
+    'Private draft description',
+    'project',
+    'draft',
+    'organization',
+    NULL
+  );
+
 INSERT INTO audit_events
   (id, organization_id, actor_account_id, event_name, resource_type, resource_id)
 VALUES
@@ -174,6 +227,7 @@ SELECT
         'organization_memberships',
         'organization_invitations',
         'organization_invitation_rate_limits',
+        'opportunities',
         'audit_events'
       ]::text[])
       AND (
@@ -192,7 +246,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 5
+    SELECT count(*) = 6
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -201,6 +255,7 @@ SELECT
         'organization_memberships',
         'organization_invitations',
         'organization_invitation_rate_limits',
+        'opportunities',
         'audit_events'
       ]::text[])
       AND c.relrowsecurity
@@ -219,6 +274,8 @@ for table in organizations organization_memberships organization_invitations org
   assert_count "$table" "$TENANT_ONE" 1
   assert_count "$table" "$TENANT_TWO" 1
 done
+assert_count opportunities "$TENANT_ONE" 2
+assert_count opportunities "$TENANT_TWO" 1
 
 # A SHA-256 bearer-token hash can locate exactly one invitation before the
 # tenant is known. A non-matching hash must reveal no invitation rows.
@@ -248,6 +305,24 @@ if [[ "$without_tenant" != "0" ]]; then
   exit 1
 fi
 
+# Public RLS and the invoker-security view expose published public rows only.
+public_opportunity_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM public_opportunities;"
+)"
+if [[ "$public_opportunity_count" != "2" ]]; then
+  echo "Expected two published public opportunities without tenant context; got $public_opportunity_count" >&2
+  exit 1
+fi
+private_public_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM public_opportunities WHERE slug = 'tenant-one-private-draft';"
+)"
+if [[ "$private_public_count" != "0" ]]; then
+  echo "A private draft leaked into the public opportunity view." >&2
+  exit 1
+fi
+
 expect_failure "cross-tenant organization insert" \
   "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO organizations (id, name, slug, created_by_account_id) VALUES ('99999999-9999-4999-8999-999999999999', 'Spoofed', 'spoofed-tenant', '$ACCOUNT_ONE');"
 
@@ -256,6 +331,9 @@ expect_failure "cross-tenant membership insert" \
 
 expect_failure "cross-tenant invitation rate-limit insert" \
   "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO organization_invitation_rate_limits (organization_id, scope, scope_hash, window_started_at, attempt_count, last_attempt_at) VALUES ('$TENANT_TWO', 'actor', decode(repeat('33', 32), 'hex'), now(), 1, now());"
+
+expect_failure "cross-tenant opportunity insert" \
+  "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO opportunities (organization_id, created_by_account_id, slug, title, summary, description, opportunity_type) VALUES ('$TENANT_TWO', '$ACCOUNT_ONE', 'cross-tenant-test', 'Cross tenant', 'Must fail', 'Cross tenant row', 'project');"
 
 expect_failure "audit event update" \
   "SET app.tenant_id = '$TENANT_ONE'; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
