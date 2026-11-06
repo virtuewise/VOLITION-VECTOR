@@ -52,9 +52,12 @@ export class PublicOpportunityController {
       );
     }
 
-    for (const key of Object.keys(query)) {
+    for (const [key, value] of Object.entries(query)) {
       if (!ALLOWED_QUERY_KEYS.has(key)) {
         throw new BadRequestException(`Unknown query parameter: ${key}`);
+      }
+      if (typeof value !== "string") {
+        throw new BadRequestException(`Invalid ${key} query parameter.`);
       }
     }
 
