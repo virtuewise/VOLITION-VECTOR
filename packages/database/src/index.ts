@@ -75,7 +75,6 @@ export {
   OpportunityApplicationInputError,
 } from "./opportunity-application-repository.js";
 export type {
-  OpportunityApplicationAction,
   OpportunityApplicationAuthorizationInput,
   OpportunityApplicationAuthorizer,
   OpportunityApplicationRecord,
