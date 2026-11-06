@@ -485,6 +485,10 @@ if [[ "$cross_evidence_count" != "0" ]]; then
   exit 1
 fi
 
+expect_failure "cross-account trust evidence submission" \
+  "SET app.account_id = '44444444-4444-4444-8444-444444444444'; INSERT INTO trust_evidence (subject_account_id, submitted_by_account_id, claim_type, claim_title, issuer_name, evidence_locator) VALUES ('55555555-5555-4555-8555-555555555555', '44444444-4444-4444-8444-444444444444', 'qualification', 'Spoofed claim', 'Example Institute', 'private/evidence/spoofed');"
+
+
 private_public_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT count(*) FROM public_opportunities WHERE slug = 'tenant-one-private-draft';"
