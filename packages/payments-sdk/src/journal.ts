@@ -43,9 +43,7 @@ export class JournalEntryValidationError extends Error {
  * processor, or authorization boundary. Callers must still persist the entry
  * and its idempotency key atomically in PostgreSQL.
  */
-export function assertBalancedJournalEntry(
-  input: JournalEntryDraft,
-): void {
+export function assertBalancedJournalEntry(input: JournalEntryDraft): void {
   if (
     typeof input.idempotencyKey !== "string" ||
     input.idempotencyKey.trim().length < 1 ||
