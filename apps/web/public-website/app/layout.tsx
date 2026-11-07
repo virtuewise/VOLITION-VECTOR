@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Volition Vector — Direction for What Comes Next",
   description:
     "Discover a connected ecosystem for capability, trusted connections and opportunity. Find direction for what comes next with Volition Vector.",
+  icons: { icon: "/brand/volition-vector-original.svg", apple: "/brand/volition-vector-original.svg" },
   openGraph: {
     title: "Volition Vector — Direction for What Comes Next",
     description:
