@@ -31,11 +31,7 @@ export interface ProjectMilestoneRecord {
   readonly description: string;
   readonly sequenceNumber: number;
   readonly status:
-    | "pending"
-    | "in_progress"
-    | "submitted"
-    | "revision_requested"
-    | "accepted";
+    | "pending" | "in_progress" | "submitted" | "revision_requested" | "accepted";
   readonly dueAt: Date | null;
   readonly submittedAt: Date | null;
   readonly acceptedAt: Date | null;
@@ -122,10 +118,9 @@ async function setParticipantContext(
   client: TenantTransactionClient,
   accountId: string,
 ): Promise<void> {
-  await client.query(
-    "SELECT set_config('app.account_id', $1, true)",
-    [accountId],
-  );
+  await client.query("SELECT set_config('app.account_id', $1, true)", [
+    accountId,
+  ]);
 }
 
 function validatePagination(limit: number, offset: number): void {
@@ -182,9 +177,9 @@ export class PostgresProjectWorkspaceRepository {
             "ORDER BY updated_at DESC, id LIMIT $3 OFFSET $4",
           [normalizedOrganizationId, normalizedAccountId, limit, offset],
         );
-        return (
-          result.rows as readonly ProjectWorkspaceRow[]
-        ).map(mapWorkspace);
+        return (result.rows as readonly ProjectWorkspaceRow[]).map(
+          mapWorkspace,
+        );
       },
     );
   }
@@ -245,15 +240,11 @@ export class PostgresProjectWorkspaceRepository {
             "AND (project.client_account_id = $3 " +
             "OR project.provider_account_id = $3) " +
             "ORDER BY milestone.sequence_number ASC, milestone.id ASC",
-          [
-            normalizedOrganizationId,
-            normalizedProjectId,
-            normalizedAccountId,
-          ],
+          [normalizedOrganizationId, normalizedProjectId, normalizedAccountId],
         );
-        return (
-          result.rows as readonly ProjectMilestoneRow[]
-        ).map(mapMilestone);
+        return (result.rows as readonly ProjectMilestoneRow[]).map(
+          mapMilestone,
+        );
       },
     );
   }
