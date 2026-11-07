@@ -3,14 +3,14 @@ name: Quality gates
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, ci/ubuntu-26-04]
 
 permissions:
   contents: read
 
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       TURBO_TELEMETRY_DISABLED: "1"
