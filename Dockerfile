@@ -7,7 +7,7 @@ RUN npm install --global pnpm@12.18.0
 COPY . .
 
 RUN pnpm install --filter @volition/api... --frozen-lockfile
-RUN pnpm --filter @volition/api build
+RUN pnpm --filter @volition/api... run build
 RUN pnpm --filter @volition/api --prod deploy /deploy
 RUN mkdir -p /deploy/dist && cp -R apps/api/dist/. /deploy/dist/
 
