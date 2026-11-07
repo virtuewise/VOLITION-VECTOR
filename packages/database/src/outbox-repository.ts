@@ -76,7 +76,9 @@ function serializePayload(
 
   const prototype = Object.getPrototypeOf(value);
   if (prototype !== Object.prototype && prototype !== null) {
-    throw new OutboxEventInputError("Outbox payload must be a plain JSON object.");
+    throw new OutboxEventInputError(
+      "Outbox payload must be a plain JSON object.",
+    );
   }
 
   try {
@@ -86,7 +88,9 @@ function serializePayload(
     }
     return serialized;
   } catch {
-    throw new OutboxEventInputError("Outbox payload must be serializable JSON.");
+    throw new OutboxEventInputError(
+      "Outbox payload must be serializable JSON.",
+    );
   }
 }
 
