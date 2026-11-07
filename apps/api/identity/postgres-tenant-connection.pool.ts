@@ -21,6 +21,8 @@ const TENANT_OWNED_TABLES = [
   "project_milestones",
   "journal_entries",
   "journal_entry_lines",
+  "trust_evidence",
+  "trust_evidence_decisions",
   "service_listings",
   "audit_events",
 ] as const;

@@ -27,6 +27,10 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106190000_project_workspaces/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106190000_immutable_journal/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106200000_trust_evidence_intake/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -41,6 +45,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE
   TO vv_runtime;
 GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
+GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
+GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
@@ -214,6 +220,78 @@ INSERT INTO accounts (id) VALUES
   ('44444444-4444-4444-8444-444444444444'),
   ('55555555-5555-4555-8555-555555555555');
 
+INSERT INTO trust_evidence (
+  id, subject_account_id, submitted_by_account_id, claim_type,
+  claim_title, issuer_name, issuer_reference, evidence_locator
+) VALUES
+  (
+    '99999999-9999-4999-8999-999999999991',
+    '44444444-4444-4444-8444-444444444444',
+    '44444444-4444-4444-8444-444444444444',
+    'qualification', 'Candidate One qualification', 'Example Institute',
+    'credential-001', 'private/evidence/candidate-one/object-001'
+  ),
+  (
+    '99999999-9999-4999-8999-999999999992',
+    '55555555-5555-4555-8555-555555555555',
+    '55555555-5555-4555-8555-555555555555',
+    'capability', 'Candidate Two portfolio', 'Example Portfolio Issuer',
+    NULL, 'private/evidence/candidate-two/object-002'
+  );
+
+INSERT INTO trust_evidence_decisions
+  (id, evidence_id, reviewer_account_id, decision, decision_note) VALUES
+  (
+    '99999999-9999-4999-8999-999999999981',
+    '99999999-9999-4999-8999-999999999991',
+    '11111111-1111-4111-8111-111111111111',
+    'verified', 'Fixture decision for candidate one'
+  ),
+  (
+    '99999999-9999-4999-8999-999999999982',
+    '99999999-9999-4999-8999-999999999992',
+    '22222222-2222-4222-8222-222222222222',
+    'rejected', 'Fixture decision for candidate two'
+  );
+
+DO $trust_review_guards$
+BEGIN
+  BEGIN
+    INSERT INTO trust_evidence_decisions
+      (evidence_id, reviewer_account_id, decision)
+    VALUES (
+      '99999999-9999-4999-8999-999999999991',
+      '44444444-4444-4444-8444-444444444444',
+      'verified'
+    );
+    RAISE EXCEPTION 'self-review unexpectedly succeeded';
+  EXCEPTION
+    WHEN check_violation THEN NULL;
+  END;
+
+  UPDATE accounts
+  SET status = 'suspended'
+  WHERE id = '11111111-1111-4111-8111-111111111111';
+
+  BEGIN
+    INSERT INTO trust_evidence_decisions
+      (evidence_id, reviewer_account_id, decision)
+    VALUES (
+      '99999999-9999-4999-8999-999999999992',
+      '11111111-1111-4111-8111-111111111111',
+      'rejected'
+    );
+    RAISE EXCEPTION 'suspended reviewer unexpectedly succeeded';
+  EXCEPTION
+    WHEN check_violation THEN NULL;
+  END;
+
+  UPDATE accounts
+  SET status = 'active'
+  WHERE id = '11111111-1111-4111-8111-111111111111';
+END;
+$trust_review_guards$;
+
 INSERT INTO opportunity_applications (
   organization_id, opportunity_id, applicant_account_id,
   opportunity_slug_snapshot, opportunity_title_snapshot,
@@ -386,7 +464,9 @@ SELECT
         'service_listings',
         'audit_events',
         'journal_entries',
-        'journal_entry_lines'
+        'journal_entry_lines',
+        'trust_evidence',
+        'trust_evidence_decisions'
       ]::text[])
       AND (
         c.relowner = role.oid OR
@@ -404,7 +484,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 15
+    SELECT count(*) = 17
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -423,7 +503,9 @@ SELECT
         'service_listings',
         'audit_events',
         'journal_entries',
-        'journal_entry_lines'
+        'journal_entry_lines',
+        'trust_evidence',
+        'trust_evidence_decisions'
       ]::text[])
       AND c.relrowsecurity
       AND c.relforcerowsecurity
@@ -588,6 +670,48 @@ if [[ "$cross_applicant_count" != "0" ]]; then
   echo "An applicant read another candidate's application." >&2
   exit 1
 fi
+
+candidate_one_evidence="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM trust_evidence;"
+)"
+candidate_two_evidence="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM trust_evidence;"
+)"
+if [[ "$candidate_one_evidence" != "1" || "$candidate_two_evidence" != "1" ]]; then
+  echo "Account-scoped trust evidence RLS did not isolate each subject." >&2
+  exit 1
+fi
+cross_evidence_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM trust_evidence WHERE subject_account_id = '55555555-5555-4555-8555-555555555555';"
+)"
+if [[ "$cross_evidence_count" != "0" ]]; then
+  echo "An account read another candidate's trust evidence." >&2
+  exit 1
+fi
+
+candidate_one_decisions="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM trust_evidence_decisions;"
+)"
+candidate_two_decisions="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM trust_evidence_decisions;"
+)"
+if [[ "$candidate_one_decisions" != "1" || "$candidate_two_decisions" != "1" ]]; then
+  echo "Account-scoped trust decision RLS did not isolate each subject." >&2
+  exit 1
+fi
+expect_failure "runtime trust decision insert" \
+  "INSERT INTO trust_evidence_decisions (evidence_id, reviewer_account_id, decision) VALUES ('99999999-9999-4999-8999-999999999991', '$ACCOUNT_ONE', 'verified');"
+expect_failure "runtime trust decision update" \
+  "UPDATE trust_evidence_decisions SET decision = 'rejected' WHERE id = '99999999-9999-4999-8999-999999999981';"
+
+expect_failure "cross-account trust evidence submission" \
+  "SET app.account_id = '44444444-4444-4444-8444-444444444444'; INSERT INTO trust_evidence (subject_account_id, submitted_by_account_id, claim_type, claim_title, issuer_name, evidence_locator) VALUES ('55555555-5555-4555-8555-555555555555', '44444444-4444-4444-8444-444444444444', 'qualification', 'Spoofed claim', 'Example Institute', 'private/evidence/spoofed');"
+
 
 private_public_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
@@ -781,4 +905,4 @@ assert_count audit_events "$TENANT_TWO" 1
 
 bash "$ROOT_DIR/tests/integration/payments-journal.sh"
 
-echo "PostgreSQL tenant RLS, project workspaces, private conversations, immutable journal, append-only audit and concurrent owner-continuity checks passed."
+echo "PostgreSQL tenant RLS, project workspaces, private conversations, private Trust evidence, immutable journal, append-only audit and concurrent owner-continuity checks passed."
