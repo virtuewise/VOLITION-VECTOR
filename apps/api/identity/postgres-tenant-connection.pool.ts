@@ -41,6 +41,8 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly member_of_tenant_owner_role: boolean;
   readonly member_of_privileged_role: boolean;
   readonly all_tenant_tables_force_rls: boolean;
+  readonly can_read_external_identities: boolean;
+  readonly can_read_accounts: boolean;
 }
 
 class PostgresTenantConnection implements TenantConnection {
@@ -122,6 +124,8 @@ export class PostgresTenantConnectionPool
              AND c.relrowsecurity
              AND c.relforcerowsecurity
          ) AS all_tenant_tables_force_rls
+         has_table_privilege(current_user, 'public.external_identities', 'SELECT') AS can_read_external_identities,
+         has_table_privilege(current_user, 'public.accounts', 'SELECT') AS can_read_accounts
        FROM pg_roles AS r
        WHERE r.rolname = current_user`,
       [[...TENANT_OWNED_TABLES]],
@@ -136,10 +140,12 @@ export class PostgresTenantConnectionPool
       runtimeRole.owns_tenant_tables ||
       runtimeRole.member_of_tenant_owner_role ||
       runtimeRole.member_of_privileged_role ||
-      !runtimeRole.all_tenant_tables_force_rls
+      !runtimeRole.all_tenant_tables_force_rls ||
+      !runtimeRole.can_read_external_identities ||
+      !runtimeRole.can_read_accounts
     ) {
       throw new Error(
-        "DATABASE_URL must use a non-privileged, non-owner PostgreSQL role and all tenant tables must enforce RLS.",
+        "DATABASE_URL must use a non-privileged, non-owner PostgreSQL role with identity-table SELECT access and forced tenant RLS.",
       );
     }
   }
