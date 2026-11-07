@@ -90,7 +90,9 @@ describe("insertOutboxEvent", () => {
       1,
       JSON.stringify(PAYLOAD),
     ]);
-    expect(client.statements[0]?.sql).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\b/);
+    expect(client.statements[0]?.sql).not.toMatch(
+      /\b(BEGIN|COMMIT|ROLLBACK)\b/,
+    );
   });
 
   it("rejects invalid event envelope fields before querying", async () => {
@@ -105,9 +107,9 @@ describe("insertOutboxEvent", () => {
 
     for (const input of cases) {
       const client = new FakeClient();
-      await expect(
-        insertOutboxEvent(client, input),
-      ).rejects.toBeInstanceOf(OutboxEventInputError);
+      await expect(insertOutboxEvent(client, input)).rejects.toBeInstanceOf(
+        OutboxEventInputError,
+      );
       expect(client.statements).toHaveLength(0);
     }
   });
