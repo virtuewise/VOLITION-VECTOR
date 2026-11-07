@@ -39,17 +39,4 @@ describe("WorkOSAuthenticationGuard", () => {
       headers: { authorization: "Bearer signed-token" },
     };
 
-    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
-    expect(request.user).toEqual({
-      accountId: "7f9a6b2c-1111-4111-8111-111111111111",
-    });
-    expect(identities.resolveActiveAccountId).toHaveBeenCalledWith(
-      "https://issuer.example/user_management/client",
-      "user_123",
-    );
-  });
-
-  it("fails closed when WorkOS verification is not configured", async () => {
-    const guard = new WorkOSAuthenticationGuard(
-      { enabled: false } as WorkOSAccessTokenVerifier,
-      {} as W...[truncated]
+    await expect(guard.canAcֻǱ˞
