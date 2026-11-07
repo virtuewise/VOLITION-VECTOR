@@ -21,7 +21,74 @@ jobs:
           node-version: 26
           package-manager-cache: false
       - name: Validate Vercel multi-service manifest
-        run: node scripts/validate-vercel-services.mjs
+        run: |
+          node --input-type=module <<'NODE'
+          import { existsSync, readFileSync } from "node:fs";
+          import { resolve } from "node:path";
+
+          const config = JSON.parse(readFileSync("vercel.json", "utf8"));
+          const expected = {
+            api: { root: ".", runtime: "container", entrypoint: "Dockerfile" },
+            "admin-console": { root: "apps/web/admin-console", framework: "nextjs" },
+            "business-workspace": { root: "apps/web/business-workspace", framework: "nextjs" },
+            "individual-workspace": { root: "apps/web/individual-workspace", framework: "nextjs" },
+            marketplace: { root: "apps/web/marketplace", framework: "nextjs" },
+            "public-website": { root: "apps/web/public-website", framework: "nextjs" },
+          };
+          const errors = [];
+          const services = config.services;
+
+          if (!services || typeof services !== "object" || Array.isArray(services)) {
+            errors.push('vercel.json must declare a top-level "services" object.');
+          } else {
+            for (const [name, required] of Object.entries(expected)) {
+              const service = services[name];
+              if (!service) {
+                errors.push(`Missing required Vercel service: ${name}`);
+                continue;
+              }
+              for (const [key, value] of Object.entries(required)) {
+                if (service[key] !== value) {
+                  errors.push(`Service "${name}" must set ${key} to "${value}".`);
+                }
+              }
+              if (!existsSync(resolve(service.root))) {
+                errors.push(`Service "${name}" root does not exist: ${service.root}`);
+              }
+            }
+            for (const name of Object.keys(services)) {
+              if (!Object.hasOwn(expected, name)) {
+                errors.push(`Unexpected Vercel service declaration: ${name}`);
+              }
+            }
+          }
+
+          if (!existsSync("Dockerfile")) {
+            errors.push('The API container entrypoint "Dockerfile" is missing.');
+          }
+          const rewrites = config.rewrites;
+          if (!Array.isArray(rewrites) || rewrites.length === 0) {
+            errors.push("vercel.json must declare service rewrites.");
+          } else {
+            for (const [index, rewrite] of rewrites.entries()) {
+              if (!Object.hasOwn(expected, rewrite?.destination?.service ?? "")) {
+                errors.push(`Rewrite ${index + 1} must target a declared Vercel service.`);
+              }
+            }
+            const last = rewrites.at(-1);
+            if (last?.source !== "/(.*)" || last?.destination?.service !== "public-website") {
+              errors.push('The final catch-all rewrite must route "/(.*)" to "public-website".');
+            }
+          }
+
+          if (errors.length) {
+            console.error("Vercel Services manifest validation failed:");
+            for (const error of errors) console.error(`- ${error}`);
+            process.exitCode = 1;
+          } else {
+            console.log("Vercel Services manifest is valid: API and five Next.js services.");
+          }
+          NODE
       - name: Install pnpm
         run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
       - name: Install dependencies
