@@ -74,27 +74,27 @@ describe("insertOutboxEvent", () => {
   it(
     "inserts a versioned event envelope on the caller's transaction client",
     async () => {
-    const client = new FakeClient();
+      const client = new FakeClient();
 
-    await expect(insertOutboxEvent(client, validInput)).resolves.toEqual(
-      returnedRecord,
-    );
+      await expect(insertOutboxEvent(client, validInput)).resolves.toEqual(
+        returnedRecord,
+      );
 
-    expect(client.statements).toHaveLength(1);
-    expect(client.statements[0]?.sql).toContain("INSERT INTO outbox_events");
-    expect(client.statements[0]?.sql).toContain("RETURNING id");
-    expect(client.statements[0]?.parameters).toEqual([
-      ORGANIZATION_ID,
-      "project-created-1",
-      "project.workspace.created",
-      "project_workspace",
-      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-      1,
-      JSON.stringify(PAYLOAD),
-    ]);
-    expect(client.statements[0]?.sql).not.toMatch(
-      /\b(BEGIN|COMMIT|ROLLBACK)\b/,
-    );
+      expect(client.statements).toHaveLength(1);
+      expect(client.statements[0]?.sql).toContain("INSERT INTO outbox_events");
+      expect(client.statements[0]?.sql).toContain("RETURNING id");
+      expect(client.statements[0]?.parameters).toEqual([
+        ORGANIZATION_ID,
+        "project-created-1",
+        "project.workspace.created",
+        "project_workspace",
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        1,
+        JSON.stringify(PAYLOAD),
+      ]);
+      expect(client.statements[0]?.sql).not.toMatch(
+        /\b(BEGIN|COMMIT|ROLLBACK)\b/,
+      );
     },
   );
 
