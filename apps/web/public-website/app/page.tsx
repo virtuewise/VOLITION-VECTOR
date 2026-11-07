@@ -188,7 +188,7 @@ export default function HomePage() {
           <span className="brand-name">VOLITION<span>VECTOR</span></span>
         </a>
         <p>Direction for what comes next.</p>
-        <div className="footer-links"><a href="#ecosystem">Ecosystem</a><a href="#principles">Our approach</a><a href="mailto:hello@volitionvector.com">Contact</a></div>
+        <div className="footer-links"><a href="#ecosystem">Ecosystem</a><a href="#principles">Our approach</a><a href="#about">About Volition Vector</a></div>
         <span className="copyright">© {new Date().getFullYear()} VOLITION VECTOR</span>
       </footer>
     </main>
