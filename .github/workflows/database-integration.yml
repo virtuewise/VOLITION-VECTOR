@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - security/audit-truncate-guard
+      - ci/ubuntu-26-04
       - main
   pull_request:
     branches:
