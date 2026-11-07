@@ -17,9 +17,7 @@ async function bootstrap() {
       transform: true,
     }),
   );
-  await app.listen(
-    process.env["PORT"] ?? process.env["API_PORT"] ?? "4000",
-  );
+  await app.listen(process.env["PORT"] ?? process.env["API_PORT"] ?? "4000");
 }
 
 void bootstrap();
