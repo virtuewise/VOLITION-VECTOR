@@ -1,0 +1,64 @@
+name: Security scanning
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Review dependency changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Review introduced dependencies and advisories
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+        with:
+          fail-on-severity: moderate
+
+  dependency-audit:
+    name: Audit resolved pnpm dependency tree
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - name: Install pinned pnpm
+        run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Fail on moderate or higher dependency advisories
+        run: pnpm audit --audit-level=moderate
+
+  secret-scan:
+    name: Scan repository history for exposed secrets
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out full Git history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Scan commits and changes for secrets
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
