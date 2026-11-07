@@ -1,3 +1,6 @@
+import Image from "next/image";
+import Link from "next/link";
+
 const pathways = [
   {
     number: "01",
@@ -56,15 +59,15 @@ export default function HomePage() {
   return (
     <main>
       <header className="site-header">
-        <a className="brand" href="/" aria-label="Volition Vector home">
-          <img
+        <Link className="brand" href="/" aria-label="Volition Vector home">
+          <Image
             className="brand-logo"
             src="/brand/volition-vector-original.svg"
             alt="Volition Vector"
             width="76"
             height="76"
           />
-        </a>
+        </Link>
         <nav className="main-nav" aria-label="Main navigation">
           <a href="#ecosystem">Ecosystem</a>
           <a href="#principles">Our approach</a>
@@ -123,7 +126,7 @@ export default function HomePage() {
               <span>OPPORTUNITY</span>
             </div>
             <div className="core">
-              <img
+              <Image
                 className="core-logo"
                 src="/brand/volition-vector-original.svg"
                 alt="Volition Vector original logo"
@@ -252,19 +255,19 @@ export default function HomePage() {
       </section>
 
       <footer className="site-footer">
-        <a
+        <Link
           className="brand footer-brand"
           href="/"
           aria-label="Volition Vector home"
         >
-          <img
+          <Image
             className="brand-logo footer-logo"
             src="/brand/volition-vector-original.svg"
             alt="Volition Vector"
             width="92"
             height="92"
           />
-        </a>
+        </Link>
         <p>Direction for what comes next.</p>
         <div className="footer-links">
           <a href="#ecosystem">Ecosystem</a>
