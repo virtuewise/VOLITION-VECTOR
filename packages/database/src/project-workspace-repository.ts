@@ -31,7 +31,7 @@ export interface ProjectMilestoneRecord {
   readonly description: string;
   readonly sequenceNumber: number;
   readonly status:
-    | "pending" | "in_progress" | "submitted" | "revision_requested" | "accepted";
+    "pending" | "in_progress" | "submitted" | "revision_requested" | "accepted";
   readonly dueAt: Date | null;
   readonly submittedAt: Date | null;
   readonly acceptedAt: Date | null;
