@@ -20,6 +20,8 @@ jobs:
         with:
           node-version: 26
           package-manager-cache: false
+      - name: Validate Vercel multi-service manifest
+        run: node scripts/validate-vercel-services.mjs
       - name: Install pnpm
         run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
       - name: Install dependencies
