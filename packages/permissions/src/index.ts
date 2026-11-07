@@ -417,3 +417,22 @@ export function canReviewProjectMilestone(
     request.decision === "accepted" || request.decision === "revision_requested"
   );
 }
+
+export function canOpenApplicationConversation(request: {
+  readonly actorAccountId: string | null;
+  readonly organizationId: string;
+  readonly resourceOrganizationId: string;
+  readonly membershipStatus: "active" | "suspended" | "revoked" | null;
+  readonly role: OrganizationRole | null;
+  readonly applicationStatus:
+    "submitted" | "withdrawn" | "shortlisted" | "rejected" | "accepted";
+}): boolean {
+  return (
+    Boolean(request.actorAccountId?.trim()) &&
+    (request.role === "owner" || request.role === "admin") &&
+    request.membershipStatus === "active" &&
+    request.organizationId === request.resourceOrganizationId &&
+    (request.applicationStatus === "shortlisted" ||
+      request.applicationStatus === "accepted")
+  );
+}
