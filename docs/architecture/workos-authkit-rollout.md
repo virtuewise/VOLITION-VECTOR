@@ -13,10 +13,10 @@ At the time of the initial inspection, the identity domain had a fail-closed req
 ### Staging
 
 - The default AuthKit application is present in the Staging sandbox.
-- Its login URI is `http://localhost:3002/sign-in`.
-- Its default redirect URI is `http://localhost:3002/callback`.
+- Its legacy login URI is `http://localhost:3002/sign-in`.
+- Its legacy redirect URI is `http://localhost:3002/callback`.
 - Its configured web origin is `http://localhost:3002`.
-- These are local-development values, not deployed staging callback configuration.
+- These login and callback paths predate the Individual Workspace `/app` base path and are incorrect for the current app. The implemented local routes are `/app/sign-in` and `/app/callback`; do not register or test the legacy paths.
 
 ### Production
 
