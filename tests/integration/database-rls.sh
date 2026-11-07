@@ -31,6 +31,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106200000_trust_evidence_intake/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261107120000_transactional_outbox/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -47,6 +49,7 @@ GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
 GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
 GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
+GRANT SELECT, INSERT ON outbox_events TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
@@ -406,6 +409,32 @@ VALUES
     'membership',
     'membership-two'
   );
+
+INSERT INTO outbox_events (
+  id, organization_id, idempotency_key, event_name,
+  aggregate_type, aggregate_id, schema_version, payload
+)
+VALUES
+  (
+    '99999999-9999-4999-8999-999999999991',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'fixture-tenant-one',
+    'organization.membership.created',
+    'organization_membership',
+    'membership-one',
+    1,
+    '{"source":"integration-fixture"}'::jsonb
+  ),
+  (
+    '99999999-9999-4999-8999-999999999992',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    'fixture-tenant-two',
+    'organization.membership.created',
+    'organization_membership',
+    'membership-two',
+    1,
+    '{"source":"integration-fixture"}'::jsonb
+  );
 SQL
 
 assert_count() {
@@ -466,7 +495,8 @@ SELECT
         'journal_entries',
         'journal_entry_lines',
         'trust_evidence',
-        'trust_evidence_decisions'
+        'trust_evidence_decisions',
+        'outbox_events'
       ]::text[])
       AND (
         c.relowner = role.oid OR
@@ -484,7 +514,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 17
+    SELECT count(*) = 18
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -505,7 +535,8 @@ SELECT
         'journal_entries',
         'journal_entry_lines',
         'trust_evidence',
-        'trust_evidence_decisions'
+        'trust_evidence_decisions',
+        'outbox_events'
       ]::text[])
       AND c.relrowsecurity
       AND c.relforcerowsecurity
@@ -573,6 +604,12 @@ without_tenant="$(
 )"
 if [[ "$without_tenant" != "0" ]]; then
   echo "Expected no tenant rows without transaction context; got $without_tenant" >&2
+  exit 1
+fi
+without_tenant_outbox="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SELECT count(*) FROM outbox_events;")"
+if [[ "$without_tenant_outbox" != "0" ]]; then
+  echo "Outbox events were visible without tenant context." >&2
   exit 1
 fi
 
@@ -759,6 +796,8 @@ expect_failure "audit event truncate" "TRUNCATE audit_events;"
 
 assert_count audit_events "$TENANT_ONE" 1
 assert_count audit_events "$TENANT_TWO" 1
+assert_count outbox_events "$TENANT_ONE" 1
+assert_count outbox_events "$TENANT_TWO" 1
 
 # Two concurrent owner demotions must serialize on the same canonical tenant
 # lock key. The first request leaves one active owner; the second must observe
@@ -903,6 +942,108 @@ assert_count organization_memberships "$TENANT_ONE" 2
 assert_count audit_events "$TENANT_ONE" 2
 assert_count audit_events "$TENANT_TWO" 1
 
+# Runtime can append within its tenant, but cannot insert for another tenant or
+# mutate/delete/truncate the immutable event envelope.
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<SQL
+BEGIN;
+SELECT set_config('app.tenant_id', '$TENANT_ONE', true);
+INSERT INTO outbox_events (
+  organization_id, idempotency_key, event_name, aggregate_type,
+  aggregate_id, schema_version, payload
+) VALUES (
+  '$TENANT_ONE', 'project-created-runtime', 'project.workspace.created',
+  'project_workspace', '99999999-9999-4999-8999-999999999998', 1,
+  '{"source":"runtime-integration"}'::jsonb
+);
+COMMIT;
+SQL
+assert_count outbox_events "$TENANT_ONE" 2
+
+expect_failure "cross-tenant outbox insertion is rejected" \
+  "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO outbox_events (organization_id, idempotency_key, event_name, aggregate_type, aggregate_id) VALUES ('$TENANT_TWO', 'cross-tenant-outbox', 'project.workspace.created', 'project_workspace', 'cross-tenant');"
+expect_failure "duplicate tenant outbox idempotency key is rejected" \
+  "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO outbox_events (organization_id, idempotency_key, event_name, aggregate_type, aggregate_id) VALUES ('$TENANT_ONE', 'fixture-tenant-one', 'project.workspace.created', 'project_workspace', 'duplicate');"
+expect_failure "runtime cannot update outbox events" \
+  "SET app.tenant_id = '$TENANT_ONE'; UPDATE outbox_events SET payload = '{}'::jsonb WHERE id = '99999999-9999-4999-8999-999999999991';"
+expect_failure "runtime cannot delete outbox events" \
+  "SET app.tenant_id = '$TENANT_ONE'; DELETE FROM outbox_events WHERE id = '99999999-9999-4999-8999-999999999991';"
+expect_failure "runtime cannot truncate outbox events" "TRUNCATE outbox_events;"
+
+expect_admin_failure() {
+  local description="$1"
+  local sql="$2"
+  if psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "$sql" >/dev/null 2>&1; then
+    echo "Expected append-only trigger to reject: $description" >&2
+    exit 1
+  fi
+  echo "Verified append-only trigger: $description"
+}
+expect_admin_failure "outbox UPDATE" \
+  "UPDATE outbox_events SET payload = '{}'::jsonb WHERE id = '99999999-9999-4999-8999-999999999991';"
+expect_admin_failure "outbox DELETE" \
+  "DELETE FROM outbox_events WHERE id = '99999999-9999-4999-8999-999999999991';"
+expect_admin_failure "outbox TRUNCATE" "TRUNCATE outbox_events;"
+
+# A journal header/lines, audit event and outbox event written in one
+# transaction must all disappear when that transaction rolls back.
+audit_before="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM audit_events;")"
+outbox_before="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM outbox_events;")"
+journal_before="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM journal_entries;")"
+journal_lines_before="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM journal_entry_lines;")"
+
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<SQL
+BEGIN;
+SELECT set_config('app.tenant_id', '$TENANT_ONE', true);
+INSERT INTO journal_entries (
+  id, organization_id, idempotency_key, reference_type, reference_id,
+  currency, created_by_account_id
+) VALUES (
+  'aaaaaaaa-1111-4111-8111-111111111111', '$TENANT_ONE',
+  'rollback-outbox-atomicity', 'test', 'rollback-1', 'USD', '$ACCOUNT_ONE'
+);
+INSERT INTO journal_entry_lines (
+  organization_id, journal_entry_id, account_code, side, amount_minor
+) VALUES
+  ('$TENANT_ONE', 'aaaaaaaa-1111-4111-8111-111111111111', 'cash', 'debit', 100),
+  ('$TENANT_ONE', 'aaaaaaaa-1111-4111-8111-111111111111', 'clearing', 'credit', 100);
+INSERT INTO audit_events (
+  organization_id, actor_account_id, event_name, resource_type, resource_id
+) VALUES (
+  '$TENANT_ONE', '$ACCOUNT_ONE', 'payments.journal.posted',
+  'journal_entry', 'aaaaaaaa-1111-4111-8111-111111111111'
+);
+INSERT INTO outbox_events (
+  organization_id, idempotency_key, event_name, aggregate_type,
+  aggregate_id, schema_version, payload
+) VALUES (
+  '$TENANT_ONE', 'rollback-outbox-atomicity',
+  'payments.journal.posted', 'journal_entry',
+  'aaaaaaaa-1111-4111-8111-111111111111', 1,
+  '{"journalEntryId":"aaaaaaaa-1111-4111-8111-111111111111"}'::jsonb
+);
+ROLLBACK;
+SQL
+
+audit_after="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM audit_events;")"
+outbox_after="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM outbox_events;")"
+journal_after="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM journal_entries;")"
+journal_lines_after="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM journal_entry_lines;")"
+if [[ "$audit_before" != "$audit_after" ||
+      "$outbox_before" != "$outbox_after" ||
+      "$journal_before" != "$journal_after" ||
+      "$journal_lines_before" != "$journal_lines_after" ]]; then
+  echo "Journal, audit and outbox records did not roll back atomically." >&2
+  exit 1
+fi
+
 bash "$ROOT_DIR/tests/integration/payments-journal.sh"
 
-echo "PostgreSQL tenant RLS, project workspaces, private conversations, private Trust evidence, immutable journal, append-only audit and concurrent owner-continuity checks passed."
+echo "PostgreSQL tenant RLS, project workspaces, private conversations, private Trust evidence, immutable journal, append-only audit/outbox and concurrent owner-continuity checks passed."
