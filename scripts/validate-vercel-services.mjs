@@ -7,7 +7,10 @@ const expected = {
   api: { root: ".", runtime: "container", entrypoint: "Dockerfile" },
   "admin-console": { root: "apps/web/admin-console", framework: "nextjs" },
   "business-workspace": { root: "apps/web/business-workspace", framework: "nextjs" },
-  "individual-workspace": { root: "apps/web/individual-workspace", framework: "nextjs" },
+  "individual-workspace": {
+    root: "apps/web/individual-workspace",
+    framework: "nextjs",
+  },
   marketplace: { root: "apps/web/marketplace", framework: "nextjs" },
   "public-website": { root: "apps/web/public-website", framework: "nextjs" },
 };
@@ -32,10 +35,14 @@ if (!services || typeof services !== "object" || Array.isArray(services)) {
       errors.push(`Service "${name}" must use runtime "${required.runtime}".`);
     }
     if (required.entrypoint && service.entrypoint !== required.entrypoint) {
-      errors.push(`Service "${name}" must use entrypoint "${required.entrypoint}".`);
+      errors.push(
+        `Service "${name}" must use entrypoint "${required.entrypoint}".`,
+      );
     }
     if (required.framework && service.framework !== required.framework) {
-      errors.push(`Service "${name}" must use framework "${required.framework}".`);
+      errors.push(
+        `Service "${name}" must use framework "${required.framework}".`,
+      );
     }
 
     const rootPath = resolve(service.root);
@@ -62,20 +69,31 @@ if (!Array.isArray(rewrites) || rewrites.length === 0) {
   for (const [index, rewrite] of rewrites.entries()) {
     const serviceName = rewrite?.destination?.service;
     if (typeof serviceName !== "string" || !expected[serviceName]) {
-      errors.push(`Rewrite ${index + 1} must target a declared Vercel service.`);
+      errors.push(
+        `Rewrite ${index + 1} must target a declared Vercel service.`,
+      );
     }
   }
 
   const finalRewrite = rewrites.at(-1);
-  if (finalRewrite?.source !== "/(.*)" || finalRewrite?.destination?.service !== "public-website") {
-    errors.push('The final catch-all rewrite must route "/(.*)" to "public-website".');
+  if (
+    finalRewrite?.source !== "/(.*)" ||
+    finalRewrite?.destination?.service !== "public-website"
+  ) {
+    errors.push(
+      'The final catch-all rewrite must route "/(.*)" to "public-website".',
+    );
   }
 }
 
 if (errors.length > 0) {
   console.error("Vercel Services manifest validation failed:");
-  for (const error of errors) console.error(`- ${error}`);
+  for (const error of errors) {
+    console.error(`- ${error}`);
+  }
   process.exitCode = 1;
 } else {
-  console.log("Vercel Services manifest is valid: API plus five Next.js services and declared rewrites.");
+  console.log(
+    "Vercel Services manifest is valid: API plus five Next.js services and declared rewrites.",
+  );
 }
