@@ -2,8 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
     "api": {
-      "root": "apps/api",
-      "framework": "nestjs"
+      "root": ".",
+      "runtime": "container",
+      "entrypoint": "apps/api/Dockerfile"
     },
     "admin-console": {
       "root": "apps/web/admin-console",
