@@ -7,9 +7,11 @@ import { IntelligenceModule } from "../intelligence/intelligence.module";
 import { CredentialsModule } from "../credentials/credentials.module";
 import { GovernanceModule } from "../governance/governance.module";
 import { CommunicationModule } from "../communication/communication.module";
+import { HealthModule } from "./modules/health/health.module.js";
 
 @Module({
   imports: [
+    HealthModule,
     IdentityModule,
     OpportunityModule,
     MarketplaceModule,
