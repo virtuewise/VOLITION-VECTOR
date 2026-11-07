@@ -22,6 +22,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106170000_opportunity_applications/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106190000_application_conversations/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106190000_immutable_journal/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
@@ -33,7 +35,7 @@ GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, opportunities, opportunity_applications, service_listings, audit_events
+     organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, service_listings, audit_events
   TO vv_runtime;
 GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
@@ -232,6 +234,57 @@ SELECT
 FROM opportunities
 WHERE slug = 'tenant-two-public';
 
+UPDATE opportunity_applications
+SET status = 'shortlisted',
+    reviewed_at = now(),
+    reviewed_by_account_id = '11111111-1111-4111-8111-111111111111'
+WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO conversations (
+  id, organization_id, opportunity_application_id, created_by_account_id
+)
+SELECT
+  '99999999-9999-4999-8999-999999999998',
+  organization_id,
+  id,
+  '11111111-1111-4111-8111-111111111111'
+FROM opportunity_applications
+WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO conversation_participants (
+  organization_id, conversation_id, account_id, participant_type
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '44444444-4444-4444-8444-444444444444',
+    'applicant'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '11111111-1111-4111-8111-111111111111',
+    'organization'
+  );
+
+INSERT INTO messages (
+  organization_id, conversation_id, sender_account_id, body
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '44444444-4444-4444-8444-444444444444',
+    'Thank you for considering my application.'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '11111111-1111-4111-8111-111111111111',
+    'We would like to arrange an introductory call.'
+  );
+
 INSERT INTO audit_events
   (id, organization_id, actor_account_id, event_name, resource_type, resource_id)
 VALUES
@@ -301,6 +354,9 @@ SELECT
         'organization_invitation_rate_limits',
         'opportunities',
         'opportunity_applications',
+        'conversations',
+        'conversation_participants',
+        'messages',
         'service_listings',
         'audit_events',
         'journal_entries',
@@ -322,7 +378,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 10
+    SELECT count(*) = 13
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -333,6 +389,9 @@ SELECT
         'organization_invitation_rate_limits',
         'opportunities',
         'opportunity_applications',
+        'conversations',
+        'conversation_participants',
+        'messages',
         'service_listings',
         'audit_events',
         'journal_entries',
@@ -359,6 +418,12 @@ assert_count opportunities "$TENANT_ONE" 3
 assert_count opportunities "$TENANT_TWO" 2
 assert_count service_listings "$TENANT_ONE" 1
 assert_count service_listings "$TENANT_TWO" 2
+assert_count conversations "$TENANT_ONE" 1
+assert_count conversations "$TENANT_TWO" 0
+assert_count conversation_participants "$TENANT_ONE" 2
+assert_count conversation_participants "$TENANT_TWO" 0
+assert_count messages "$TENANT_ONE" 2
+assert_count messages "$TENANT_TWO" 0
 
 tenant_one_drafts="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
@@ -439,6 +504,23 @@ if [[ "$tenant_one_applications" != "1" || "$tenant_two_applications" != "1" ]];
   echo "Applicant-scoped RLS did not isolate each candidate's own applications." >&2
   exit 1
 fi
+applicant_conversation_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM conversations;"
+)"
+applicant_message_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM messages;"
+)"
+other_applicant_conversation_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM conversations;"
+)"
+if [[ "$applicant_conversation_count" != "1" || "$applicant_message_count" != "2" || "$other_applicant_conversation_count" != "0" ]]; then
+  echo "Conversation or message RLS exposed records outside the participant account." >&2
+  exit 1
+fi
+
 cross_applicant_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM opportunity_applications WHERE applicant_account_id = '55555555-5555-4555-8555-555555555555';"
@@ -477,6 +559,9 @@ expect_failure "cross-tenant application insert" \
 
 expect_failure "application insert for another applicant" \
   "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'applicant'; INSERT INTO opportunity_applications (organization_id, opportunity_id, applicant_account_id, opportunity_slug_snapshot, opportunity_title_snapshot, opportunity_type_snapshot) SELECT organization_id, id, '55555555-5555-4555-8555-555555555555', slug, title, opportunity_type FROM opportunities WHERE slug = 'tenant-one-public';"
+
+expect_failure "message insert by a non-participant" \
+  "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '55555555-5555-4555-8555-555555555555'; SET app.actor_type = 'participant'; INSERT INTO messages (organization_id, conversation_id, sender_account_id, body) VALUES ('$TENANT_ONE', '99999999-9999-4999-8999-999999999998', '55555555-5555-4555-8555-555555555555', 'Unauthorized message');"
 
 expect_failure "audit event update" \
   "SET app.tenant_id = '$TENANT_ONE'; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
@@ -634,4 +719,4 @@ assert_count audit_events "$TENANT_TWO" 1
 
 bash "$ROOT_DIR/tests/integration/payments-journal.sh"
 
-echo "PostgreSQL tenant RLS, append-only audit and concurrent owner-continuity checks passed."
+echo "PostgreSQL tenant RLS, private conversations, immutable journal, append-only audit and concurrent owner-continuity checks passed."
