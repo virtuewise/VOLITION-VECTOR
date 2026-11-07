@@ -5,3 +5,5 @@ export * from "./identity.js";
 export * from "./opportunity.js";
 export * from "./service-listing.js";
 export * from "./opportunity-application.js";
+export * from "./conversation.js";
+export * from "./project.js";

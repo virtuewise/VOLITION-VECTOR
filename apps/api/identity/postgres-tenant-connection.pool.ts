@@ -14,10 +14,17 @@ const TENANT_OWNED_TABLES = [
   "organization_invitation_rate_limits",
   "opportunities",
   "opportunity_applications",
-  "service_listings",
-  "audit_events",
+  "conversations",
+  "conversation_participants",
+  "messages",
+  "project_workspaces",
+  "project_milestones",
+  "journal_entries",
+  "journal_entry_lines",
   "trust_evidence",
   "trust_evidence_decisions",
+  "service_listings",
+  "audit_events",
 ] as const;
 
 interface RuntimeRoleRow extends QueryResultRow {

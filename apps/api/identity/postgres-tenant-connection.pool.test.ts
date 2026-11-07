@@ -66,9 +66,18 @@ describe("PostgresTenantConnectionPool", () => {
     );
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("opportunities");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("opportunity_applications");
-    expect(query.mock.calls[0]?.[1]?.[0]).toContain("service_listings");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("project_workspaces");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("project_milestones");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("journal_entries");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("journal_entry_lines");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("trust_evidence");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("trust_evidence_decisions");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("conversations");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain(
+      "conversation_participants",
+    );
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("messages");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("service_listings");
   });
 
   it.each([

@@ -22,6 +22,12 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106170000_opportunity_applications/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106190000_application_conversations/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106190000_project_workspaces/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261106190000_immutable_journal/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106200000_trust_evidence_intake/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
@@ -35,11 +41,12 @@ GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, opportunities, opportunity_applications, service_listings, audit_events
+     organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, project_workspaces, project_milestones, service_listings, audit_events, journal_entries, journal_entry_lines
   TO vv_runtime;
+GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
+GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
 GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
 GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
-GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
@@ -307,6 +314,79 @@ SELECT
 FROM opportunities
 WHERE slug = 'tenant-two-public';
 
+UPDATE opportunity_applications
+SET status = 'accepted',
+    reviewed_at = clock_timestamp(),
+    reviewed_by_account_id = '11111111-1111-4111-8111-111111111111'
+WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO conversations (
+  id, organization_id, opportunity_application_id, created_by_account_id
+)
+SELECT
+  '99999999-9999-4999-8999-999999999998',
+  organization_id,
+  id,
+  '11111111-1111-4111-8111-111111111111'
+FROM opportunity_applications
+WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO conversation_participants (
+  organization_id, conversation_id, account_id, participant_type
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '44444444-4444-4444-8444-444444444444',
+    'applicant'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '11111111-1111-4111-8111-111111111111',
+    'organization'
+  );
+
+INSERT INTO messages (
+  organization_id, conversation_id, sender_account_id, body
+)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '44444444-4444-4444-8444-444444444444',
+    'Thank you for considering my application.'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '99999999-9999-4999-8999-999999999998',
+    '11111111-1111-4111-8111-111111111111',
+    'We would like to arrange an introductory call.'
+  );
+
+INSERT INTO project_workspaces (
+  id, organization_id, opportunity_application_id, opportunity_id,
+  client_account_id, provider_account_id, title, description
+)
+SELECT
+  '99999999-9999-4999-8999-999999999998',
+  application.organization_id, application.id, application.opportunity_id,
+  '11111111-1111-4111-8111-111111111111',
+  application.applicant_account_id,
+  'Tenant One Project', 'Project created from an accepted opportunity application'
+FROM opportunity_applications AS application
+WHERE application.applicant_account_id = '44444444-4444-4444-8444-444444444444';
+
+INSERT INTO project_milestones (
+  organization_id, project_id, title, description, sequence_number
+)
+VALUES (
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  '99999999-9999-4999-8999-999999999998',
+  'Discovery', 'Complete discovery and agree scope', 1
+);
+
 INSERT INTO audit_events
   (id, organization_id, actor_account_id, event_name, resource_type, resource_id)
 VALUES
@@ -376,8 +456,15 @@ SELECT
         'organization_invitation_rate_limits',
         'opportunities',
         'opportunity_applications',
+        'conversations',
+        'conversation_participants',
+        'messages',
+        'project_workspaces',
+        'project_milestones',
         'service_listings',
         'audit_events',
+        'journal_entries',
+        'journal_entry_lines',
         'trust_evidence',
         'trust_evidence_decisions'
       ]::text[])
@@ -397,7 +484,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 10
+    SELECT count(*) = 17
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -408,8 +495,15 @@ SELECT
         'organization_invitation_rate_limits',
         'opportunities',
         'opportunity_applications',
+        'conversations',
+        'conversation_participants',
+        'messages',
+        'project_workspaces',
+        'project_milestones',
         'service_listings',
         'audit_events',
+        'journal_entries',
+        'journal_entry_lines',
         'trust_evidence',
         'trust_evidence_decisions'
       ]::text[])
@@ -434,6 +528,12 @@ assert_count opportunities "$TENANT_ONE" 3
 assert_count opportunities "$TENANT_TWO" 2
 assert_count service_listings "$TENANT_ONE" 1
 assert_count service_listings "$TENANT_TWO" 2
+assert_count conversations "$TENANT_ONE" 1
+assert_count conversations "$TENANT_TWO" 0
+assert_count conversation_participants "$TENANT_ONE" 2
+assert_count conversation_participants "$TENANT_TWO" 0
+assert_count messages "$TENANT_ONE" 2
+assert_count messages "$TENANT_TWO" 0
 
 tenant_one_drafts="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
@@ -514,10 +614,58 @@ if [[ "$tenant_one_applications" != "1" || "$tenant_two_applications" != "1" ]];
   echo "Applicant-scoped RLS did not isolate each candidate's own applications." >&2
   exit 1
 fi
+applicant_conversation_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM conversations;"
+)"
+applicant_message_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM messages;"
+)"
+other_applicant_conversation_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM conversations;"
+)"
+if [[ "$applicant_conversation_count" != "1" || "$applicant_message_count" != "2" || "$other_applicant_conversation_count" != "0" ]]; then
+  echo "Conversation or message RLS exposed records outside the participant account." >&2
+  exit 1
+fi
 cross_applicant_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM opportunity_applications WHERE applicant_account_id = '55555555-5555-4555-8555-555555555555';"
 )"
+project_provider_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM project_workspaces;"
+)"
+if [[ "$project_provider_count" != "1" ]]; then
+  echo "The accepted applicant could not read their project workspace." >&2
+  exit 1
+fi
+project_nonparticipant_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM project_workspaces;"
+)"
+if [[ "$project_nonparticipant_count" != "0" ]]; then
+  echo "A non-participant read another account's project workspace." >&2
+  exit 1
+fi
+provider_milestone_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM project_milestones;"
+)"
+if [[ "$provider_milestone_count" != "1" ]]; then
+  echo "The project provider could not read the project milestone." >&2
+  exit 1
+fi
+expect_failure "provider cannot rewrite milestone scope while submitting" \
+  "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'provider'; UPDATE project_milestones SET status = 'submitted', submitted_at = clock_timestamp(), title = 'Changed scope' WHERE project_id = '99999999-9999-4999-8999-999999999998' AND sequence_number = 1;"
+
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -c "SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'provider'; UPDATE project_milestones SET status = 'submitted', submitted_at = clock_timestamp() WHERE project_id = '99999999-9999-4999-8999-999999999998' AND sequence_number = 1;"
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -c "SET app.tenant_id = '$TENANT_ONE'; SET app.actor_type = 'organization'; UPDATE project_milestones SET status = 'accepted', accepted_at = clock_timestamp(), accepted_by_account_id = '$ACCOUNT_ONE' WHERE project_id = '99999999-9999-4999-8999-999999999998' AND sequence_number = 1;"
+
 if [[ "$cross_applicant_count" != "0" ]]; then
   echo "An applicant read another candidate's application." >&2
   exit 1
@@ -591,6 +739,12 @@ expect_failure "cross-tenant service listing insert" \
 
 expect_failure "cross-tenant application insert" \
   "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'applicant'; INSERT INTO opportunity_applications (organization_id, opportunity_id, applicant_account_id, opportunity_slug_snapshot, opportunity_title_snapshot, opportunity_type_snapshot) SELECT organization_id, id, '44444444-4444-4444-8444-444444444444', slug, title, opportunity_type FROM opportunities WHERE slug = 'tenant-two-public';"
+
+expect_failure "project creation from unaccepted application" \
+  "SET app.tenant_id = '$TENANT_TWO'; SET app.actor_type = 'organization'; INSERT INTO project_workspaces (organization_id, opportunity_application_id, opportunity_id, client_account_id, provider_account_id, title, description) SELECT organization_id, id, opportunity_id, '22222222-2222-4222-8222-222222222222', applicant_account_id, 'Premature project', 'Must require accepted application' FROM opportunity_applications WHERE applicant_account_id = '55555555-5555-4555-8555-555555555555';"
+
+expect_failure "project provider must match accepted applicant" \
+  "SET app.tenant_id = '$TENANT_ONE'; SET app.actor_type = 'organization'; INSERT INTO project_workspaces (organization_id, opportunity_application_id, opportunity_id, client_account_id, provider_account_id, title, description) SELECT organization_id, id, opportunity_id, '11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555555', 'Wrong provider', 'Must be the accepted applicant' FROM opportunity_applications WHERE applicant_account_id = '44444444-4444-4444-8444-444444444444';"
 
 expect_failure "application insert for another applicant" \
   "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '44444444-4444-4444-8444-444444444444'; SET app.actor_type = 'applicant'; INSERT INTO opportunity_applications (organization_id, opportunity_id, applicant_account_id, opportunity_slug_snapshot, opportunity_title_snapshot, opportunity_type_snapshot) SELECT organization_id, id, '55555555-5555-4555-8555-555555555555', slug, title, opportunity_type FROM opportunities WHERE slug = 'tenant-one-public';"
@@ -749,4 +903,6 @@ assert_count organization_memberships "$TENANT_ONE" 2
 assert_count audit_events "$TENANT_ONE" 2
 assert_count audit_events "$TENANT_TWO" 1
 
-echo "PostgreSQL tenant RLS, append-only audit and concurrent owner-continuity checks passed."
+bash "$ROOT_DIR/tests/integration/payments-journal.sh"
+
+echo "PostgreSQL tenant RLS, project workspaces, private conversations, private Trust evidence, immutable journal, append-only audit and concurrent owner-continuity checks passed."
