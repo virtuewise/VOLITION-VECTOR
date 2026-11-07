@@ -32,8 +32,9 @@ export class WorkOSAuthenticationGuard implements CanActivate {
       );
     }
 
-    const request =
-      context.switchToHttp().getRequest<AuthenticatedHttpRequest>();
+    const request = context
+      .switchToHttp()
+      .getRequest<AuthenticatedHttpRequest>();
     let verified: Awaited<
       ReturnType<WorkOSAccessTokenVerifier["verifyBearerToken"]>
     >;
@@ -50,7 +51,9 @@ export class WorkOSAuthenticationGuard implements CanActivate {
     }
 
     if (!verified) {
-      throw new UnauthorizedException("A valid WorkOS access token is required.");
+      throw new UnauthorizedException(
+        "A valid WorkOS access token is required.",
+      );
     }
 
     let accountId: string | null;
@@ -60,19 +63,4 @@ export class WorkOSAuthenticationGuard implements CanActivate {
         verified.subject,
       );
     } catch (error) {
-      if (error instanceof ServiceUnavailableException) throw error;
-      throw new ServiceUnavailableException(
-        "Internal identity resolution is temporarily unavailable.",
-      );
-    }
-
-    if (!accountId) {
-      throw new UnauthorizedException(
-        "A valid active internal identity is required.",
-      );
-    }
-
-    request.user = { accountId };
-    return true;
-  }
-}
+      if (error instanceof ServiceUnavailableException) th...[truncated]
