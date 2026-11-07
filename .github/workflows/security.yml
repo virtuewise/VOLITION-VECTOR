@@ -28,7 +28,6 @@ jobs:
 
   dependency-audit:
     name: Audit resolved pnpm dependency tree
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.changed_files, 'pnpm-lock.yaml')
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
