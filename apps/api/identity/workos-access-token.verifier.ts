@@ -47,4 +47,28 @@ export class WorkOSAccessTokenVerifier {
   async verifyBearerToken(
     authorization: string | undefined,
   ): Promise<VerifiedWorkOSIdentity | null> {
-    if (!this.client || !authorization?.startsWith("Bearer ֻǱ˞
+    if (!this.client || !authorization?.startsWith("Bearer ")) {
+      return null;
+    }
+
+    const token = authorization.slice("Bearer ".length).trim();
+    if (!token || token.length > 16_384) {
+      return null;
+    }
+
+    const claims = await this.client.userManagement.verifyAccessToken(token);
+    if (
+      !claims ||
+      typeof claims.sub !== "string" ||
+      typeof claims.iss !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      subject: claims.sub,
+      issuer: claims.iss,
+      claims: claims as unknown as Record<string, unknown>,
+    };
+  }
+}
