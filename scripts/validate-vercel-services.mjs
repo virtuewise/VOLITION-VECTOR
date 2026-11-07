@@ -6,7 +6,10 @@ const config = JSON.parse(readFileSync(configPath, "utf8"));
 const expected = {
   api: { root: ".", runtime: "container", entrypoint: "Dockerfile" },
   "admin-console": { root: "apps/web/admin-console", framework: "nextjs" },
-  "business-workspace": { root: "apps/web/business-workspace", framework: "nextjs" },
+  "business-workspace": {
+    root: "apps/web/business-workspace",
+    framework: "nextjs",
+  },
   "individual-workspace": {
     root: "apps/web/individual-workspace",
     framework: "nextjs",
@@ -93,7 +96,5 @@ if (errors.length > 0) {
   }
   process.exitCode = 1;
 } else {
-  console.log(
-    "Vercel Services manifest is valid: API plus five Next.js services and declared rewrites.",
-  );
+  console.log("Vercel Services manifest is valid (API + five Next.js services).");
 }
