@@ -69,7 +69,7 @@ function requiredText(
 function serializePayload(
   payload: Readonly<Record<string, unknown>> | undefined,
 ): string {
-  const value = payload ?? {};
+  const value = payload === undefined ? {} : payload;
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new OutboxEventInputError("Outbox payload must be a JSON object.");
   }
