@@ -101,9 +101,7 @@ export type {
   SendConversationMessageInput,
 } from "./conversation-repository.js";
 export { PostgresProjectWorkspaceRepository } from "./project-workspace-repository.js";
-export {
-  ProjectWorkspaceInputError,
-} from "./project-workspace-repository.js";
+export { ProjectWorkspaceInputError } from "./project-workspace-repository.js";
 export type {
   ProjectMilestoneRecord,
   ProjectWorkspaceRecord,
