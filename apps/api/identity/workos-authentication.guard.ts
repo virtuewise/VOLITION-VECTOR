@@ -44,4 +44,38 @@ export class WorkOSAuthenticationGuard implements CanActivate {
         request.headers.authorization,
       );
     } catch {
-      // Do not expose JWKS, signature, issuer or token ֻǱ˞
+      // Do not expose JWKS, signature, issuer or token parsing details.
+      throw new UnauthorizedException(
+        "A valid WorkOS access token is required.",
+      );
+    }
+
+    if (!verified) {
+      throw new UnauthorizedException(
+        "A valid WorkOS access token is required.",
+      );
+    }
+
+    let accountId: string | null;
+    try {
+      accountId = await this.identities.resolveActiveAccountId(
+        verified.issuer,
+        verified.subject,
+      );
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) throw error;
+      throw new ServiceUnavailableException(
+        "Internal identity resolution is temporarily unavailable.",
+      );
+    }
+
+    if (!accountId) {
+      throw new UnauthorizedException(
+        "A valid active internal identity is required.",
+      );
+    }
+
+    request.user = { accountId };
+    return true;
+  }
+}
