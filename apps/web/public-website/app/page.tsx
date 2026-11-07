@@ -57,12 +57,7 @@ export default function HomePage() {
     <main>
       <header className="site-header">
         <a className="brand" href="/" aria-label="Volition Vector home">
-          <span className="brand-mark" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <span className="brand-name">VOLITION<span>VECTOR</span></span>
+          <img className="brand-logo" src="/brand/volition-vector-original.svg" alt="Volition Vector" width="76" height="76" />
         </a>
         <nav className="main-nav" aria-label="Main navigation">
           <a href="#ecosystem">Ecosystem</a>
@@ -103,10 +98,7 @@ export default function HomePage() {
             <div className="orbit-node node-top"><span>CAPABILITY</span></div>
             <div className="orbit-node node-right"><span>CONNECTION</span></div>
             <div className="orbit-node node-bottom"><span>OPPORTUNITY</span></div>
-            <div className="core">
-              <span className="core-symbol">V</span>
-              <span className="core-label">VOLITION<br />VECTOR</span>
-            </div>
+            <div className="core"><img className="core-logo" src="/brand/volition-vector-original.svg" alt="Volition Vector original logo" width="190" height="190" /></div>
             <div className="art-caption"><span>01 / 03</span> A clearer path forward</div>
           </div>
         </div>
@@ -184,8 +176,7 @@ export default function HomePage() {
 
       <footer className="site-footer">
         <a className="brand footer-brand" href="/" aria-label="Volition Vector home">
-          <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
-          <span className="brand-name">VOLITION<span>VECTOR</span></span>
+          <img className="brand-logo footer-logo" src="/brand/volition-vector-original.svg" alt="Volition Vector" width="92" height="92" />
         </a>
         <p>Direction for what comes next.</p>
         <div className="footer-links"><a href="#ecosystem">Ecosystem</a><a href="#principles">Our approach</a><a href="#about">About Volition Vector</a></div>
