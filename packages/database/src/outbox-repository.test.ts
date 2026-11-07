@@ -116,7 +116,7 @@ describe("insertOutboxEvent", () => {
 
   it("rejects non-object and non-serializable payloads", async () => {
     const circular: Record<string, unknown> = {};
-    circular.self = circular;
+    circular["self"] = circular;
 
     for (const payload of [null, [], circular]) {
       const client = new FakeClient();
