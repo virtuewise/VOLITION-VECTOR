@@ -7,6 +7,7 @@ import {
   canReviewOpportunityApplication,
   canSubmitProjectMilestone,
   canReviewProjectMilestone,
+  canOpenApplicationConversation,
   type OpportunityManagementAction,
   type OrganizationAccessRequest,
   type OrganizationMembershipManagementRequest,
