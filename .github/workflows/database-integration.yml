@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   postgres-rls:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     services:
       postgres:
         image: postgres:18.6
