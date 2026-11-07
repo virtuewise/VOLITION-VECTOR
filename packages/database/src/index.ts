@@ -100,9 +100,11 @@ export type {
   OpenApplicationConversationInput,
   SendConversationMessageInput,
 } from "./conversation-repository.js";
-export { PostgresProjectWorkspaceRepository } from "./project-workspace-repository.js";
-export { ProjectWorkspaceInputError } from "./project-workspace-repository.js";
+export {
+  insertOutboxEvent,
+  OutboxEventInputError,
+} from "./outbox-repository.js";
 export type {
-  ProjectMilestoneRecord,
-  ProjectWorkspaceRecord,
-} from "./project-workspace-repository.js";
+  OutboxEventInput,
+  OutboxEventRecord,
+} from "./outbox-repository.js";
