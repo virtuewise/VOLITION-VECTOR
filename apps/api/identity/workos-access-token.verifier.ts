@@ -31,10 +31,7 @@ export class WorkOSAccessTokenVerifier {
     }
 
     const parsedIssuer = new URL(issuer);
-    if (
-      parsedIssuer.protocol !== "https:" ||
-      parsedIssuer.pathname === "/"
-    ) {
+    if (parsedIssuer.protocol !== "https:" || parsedIssuer.pathname === "/") {
       throw new Error(
         "WORKOS_ISSUER must be the exact HTTPS User Management issuer.",
       );
@@ -71,7 +68,4 @@ export class WorkOSAccessTokenVerifier {
     return {
       subject: claims.sub,
       issuer: claims.iss,
-      claims: claims as unknown as Record<string, unknown>,
-    };
-  }
-}
+      claims: claims as unknown as Record<string, unkn...[truncated]
