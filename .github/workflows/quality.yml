@@ -3,7 +3,7 @@ name: Quality gates
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, ci/ubuntu-26-04]
 
 permissions:
   contents: read
