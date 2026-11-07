@@ -10,6 +10,7 @@
 The PostgreSQL membership mutation repository and deny-by-default policy exist. The API has no trusted OIDC/session provider integration. The existing `IdentityContextGuard` validates the shape of an upstream `request.user.accountId`; it does not verify credentials, token signatures, issuer, audience, expiry, session state, account status or organization membership. No trusted middleware currently populates that context, so protected routes fail closed with HTTP 401.
 
 The platform identity model is intentionally distinct from the identity vendor:
+
 - An external identity is an issuer/subject pair mapped to exactly one internal account.
 - An account may participate in multiple organizations.
 - Internal organization membership, status and permissions remain authoritative for VOLITION VECTOR resources.
