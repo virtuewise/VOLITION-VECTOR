@@ -5,6 +5,8 @@ import {
   canManageOpportunity,
   canManageServiceListing,
   canReviewOpportunityApplication,
+  canSubmitProjectMilestone,
+  canReviewProjectMilestone,
   canOpenApplicationConversation,
   type OpportunityManagementAction,
   type OrganizationAccessRequest,
@@ -502,6 +504,56 @@ describe("canReviewOpportunityApplication", () => {
         ...applicationReviewRequest,
         currentStatus: "accepted",
       }),
+    ).toBe(false);
+  });
+});
+
+describe("project milestone authorization", () => {
+  it("allows only the assigned provider to submit a milestone on an active project", () => {
+    const request = {
+      actorAccountId: "provider-1",
+      providerAccountId: "provider-1",
+      projectStatus: "active" as const,
+      milestoneStatus: "in_progress" as const,
+    };
+    expect(canSubmitProjectMilestone(request)).toBe(true);
+    expect(
+      canSubmitProjectMilestone({ ...request, actorAccountId: "other-1" }),
+    ).toBe(false);
+    expect(
+      canSubmitProjectMilestone({ ...request, projectStatus: "paused" }),
+    ).toBe(false);
+    expect(
+      canSubmitProjectMilestone({ ...request, milestoneStatus: "accepted" }),
+    ).toBe(false);
+  });
+
+  it("allows active tenant owners/admins to accept submitted milestones only", () => {
+    const request = {
+      actorAccountId: "owner-1",
+      organizationId: "org-1",
+      resourceOrganizationId: "org-1",
+      membershipStatus: "active" as const,
+      role: "owner" as const,
+      projectStatus: "active" as const,
+      milestoneStatus: "submitted" as const,
+      decision: "accepted" as const,
+    };
+    expect(canReviewProjectMilestone(request)).toBe(true);
+    expect(canReviewProjectMilestone({ ...request, role: "member" })).toBe(
+      false,
+    );
+    expect(
+      canReviewProjectMilestone({
+        ...request,
+        resourceOrganizationId: "org-2",
+      }),
+    ).toBe(false);
+    expect(
+      canReviewProjectMilestone({ ...request, milestoneStatus: "in_progress" }),
+    ).toBe(false);
+    expect(
+      canReviewProjectMilestone({ ...request, membershipStatus: "suspended" }),
     ).toBe(false);
   });
 });

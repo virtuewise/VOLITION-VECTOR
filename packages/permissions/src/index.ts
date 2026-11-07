@@ -360,6 +360,64 @@ export function canReviewOpportunityApplication(
   );
 }
 
+export interface ProjectMilestoneSubmissionRequest {
+  readonly actorAccountId: string | null;
+  readonly providerAccountId: string;
+  readonly projectStatus: "active" | "paused" | "completed" | "cancelled";
+  readonly milestoneStatus:
+    "pending" | "in_progress" | "submitted" | "revision_requested" | "accepted";
+}
+
+export function canSubmitProjectMilestone(
+  request: ProjectMilestoneSubmissionRequest,
+): boolean {
+  if (
+    !request.actorAccountId?.trim() ||
+    request.actorAccountId !== request.providerAccountId ||
+    request.projectStatus !== "active"
+  ) {
+    return false;
+  }
+
+  return (
+    request.milestoneStatus === "pending" ||
+    request.milestoneStatus === "in_progress" ||
+    request.milestoneStatus === "revision_requested"
+  );
+}
+
+export interface ProjectMilestoneReviewRequest {
+  readonly actorAccountId: string | null;
+  readonly organizationId: string;
+  readonly resourceOrganizationId: string;
+  readonly membershipStatus: "active" | "suspended" | "revoked" | null;
+  readonly role: OrganizationRole | null;
+  readonly projectStatus: "active" | "paused" | "completed" | "cancelled";
+  readonly milestoneStatus:
+    "pending" | "in_progress" | "submitted" | "revision_requested" | "accepted";
+  readonly decision: "accepted" | "revision_requested";
+}
+
+/** Only active tenant owners/admins may review a submitted project milestone. */
+export function canReviewProjectMilestone(
+  request: ProjectMilestoneReviewRequest,
+): boolean {
+  if (
+    !request.actorAccountId?.trim() ||
+    (request.role !== "owner" && request.role !== "admin") ||
+    request.membershipStatus !== "active" ||
+    request.organizationId !== request.resourceOrganizationId ||
+    request.projectStatus !== "active" ||
+    request.milestoneStatus !== "submitted"
+  ) {
+    return false;
+  }
+
+  return (
+    request.decision === "accepted" || request.decision === "revision_requested"
+  );
+}
+
 export function canOpenApplicationConversation(request: {
   readonly actorAccountId: string | null;
   readonly organizationId: string;
