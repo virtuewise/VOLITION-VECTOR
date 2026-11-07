@@ -123,7 +123,7 @@ export class PostgresTenantConnectionPool
              AND c.relname = ANY($1::text[])
              AND c.relrowsecurity
              AND c.relforcerowsecurity
-         ) AS all_tenant_tables_force_rls
+         ) AS all_tenant_tables_force_rls,
          has_table_privilege(current_user, 'public.external_identities', 'SELECT') AS can_read_external_identities,
          has_table_privilege(current_user, 'public.accounts', 'SELECT') AS can_read_accounts
        FROM pg_roles AS r
