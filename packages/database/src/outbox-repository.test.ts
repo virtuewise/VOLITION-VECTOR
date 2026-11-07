@@ -42,7 +42,9 @@ class FakeClient implements TenantTransactionClient {
     readonly parameters: readonly unknown[];
   }> = [];
 
-  constructor(private readonly rows: readonly unknown[] = [returnedRecordToRow()]) {}
+  constructor(
+    private readonly rows: readonly unknown[] = [returnedRecordToRow()],
+  ) {}
 
   async query(
     statement: string,
@@ -69,7 +71,9 @@ function returnedRecordToRow() {
 }
 
 describe("insertOutboxEvent", () => {
-  it("inserts a versioned event envelope on the caller's transaction client", async () => {
+  it(
+    "inserts a versioned event envelope on the caller's transaction client",
+    async () => {
     const client = new FakeClient();
 
     await expect(insertOutboxEvent(client, validInput)).resolves.toEqual(
@@ -88,8 +92,11 @@ describe("insertOutboxEvent", () => {
       1,
       JSON.stringify(PAYLOAD),
     ]);
-    expect(client.statements[0]?.sql).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\b/);
-  });
+    expect(client.statements[0]?.sql).not.toMatch(
+      /\b(BEGIN|COMMIT|ROLLBACK)\b/,
+    );
+    },
+  );
 
   it("rejects invalid event envelope fields before querying", async () => {
     const cases = [
