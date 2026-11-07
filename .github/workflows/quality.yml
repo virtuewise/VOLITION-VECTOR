@@ -26,6 +26,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Security audit
         run: pnpm audit --audit-level=moderate
+      - name: Temporary formatter output
+        run: pnpm exec prettier packages/database/src/project-workspace-repository.ts
       - name: Formatting
         run: pnpm format:check
       - name: Lint
