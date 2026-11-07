@@ -100,3 +100,8 @@ export type {
   OpenApplicationConversationInput,
   SendConversationMessageInput,
 } from "./conversation-repository.js";
+export { insertOutboxEvent, OutboxEventInputError } from "./outbox-repository.js";
+export type {
+  OutboxEventInput,
+  OutboxEventRecord,
+} from "./outbox-repository.js";
