@@ -4,9 +4,9 @@
 - Decision: ADR 0007.
 - Related work: issues #34, #37 and #38.
 
-## Verified repository baseline
+## Pre-integration repository baseline (2026-11-07)
 
-The identity domain currently has a fail-closed request-context guard and membership persistence. The guard validates an upstream `request.user.accountId`; it does not validate a WorkOS token. The NestJS identity module does not register trusted WorkOS middleware. The individual-workspace app has no sign-in or callback route, and its package manifest has no WorkOS SDK dependency. Do not treat the presence of a WorkOS project or client ID as an implemented login flow.
+At the time of the initial inspection, the identity domain had a fail-closed request-context guard and membership persistence, but no WorkOS token verification or web login routes. This is historical baseline context; the implementation added on 2026-11-08 is recorded below.
 
 ## WorkOS environment inspection (2026-11-07)
 
@@ -34,15 +34,15 @@ The Vercel runtime error cluster observed during this inspection belongs to an o
 
 ## Required implementation sequence
 
-1. Add a typed, environment-specific WorkOS configuration contract. Keep provider enablement off by default; reject missing or malformed issuer, audience, JWKS/auth-domain and client configuration when enabled.
-2. Implement the web sign-in and callback routes with the selected supported WorkOS SDK. Use secure, HttpOnly cookies, explicit CSRF protection, correct redirect allowlists, and server-side code exchange. Do not expose refresh tokens to browser JavaScript.
-3. Implement NestJS token verification against the configured WorkOS JWKS and exact issuer/audience/token profile. Validate signature, algorithm, expiry, not-before, subject and token purpose; bound JWKS caching and support key rotation.
-4. Resolve the verified issuer/subject pair to exactly one active internal account. Do not map by email or trust client-supplied account/organization IDs.
-5. Resolve active internal organization membership and action-specific permissions before opening a tenant transaction. WorkOS organization roles must not silently grant VOLITION VECTOR permissions.
-6. Define and test session termination, account suspension and membership deactivation behavior. JWT verification alone does not provide immediate revocation.
-7. Exercise negative tests for malformed/expired/wrong-issuer/wrong-audience tokens, unknown keys, unmapped identities, duplicate mappings, suspended accounts, JWKS failure, revoked sessions and cross-tenant requests.
-8. Configure Staging callback, logout and web-origin URLs only after the actual deployed routes exist and have passed preview tests. Keep Production redirect/origin lists empty until a separately reviewed production release.
-9. Complete vendor, contractual, pricing, regional data-residency, privacy, support/SLA and incident-response review before production enablement.
+1. **Partially implemented:** the API verifier requires `WORKOS_API_KEY`, `WORKOS_CLIENT_ID` and exact HTTPS `WORKOS_ISSUER` together, and the web routes require the AuthKit client/cookie/redirect values. Add deployment-specific configuration validation and verify audience/token-purpose behavior in integration tests before enabling staging.
+2. **Implemented in code, not yet environment-verified:** sign-in, PKCE callback, AuthKit proxy and server-action sign-out use the selected SDK. Verify cookie flags, CSRF/state handling, callback and sign-out redirects in a real staging browser flow. Do not expose refresh tokens to browser JavaScript.
+3. **Implemented in code:** NestJS verifies WorkOS access tokens through the Node SDK using the configured client and issuer. Complete negative integration tests for expiry, not-before, wrong issuer/audience, token purpose, JWKS outage and key rotation.
+4. **Implemented in code:** resolve the exact issuer/subject pair through the unique external identity mapping and require an active account. Confirm least-privilege SELECT grants for `external_identities` and `accounts` on the deployed runtime role. Do not map by email or trust client-supplied account/organization IDs.
+5. **Implemented for organization-membership mutations:** the WorkOS guard sets the internal account identity; the existing membership repository loads membership and target facts within the tenant transaction and applies the internal deny-by-default role policy. Other API controllers are not changed by this PR. WorkOS organization roles must not silently grant VOLITION VECTOR permissions.
+6. **Partially implemented:** AuthKit sign-out clears the local session through the SDK; each protected membership request also checks the current internal account status and active membership state. Verify the configured WorkOS sign-out redirect and define any additional refresh-token/session revocation requirements.
+7. **Partially tested:** unit tests cover verifier configuration, empty/missing bearer tokens, identity mapping cardinality/account status and guard behavior. Add the remaining token-profile, JWKS, revoked-session and deployed cross-tenant integration cases.
+8. **Pending:** configure Staging callback, sign-out and web-origin URLs only after a durable staging domain and preview tests are available. Keep Production redirect/origin lists empty until a separately reviewed production release.
+9. **Pending:** complete vendor, contractual, pricing, regional data-residency, privacy, support/SLA and incident-response review before production enablement.
 
 ## Release gates
 
@@ -59,3 +59,31 @@ The Vercel runtime error cluster observed during this inspection belongs to an o
 - WorkOS Production callback/login configuration: absent.
 - Web/API WorkOS SDK and callback implementation: not present in inspected package manifests/routes.
 - Repository `main` branch protection: GitHub branch API reported `protected=false`; administrator action required.
+
+## Staging authentication implementation (2026-11-08)
+
+### SDKs and implemented endpoints
+
+- `@workos-inc/authkit-nextjs` is used by the Individual Workspace.
+- `@workos-inc/node` is used by the API token verifier.
+- The Individual Workspace Next.js App Router exposes `/app/sign-in` and `/app/callback` externally because its configured basePath is `/app`.
+- The sign-in route returns 503 while its required WorkOS environment is absent.
+- The Next.js 16 proxy bypasses AuthKit when the environment is unconfigured; once configured, it delegates session handling to `authkitProxy`.
+- The API verifier validates bearer access tokens through WorkOS JWKS and an explicitly configured issuer. It is registered as an injectable service but is not yet attached to protected controllers.
+
+### Identity mapping and API authorization
+
+The existing identity/tenancy migration already defines `external_identities`, with a unique `(issuer, subject)` constraint and a foreign key to `accounts`. The API now resolves the verified issuer/subject pair through that table, joins the internal account, and accepts only exactly one mapping whose account status is `active`. Email and WorkOS organization claims are not used for account resolution. Missing, non-unique or inactive mappings fail closed.
+
+The NestJS `WorkOSAuthenticationGuard` verifies the bearer token before populating `request.user.accountId`; `IdentityContextGuard` then validates the internal UUID shape. The organization-membership controller applies both guards. Its existing PostgreSQL membership repository loads actor/target memberships and active-owner state inside the tenant transaction and evaluates the deny-by-default internal role policy before mutation. WorkOS organization roles do not grant VOLITION VECTOR permissions.
+
+The mapping lookup uses the configured PostgreSQL runtime connection. The deployment database role must have narrowly scoped SELECT access to `external_identities` and `accounts`; this permission has not been verified against a live database in this change. External identity provisioning/linking remains a separate, controlled onboarding operation; this PR does not auto-link by email.
+
+### URL and deployment gate
+
+- Local sign-in: `http://localhost:3002/app/sign-in`.
+- Local callback: `http://localhost:3002/app/callback`.
+- Local web origin: `http://localhost:3002`.
+- The current feature preview is not a durable staging domain and remains behind Vercel deployment protection. Do not register it as a WorkOS callback or disable Vercel SSO.
+- The Individual Workspace now exposes a server-action sign-out control using AuthKit `signOut()`. A default WorkOS Sign-out URI or explicitly allowlisted `WORKOS_SIGN_OUT_REDIRECT_URI` is still required before the end-to-end redirect can be exercised.
+- WorkOS Production remains unconfigured.

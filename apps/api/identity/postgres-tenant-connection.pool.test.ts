@@ -163,6 +163,60 @@ describe("PostgresTenantConnectionPool", () => {
     );
   });
 
+  it("resolves a single active account by exact issuer and subject", async () => {
+    const { pool, query } = makePool([
+      {
+        account_id: "7f9a6b2c-1111-4111-8111-111111111111",
+        account_status: "active",
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(
+      adapter.resolveActiveAccountId(
+        "https://issuer.example/user_management/client",
+        "user_123",
+      ),
+    ).resolves.toBe("7f9a6b2c-1111-4111-8111-111111111111");
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining("FROM external_identities"),
+      ["https://issuer.example/user_management/client", "user_123"],
+    );
+  });
+
+  it.each([
+    [],
+    [
+      {
+        account_id: "7f9a6b2c-1111-4111-8111-111111111111",
+        account_status: "suspended",
+      },
+    ],
+    [
+      {
+        account_id: "7f9a6b2c-1111-4111-8111-111111111111",
+        account_status: "active",
+      },
+      {
+        account_id: "8f9a6b2c-1111-4111-8111-111111111112",
+        account_status: "active",
+      },
+    ],
+  ])(
+    "rejects missing, inactive or non-unique external identity mappings",
+    async (rows) => {
+      const { pool } = makePool(rows);
+      const adapter = new PostgresTenantConnectionPool(pool);
+
+      await expect(
+        adapter.resolveActiveAccountId(
+          "https://issuer.example/user_management/client",
+          "user_123",
+        ),
+      ).resolves.toBeNull();
+    },
+  );
+
   it("adapts parameterized queries and forwards connection discard errors", async () => {
     const clientQuery = vi.fn().mockResolvedValue({
       rows: [{ account_id: "11111111-1111-4111-8111-111111111111" }],

@@ -28,6 +28,11 @@ const TENANT_OWNED_TABLES = [
   "outbox_events",
 ] as const;
 
+interface ExternalIdentityAccountRow extends QueryResultRow {
+  readonly account_id: string;
+  readonly account_status: string;
+}
+
 interface RuntimeRoleRow extends QueryResultRow {
   readonly is_superuser: boolean;
   readonly bypasses_rls: boolean;
@@ -137,6 +142,30 @@ export class PostgresTenantConnectionPool
         "DATABASE_URL must use a non-privileged, non-owner PostgreSQL role and all tenant tables must enforce RLS.",
       );
     }
+  }
+
+  async resolveActiveAccountId(
+    issuer: string,
+    subject: string,
+  ): Promise<string | null> {
+    const result = await this.pool.query<ExternalIdentityAccountRow>(
+      `SELECT a.id::text AS account_id, a.status AS account_status
+       FROM external_identities AS ei
+       JOIN accounts AS a ON a.id = ei.account_id
+       WHERE ei.issuer = $1 AND ei.subject = $2
+       LIMIT 2`,
+      [issuer, subject],
+    );
+
+    // The unique (issuer, subject) constraint is authoritative; fail closed
+    // if schema drift or corruption ever makes the lookup non-unique.
+    if (
+      result.rows.length !== 1 ||
+      result.rows[0]?.account_status !== "active"
+    ) {
+      return null;
+    }
+    return result.rows[0].account_id;
   }
 
   async connect(): Promise<TenantConnection> {
