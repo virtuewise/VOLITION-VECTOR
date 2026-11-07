@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     env:
       NEXT_TELEMETRY_DISABLED: "1"
       TURBO_TELEMETRY_DISABLED: "1"
