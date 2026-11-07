@@ -1,0 +1,68 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "api": {
+      "root": ".",
+      "runtime": "container",
+      "entrypoint": "Dockerfile"
+    },
+    "admin-console": {
+      "root": "apps/web/admin-console",
+      "framework": "nextjs"
+    },
+    "business-workspace": {
+      "root": "apps/web/business-workspace",
+      "framework": "nextjs"
+    },
+    "individual-workspace": {
+      "root": "apps/web/individual-workspace",
+      "framework": "nextjs"
+    },
+    "marketplace": {
+      "root": "apps/web/marketplace",
+      "framework": "nextjs"
+    },
+    "public-website": {
+      "root": "apps/web/public-website",
+      "framework": "nextjs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/v1/:path*",
+      "destination": {
+        "service": "api"
+      }
+    },
+    {
+      "source": "/marketplace/:path*",
+      "destination": {
+        "service": "marketplace"
+      }
+    },
+    {
+      "source": "/app/:path*",
+      "destination": {
+        "service": "individual-workspace"
+      }
+    },
+    {
+      "source": "/business/:path*",
+      "destination": {
+        "service": "business-workspace"
+      }
+    },
+    {
+      "source": "/admin/:path*",
+      "destination": {
+        "service": "admin-console"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "public-website"
+      }
+    }
+  ]
+}
