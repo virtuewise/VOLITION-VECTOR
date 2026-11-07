@@ -979,9 +979,9 @@ expect_admin_failure() {
   echo "Verified append-only trigger: $description"
 }
 expect_admin_failure "outbox UPDATE" \
-  "UPDATE outbox_events SET payload = '{}'::jsonb WHERE id = '99999999-9999-4999-8999-999999999991';"
+  "SET app.tenant_id = '$TENANT_ONE'; UPDATE outbox_events SET payload = '{}'::jsonb WHERE id = '99999999-9999-4999-8999-999999999991';"
 expect_admin_failure "outbox DELETE" \
-  "DELETE FROM outbox_events WHERE id = '99999999-9999-4999-8999-999999999991';"
+  "SET app.tenant_id = '$TENANT_ONE'; DELETE FROM outbox_events WHERE id = '99999999-9999-4999-8999-999999999991';"
 expect_admin_failure "outbox TRUNCATE" "TRUNCATE outbox_events;"
 
 # A journal header/lines, audit event and outbox event written in one
