@@ -3,7 +3,9 @@ import { createPostgresTenantConnectionPool } from "../identity/postgres-tenant-
 async function verifyRuntimeRole(): Promise<void> {
   const connectionString = process.env["RUNTIME_DATABASE_URL"];
   if (!connectionString) {
-    throw new Error("RUNTIME_DATABASE_URL is required for the runtime-role startup check.");
+    throw new Error(
+      "RUNTIME_DATABASE_URL is required for the runtime-role startup check.",
+    );
   }
 
   const pool = createPostgresTenantConnectionPool(connectionString);
