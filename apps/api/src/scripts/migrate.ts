@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { createRequire } from "node:module";
+import { assertDatabaseTlsConfiguration } from "../../identity/postgres-tenant-connection.pool.js";
 import { Client } from "pg";
 
 const MIGRATION_LOCK = "volition-vector:database-migrations";
@@ -17,6 +18,17 @@ async function runMigrations(): Promise<void> {
     throw new Error(
       "DATABASE_MIGRATION_URL is required; migrations must use a dedicated migration-owner connection.",
     );
+  }
+
+  let migrationHostname: string;
+  try {
+    migrationHostname = new URL(connectionString).hostname;
+  } catch {
+    throw new Error("DATABASE_MIGRATION_URL must be a valid PostgreSQL URL.");
+  }
+  const localHosts = ["localhost", "127.0.0.1", "::1", "[::1]"];
+  if (!localHosts.includes(migrationHostname)) {
+    assertDatabaseTlsConfiguration(connectionString, "production");
   }
 
   const require = createRequire(__filename);
