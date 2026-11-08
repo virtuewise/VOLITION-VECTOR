@@ -76,7 +76,7 @@ The existing identity/tenancy migration already defines `external_identities`, w
 
 The NestJS `WorkOSAuthenticationGuard` verifies the bearer token before populating `request.user.accountId`; `IdentityContextGuard` then validates the internal UUID shape. The organization-membership controller applies both guards. Its existing PostgreSQL membership repository loads actor/target memberships and active-owner state inside the tenant transaction and evaluates the deny-by-default internal role policy before mutation. WorkOS organization roles do not grant VOLITION VECTOR permissions.
 
-The mapping lookup uses the configured PostgreSQL runtime connection. The deployment database role must have narrowly scoped SELECT access to `external_identities` and `accounts`; this permission has not been verified against a live database in this change. External identity provisioning/linking remains a separate, controlled onboarding operation; this PR does not auto-link by email.
+The mapping lookup uses the configured PostgreSQL runtime connection. The startup check requires only column-level SELECT on `external_identities.account_id`, `external_identities.issuer`, `external_identities.subject`, `accounts.id` and `accounts.status`; it rejects runtime access to `external_identities.email` and `email_verified`. The PostgreSQL integration fixture verifies the exact issuer/subject lookup, issuer separation, suspended-account status, missing mappings and the email-column denial. The deployed runtime role still requires independent configuration and verification. External identity provisioning/linking remains a separate, controlled onboarding operation; this PR does not auto-link by email.
 
 ### URL and deployment gate
 
