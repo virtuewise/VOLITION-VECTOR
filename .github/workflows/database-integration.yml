@@ -10,6 +10,7 @@ on:
     paths:
       - "packages/database/prisma/migrations/**"
       - "packages/database/src/**"
+      - "apps/api/identity/**"
       - "tests/integration/**"
       - ".github/workflows/database-integration.yml"
 
