@@ -49,6 +49,10 @@ The Production default AuthKit application currently has no initiate-login URI, 
 
 Do not invent a resource audience or register a temporary Vercel preview as a durable callback. A durable staging API/web origin and a reviewed JWT-template or protected-resource configuration are required before enabling the API guard. Production remains a separate, unconfigured release gate.
 
+## Vercel environment reinspection (2026-11-08)
+
+The linked Vercel project currently has no project environment variables (including no hidden production variables) and only one verified project domain, `volition-vector.vercel.app`, attached to the Production target. There is no dedicated staging/custom domain. Preview deployments remain protected by Vercel team SSO. The app therefore has no deployed WorkOS configuration: the proxy remains inert and the sign-in route returns 503 until a reviewed environment is provisioned. Do not use a transient preview URL or disable SSO to work around this boundary.
+
 ## Required implementation sequence
 
 1. **Partially implemented:** the API verifier requires `WORKOS_CLIENT_ID`, exact HTTPS `WORKOS_ISSUER` and `WORKOS_TOKEN_AUDIENCE` together. The web routes require the AuthKit client, cookie and redirect values. The API audience must be an exact resource URI configured both as `WORKOS_TOKEN_AUDIENCE` and as the `aud` claim in the WorkOS environment's JWT template. AuthKit session access tokens do not include `aud` by default; do not enable the API guard until this template is configured and a staging token is verified.
