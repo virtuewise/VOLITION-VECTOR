@@ -8,7 +8,8 @@
     "start": "node dist/src/app.js",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "db:migrate": "node dist/scripts/migrate.js"
   },
   "dependencies": {
     "@nestjs/common": "12.3.3",
