@@ -155,3 +155,28 @@ This read-only inspection supersedes the earlier statement that no Neon project 
 4. Keep the Neon `main` branch and Production database untouched until a separate migration and runtime-role plan is reviewed. Keep Production WorkOS unconfigured and authenticated API/payment exposure disabled until its own database, identity, security and release gates are separately reviewed.
 
 Subsequent Staging-only provisioning changed only the `preview/feat/workos-staging-auth-flow` Neon branch: checked-in migrations were applied, the least-privilege `vv_runtime` role was created and verified, and a sensitive Preview-only `DATABASE_URL` was saved in Vercel. The Neon `main` branch, Production environment, WorkOS Production settings, Vercel SSO and branch protections were not changed.
+
+## Verification update — 2026-11-08
+
+### Database state after staging-only provisioning
+
+- All 13 checked-in SQL migration files (169 statements) were applied to Neon branch `preview/feat/workos-staging-auth-flow` in a single successful transaction.
+- The branch now contains 20 public base tables; all 18 registered tenant-owned tables have RLS enabled and forced.
+- `vv_runtime` is non-superuser, non-owner, non-replication, non-BYPASSRLS and not a member of a privileged role. It has only the required identity lookup columns, cannot read private identity email fields, and has no journal UPDATE/DELETE grants.
+- The Neon-provisioned default table/sequence grants were revoked for `vv_runtime`. A newly-created table probe confirmed that future tables receive no automatic runtime SELECT grant. The runtime role also cannot read `vv_schema_migrations`.
+- A private `vv_schema_migrations` ledger now records the 13 already-applied migrations as a verified pre-runner baseline (NULL checksums). PR #56 adds the checksum-sealing migration runner and checks the default-privilege invariant at API startup and in CI.
+- Vercel Preview `DATABASE_URL` is stored as a sensitive variable scoped only to branch `feat/workos-staging-auth-flow`, using `vv_runtime` and `sslmode=verify-full`. No Production database URL or Production database change was made.
+
+### Deployment and authentication blockers
+
+- The latest existing staging deployment has not yet been refreshed with the new database binding. The most recent redeploy request was queued when last inspected.
+- PR #55 addresses the Individual Workspace HTTP 500 by removing Next.js `basePath` and keeping the public `/app` prefix in the route tree, so the Next.js 16 proxy matcher can run for AuthKit. Quality and CodeQL passed on the PR branch; its Vercel deployment is blocked by the API container image push error: the Vercel Container Registry reports that the `api` repository must exist and rejects the push.
+- Create the `api` repository in the Vercel project's Sandboxes / Container Registry settings, then redeploy the Preview branch. Do not disable SSO or deployment protection to work around this.
+- A real browser sign-in, callback, session refresh and sign-out cycle is still not verified. The current HTTP 500 on the old staging deployment is not a successful auth test.
+
+### Remaining governance and release gates
+
+- GitHub branch rulesets query returned no rulesets. The branch-protection endpoint could not be read with the connected GitHub permissions; administrator confirmation and required-check enforcement on `main` remain outstanding.
+- Security-alert endpoints are not readable through the current GitHub connection, so this record makes no claim that the repository has zero alerts.
+- Issue #39 still requires a human decision on financial authority boundaries. No authenticated payment, journal-post, reversal or refund route should be enabled before that decision and the corresponding authorization/audit tests.
+- Production WorkOS, Production database migrations and Production Vercel configuration remain untouched.
