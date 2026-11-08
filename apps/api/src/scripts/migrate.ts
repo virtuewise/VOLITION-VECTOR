@@ -58,10 +58,12 @@ async function runMigrations(): Promise<void> {
 
     await client.query(`
       REVOKE ALL PRIVILEGES ON TABLE public.vv_schema_migrations FROM PUBLIC;
+      REVOKE CREATE ON SCHEMA public FROM PUBLIC;
       DO $migration$
       BEGIN
         IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vv_runtime') THEN
           EXECUTE 'REVOKE ALL PRIVILEGES ON TABLE public.vv_schema_migrations FROM vv_runtime';
+          EXECUTE 'REVOKE CREATE ON SCHEMA public FROM vv_runtime';
         END IF;
       END
       $migration$;
