@@ -41,6 +41,8 @@ CREATE ROLE vv_runtime
 
 GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
+GRANT SELECT (account_id, issuer, subject) ON external_identities TO vv_runtime;
+GRANT SELECT (id, status) ON accounts TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
      organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, project_workspaces, project_milestones, service_listings, audit_events, journal_entries, journal_entry_lines
@@ -58,6 +60,43 @@ GRANT TRUNCATE ON audit_events TO vv_runtime;
 INSERT INTO accounts (id) VALUES
   ('11111111-1111-4111-8111-111111111111'),
   ('22222222-2222-4222-8222-222222222222');
+
+INSERT INTO accounts (id, status) VALUES
+  ('66666666-6666-4666-8666-666666666666', 'suspended');
+
+INSERT INTO external_identities (account_id, issuer, subject)
+VALUES
+  (
+    '11111111-1111-4111-8111-111111111111',
+    'https://issuer.example/user_management/client',
+    'shared-subject'
+  ),
+  (
+    '22222222-2222-4222-8222-222222222222',
+    'https://other-issuer.example/user_management/client',
+    'shared-subject'
+  ),
+  (
+    '66666666-6666-4666-8666-666666666666',
+    'https://issuer.example/user_management/client',
+    'suspended-subject'
+  );
+
+DO $identity_unique$
+BEGIN
+  BEGIN
+    INSERT INTO external_identities (account_id, issuer, subject)
+    VALUES (
+      '11111111-1111-4111-8111-111111111111',
+      'https://issuer.example/user_management/client',
+      'shared-subject'
+    );
+    RAISE EXCEPTION 'duplicate external identity unexpectedly succeeded';
+  EXCEPTION
+    WHEN unique_violation THEN NULL;
+  END;
+END;
+$identity_unique$;
 
 INSERT INTO organizations (id, name, slug, created_by_account_id) VALUES
   (
@@ -465,6 +504,9 @@ expect_failure() {
 TENANT_ONE="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 TENANT_TWO="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 ACCOUNT_ONE="11111111-1111-4111-8111-111111111111"
+IDENTITY_ISSUER="https://issuer.example/user_management/client"
+OTHER_IDENTITY_ISSUER="https://other-issuer.example/user_management/client"
+SUSPENDED_ACCOUNT_ID="66666666-6666-4666-8666-666666666666"
 
 # Exercise the same startup trust checks used by PostgresTenantConnectionPool.
 runtime_role_safe="$(
@@ -541,6 +583,13 @@ SELECT
       AND c.relrowsecurity
       AND c.relforcerowsecurity
   )
+  AND has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
+  AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
+  AND has_column_privilege(current_user, 'public.external_identities', 'subject', 'SELECT')
+  AND has_column_privilege(current_user, 'public.accounts', 'id', 'SELECT')
+  AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
+  AND NOT has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
+  AND NOT has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
 FROM pg_roles AS role
 WHERE role.rolname = current_user;
 SQL
@@ -549,6 +598,47 @@ if [[ "$runtime_role_safe" != "t" ]]; then
   echo "Runtime PostgreSQL role or tenant RLS configuration failed the startup gate." >&2
   exit 1
 fi
+
+active_identity_result="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT a.id::text || '|' || a.status FROM external_identities AS ei JOIN accounts AS a ON a.id = ei.account_id WHERE ei.issuer = '$IDENTITY_ISSUER' AND ei.subject = 'shared-subject' LIMIT 2;"
+)"
+if [[ "$active_identity_result" != "$ACCOUNT_ONE|active" ]]; then
+  echo "Exact issuer/subject lookup did not resolve the active internal account." >&2
+  exit 1
+fi
+
+other_issuer_result="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT a.id::text || '|' || a.status FROM external_identities AS ei JOIN accounts AS a ON a.id = ei.account_id WHERE ei.issuer = '$OTHER_IDENTITY_ISSUER' AND ei.subject = 'shared-subject' LIMIT 2;"
+)"
+if [[ "$other_issuer_result" != "22222222-2222-4222-8222-222222222222|active" ]]; then
+  echo "External identity lookup did not isolate the issuer as part of the key." >&2
+  exit 1
+fi
+
+suspended_identity_result="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT a.id::text || '|' || a.status FROM external_identities AS ei JOIN accounts AS a ON a.id = ei.account_id WHERE ei.issuer = '$IDENTITY_ISSUER' AND ei.subject = 'suspended-subject' LIMIT 2;"
+)"
+if [[ "$suspended_identity_result" != "$SUSPENDED_ACCOUNT_ID|suspended" ]]; then
+  echo "Suspended external identity fixture did not retain its account status." >&2
+  exit 1
+fi
+
+missing_identity_result="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT a.id::text FROM external_identities AS ei JOIN accounts AS a ON a.id = ei.account_id WHERE ei.issuer = '$IDENTITY_ISSUER' AND ei.subject = 'missing-subject' LIMIT 2;"
+)"
+if [[ -n "$missing_identity_result" ]]; then
+  echo "Missing external identity unexpectedly resolved to an account." >&2
+  exit 1
+fi
+
+expect_failure "runtime cannot read external identity email addresses" \
+  "SELECT email FROM external_identities LIMIT 1;"
+expect_failure "runtime cannot read external identity email verification metadata" \
+  "SELECT email_verified FROM external_identities LIMIT 1;"
 
 for table in organizations organization_memberships organization_invitations organization_invitation_rate_limits opportunity_applications audit_events; do
   assert_count "$table" "$TENANT_ONE" 1

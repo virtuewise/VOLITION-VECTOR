@@ -5,6 +5,9 @@ import {
   type MembershipMutationCommand,
 } from "./identity-membership.contracts.js";
 import { IdentityContextGuard } from "./identity-context.guard.js";
+import { WorkOSAccessTokenVerifier } from "./workos-access-token.verifier.js";
+import { WorkOSIdentityResolver } from "./workos-identity.resolver.js";
+import { WorkOSAuthenticationGuard } from "./workos-authentication.guard.js";
 import { OrganizationMembershipController } from "./organization-membership.controller.js";
 import { OrganizationMembershipApplicationService } from "./organization-membership.service.js";
 import {
@@ -23,6 +26,9 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
   controllers: [OrganizationMembershipController],
   providers: [
     IdentityContextGuard,
+    WorkOSAccessTokenVerifier,
+    WorkOSIdentityResolver,
+    WorkOSAuthenticationGuard,
     OrganizationMembershipApplicationService,
     {
       provide: PostgresTenantConnectionPool,
@@ -58,6 +64,8 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
   ],
   exports: [
     OrganizationMembershipApplicationService,
+    WorkOSAccessTokenVerifier,
+    WorkOSIdentityResolver,
     INVITATION_REPOSITORY,
     INVITATION_RATE_LIMITER,
     PostgresTenantConnectionPool,

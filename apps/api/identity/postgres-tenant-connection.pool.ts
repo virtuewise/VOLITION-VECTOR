@@ -28,6 +28,11 @@ const TENANT_OWNED_TABLES = [
   "outbox_events",
 ] as const;
 
+interface ExternalIdentityAccountRow extends QueryResultRow {
+  readonly account_id: string;
+  readonly account_status: string;
+}
+
 interface RuntimeRoleRow extends QueryResultRow {
   readonly is_superuser: boolean;
   readonly bypasses_rls: boolean;
@@ -36,6 +41,9 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly member_of_tenant_owner_role: boolean;
   readonly member_of_privileged_role: boolean;
   readonly all_tenant_tables_force_rls: boolean;
+  readonly can_read_external_identities: boolean;
+  readonly can_read_accounts: boolean;
+  readonly can_read_private_identity_email: boolean;
 }
 
 class PostgresTenantConnection implements TenantConnection {
@@ -116,7 +124,20 @@ export class PostgresTenantConnectionPool
              AND c.relname = ANY($1::text[])
              AND c.relrowsecurity
              AND c.relforcerowsecurity
-         ) AS all_tenant_tables_force_rls
+         ) AS all_tenant_tables_force_rls,
+         (
+           has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
+           AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
+           AND has_column_privilege(current_user, 'public.external_identities', 'subject', 'SELECT')
+         ) AS can_read_external_identities,
+         (
+           has_column_privilege(current_user, 'public.accounts', 'id', 'SELECT')
+           AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
+         ) AS can_read_accounts,
+         (
+           has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
+           OR has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
+         ) AS can_read_private_identity_email
        FROM pg_roles AS r
        WHERE r.rolname = current_user`,
       [[...TENANT_OWNED_TABLES]],
@@ -131,12 +152,41 @@ export class PostgresTenantConnectionPool
       runtimeRole.owns_tenant_tables ||
       runtimeRole.member_of_tenant_owner_role ||
       runtimeRole.member_of_privileged_role ||
-      !runtimeRole.all_tenant_tables_force_rls
+      !runtimeRole.all_tenant_tables_force_rls ||
+      !runtimeRole.can_read_external_identities ||
+      !runtimeRole.can_read_accounts ||
+      runtimeRole.can_read_private_identity_email
     ) {
       throw new Error(
-        "DATABASE_URL must use a non-privileged, non-owner PostgreSQL role and all tenant tables must enforce RLS.",
+        "DATABASE_URL role must be non-privileged and non-owner, use minimal " +
+          "identity-column SELECT grants, exclude private identity email fields, " +
+          "and enforce tenant RLS.",
       );
     }
+  }
+
+  async resolveActiveAccountId(
+    issuer: string,
+    subject: string,
+  ): Promise<string | null> {
+    const result = await this.pool.query<ExternalIdentityAccountRow>(
+      `SELECT a.id::text AS account_id, a.status AS account_status
+       FROM external_identities AS ei
+       JOIN accounts AS a ON a.id = ei.account_id
+       WHERE ei.issuer = $1 AND ei.subject = $2
+       LIMIT 2`,
+      [issuer, subject],
+    );
+
+    // The unique (issuer, subject) constraint is authoritative; fail closed
+    // if schema drift or corruption ever makes the lookup non-unique.
+    if (
+      result.rows.length !== 1 ||
+      result.rows[0]?.account_status !== "active"
+    ) {
+      return null;
+    }
+    return result.rows[0].account_id;
   }
 
   async connect(): Promise<TenantConnection> {

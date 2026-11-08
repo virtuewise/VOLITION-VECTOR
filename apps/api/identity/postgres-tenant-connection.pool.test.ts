@@ -52,6 +52,9 @@ describe("PostgresTenantConnectionPool", () => {
         member_of_tenant_owner_role: false,
         member_of_privileged_role: false,
         all_tenant_tables_force_rls: true,
+        can_read_external_identities: true,
+        can_read_accounts: true,
+        can_read_private_identity_email: false,
       },
     ]);
     const adapter = new PostgresTenantConnectionPool(pool);
@@ -79,6 +82,72 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("messages");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("service_listings");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("outbox_events");
+  });
+
+  it("rejects a runtime role without external identity lookup grants", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        can_read_external_identities: false,
+        can_read_accounts: true,
+        can_read_private_identity_email: false,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /minimal identity-column SELECT grants/,
+    );
+  });
+
+  it("rejects a runtime role without account identity lookup columns", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        can_read_external_identities: true,
+        can_read_accounts: false,
+        can_read_private_identity_email: false,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /minimal identity-column SELECT grants/,
+    );
+  });
+
+  it("rejects a runtime role with private external identity email access", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        can_read_external_identities: true,
+        can_read_accounts: true,
+        can_read_private_identity_email: true,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /exclude private identity email fields/,
+    );
   });
 
   it.each([
@@ -150,7 +219,7 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-privileged, non-owner PostgreSQL role/,
+      /DATABASE_URL role must/,
     );
   });
 
@@ -159,9 +228,67 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-privileged, non-owner PostgreSQL role/,
+      /DATABASE_URL role must/,
     );
   });
+
+  it("resolves a single active account by exact issuer and subject", async () => {
+    const { pool, query } = makePool([
+      {
+        account_id: "7f9a6b2c-1111-4111-8111-111111111111",
+        account_status: "active",
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(
+      adapter.resolveActiveAccountId(
+        "https://issuer.example/user_management/client",
+        "user_123",
+      ),
+    ).resolves.toBe("7f9a6b2c-1111-4111-8111-111111111111");
+    expect(query).toHaveBeenCalledWith(
+      expect.stringContaining("FROM external_identities"),
+      ["https://issuer.example/user_management/client", "user_123"],
+    );
+  });
+
+  it.each([
+    { rows: [] },
+    {
+      rows: [
+        {
+          account_id: "7f9a6b2c-1111-4111-8111-111111111111",
+          account_status: "suspended",
+        },
+      ],
+    },
+    {
+      rows: [
+        {
+          account_id: "7f9a6b2c-1111-4111-8111-111111111111",
+          account_status: "active",
+        },
+        {
+          account_id: "8f9a6b2c-1111-4111-8111-111111111112",
+          account_status: "active",
+        },
+      ],
+    },
+  ])(
+    "rejects missing, inactive or non-unique external identity mappings",
+    async ({ rows }) => {
+      const { pool } = makePool(rows);
+      const adapter = new PostgresTenantConnectionPool(pool);
+
+      await expect(
+        adapter.resolveActiveAccountId(
+          "https://issuer.example/user_management/client",
+          "user_123",
+        ),
+      ).resolves.toBeNull();
+    },
+  );
 
   it("adapts parameterized queries and forwards connection discard errors", async () => {
     const clientQuery = vi.fn().mockResolvedValue({

@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { MembershipMutationResult } from "./identity-membership.contracts.js";
+import { WorkOSAuthenticationGuard } from "./workos-authentication.guard.js";
 import {
   IdentityContextGuard,
   requireIdentityPrincipal,
@@ -17,7 +18,7 @@ import { ChangeMembershipRoleDto } from "./organization-membership.dto.js";
 import { OrganizationMembershipApplicationService } from "./organization-membership.service.js";
 
 @Controller("organizations/:organizationId/members")
-@UseGuards(IdentityContextGuard)
+@UseGuards(WorkOSAuthenticationGuard, IdentityContextGuard)
 export class OrganizationMembershipController {
   constructor(
     private readonly memberships: OrganizationMembershipApplicationService,
