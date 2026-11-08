@@ -513,6 +513,7 @@ SELECT
   NOT role.rolsuper
   AND NOT role.rolbypassrls
   AND NOT role.rolreplication
+  AND has_schema_privilege(current_user, 'public', 'USAGE')
   AND NOT has_schema_privilege(current_user, 'public', 'CREATE')
   AND NOT EXISTS (
     SELECT 1
