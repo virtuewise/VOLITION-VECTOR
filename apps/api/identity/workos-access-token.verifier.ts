@@ -73,7 +73,7 @@ export class WorkOSAccessTokenVerifier {
 
     if (!clientId || !issuer || !audience) {
       throw new Error(
-        "WORKOS_CLIENT_ID, WORKOS_ISSUER, and WORKOS_TOKEN_AUDIENCE must be configured together.",
+        "WorkOS client ID, issuer, and API audience must be configured together.",
       );
     }
 
@@ -121,7 +121,7 @@ export class WorkOSAccessTokenVerifier {
       return null;
     }
 
-    const match = /^Bearer\s+(\S+)$/i.exec(authorization ?? "");
+    const match = /^Bearer\\s+(\\S+)$/i.exec(authorization ?? "");
     const token = match?.[1];
 
     if (!token || token.length > 16_384) {
