@@ -95,10 +95,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Security audit
         run: pnpm audit --audit-level=moderate
-      - name: Temporary Prettier formatting diff
-        run: |
-          pnpm exec prettier --write apps/api/identity/workos-access-token.verifier.test.ts
-          git diff -- apps/api/identity/workos-access-token.verifier.test.ts
       - name: Formatting
         run: pnpm format:check
       - name: Lint
