@@ -36,3 +36,9 @@ The PostgreSQL tenant-security workflow builds and runs the migration command tw
 ## Existing Staging baseline
 
 The Neon branch `preview/feat/workos-staging-auth-flow` was provisioned before this runner existed. Its checked-in migrations were applied successfully as one transaction and its schema, forced tenant RLS and restricted `vv_runtime` grants were verified. The matching migration names are recorded with NULL checksums as a one-time baseline; the next controlled migration-runner invocation seals the checksums. The Neon `main` branch and Production environment remain untouched.
+
+## Controlled Staging execution
+
+After this change is merged, `.github/workflows/database-migrate-staging.yml` exposes a manual-only workflow. It runs only from `main`, requires the operator to type `APPLY`, serializes runs, and reads `DATABASE_MIGRATION_URL` from the GitHub `staging` environment secret. Configure that environment with an authorized reviewer and add the migration-owner URL there; do not add it to Vercel or the API runtime environment. The workflow builds and runs the migration command without printing the connection string.
+
+The Staging Neon branch already has a verified baseline ledger. Its 13 NULL-checksum rows are intentionally sealed by the first controlled run; the runner does not reapply those SQL files. Subsequent runs compare checksums and apply only new migrations. Production migration execution is deliberately not provided by this workflow.
