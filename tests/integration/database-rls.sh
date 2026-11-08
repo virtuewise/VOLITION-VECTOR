@@ -606,28 +606,33 @@ SELECT
   AND NOT has_table_privilege(current_user, 'public.audit_events', 'TRUNCATE')
   AND NOT has_table_privilege(current_user, 'public.audit_events', 'REFERENCES')
   AND NOT has_table_privilege(current_user, 'public.audit_events', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'MAINTAIN')
   AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRUNCATE')
   AND NOT has_table_privilege(current_user, 'public.journal_entries', 'REFERENCES')
   AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRIGGER')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRUNCATE')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'REFERENCES')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'MAINTAIN')
   AND NOT has_table_privilege(current_user, 'public.outbox_events', 'UPDATE')
   AND NOT has_table_privilege(current_user, 'public.outbox_events', 'DELETE')
   AND NOT has_table_privilege(current_user, 'public.outbox_events', 'TRUNCATE')
   AND NOT has_table_privilege(current_user, 'public.outbox_events', 'REFERENCES')
   AND NOT has_table_privilege(current_user, 'public.outbox_events', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'MAINTAIN')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'UPDATE')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'DELETE')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'TRUNCATE')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'REFERENCES')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'MAINTAIN')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'INSERT')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'UPDATE')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'DELETE')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'TRUNCATE')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'REFERENCES')
   AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'MAINTAIN')
   AND NOT EXISTS (
     SELECT 1
     FROM pg_default_acl AS defaults
@@ -636,7 +641,7 @@ SELECT
       AND defaults.defaclnamespace IN (0, 'public'::regnamespace)
       AND privilege.privilege_type IN (
         'SELECT', 'INSERT', 'UPDATE', 'DELETE',
-        'TRUNCATE', 'REFERENCES', 'TRIGGER'
+        'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN'
       )
       AND (
         privilege.grantee = 0 OR
