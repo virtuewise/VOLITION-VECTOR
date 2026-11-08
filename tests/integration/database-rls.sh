@@ -9,6 +9,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
   LOGIN PASSWORD 'runtime-test'
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+CREATE ROLE vv_audit_mutation_probe
+  NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
 
 GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
@@ -16,17 +18,19 @@ GRANT SELECT (account_id, issuer, subject) ON external_identities TO vv_runtime;
 GRANT SELECT (id, status) ON accounts TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, project_workspaces, project_milestones, service_listings, audit_events
+     organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, project_workspaces, project_milestones, service_listings
   TO vv_runtime;
+GRANT SELECT, INSERT ON audit_events TO vv_runtime;
 GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
 GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
 GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
 GRANT SELECT, INSERT ON outbox_events TO vv_runtime;
 
--- Deliberately grant TRUNCATE in this test: the trigger must preserve the
--- append-only invariant even if a runtime grant is accidentally too broad.
-GRANT TRUNCATE ON audit_events TO vv_runtime;
+-- Use a separate deliberately overprivileged probe to prove the append-only
+-- trigger still blocks mutations even if a future grant is accidentally broad.
+GRANT USAGE ON SCHEMA public TO vv_audit_mutation_probe;
+GRANT SELECT, UPDATE, DELETE, TRUNCATE ON audit_events TO vv_audit_mutation_probe;
 
 INSERT INTO accounts (id) VALUES
   ('11111111-1111-4111-8111-111111111111'),
@@ -486,6 +490,7 @@ SELECT
   NOT role.rolsuper
   AND NOT role.rolbypassrls
   AND NOT role.rolreplication
+  AND NOT has_schema_privilege(current_user, 'public', 'CREATE')
   AND NOT EXISTS (
     SELECT 1
     FROM pg_class AS c
@@ -573,6 +578,33 @@ SELECT
   AND NOT has_table_privilege(current_user, 'public.journal_entries', 'DELETE')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'UPDATE')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'INSERT')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'TRIGGER')
   AND NOT EXISTS (
     SELECT 1
     FROM pg_default_acl AS defaults
@@ -1080,6 +1112,12 @@ expect_admin_failure() {
   fi
   echo "Verified append-only trigger: $description"
 }
+expect_admin_failure "audit UPDATE with overprivileged probe role" \
+  "SET ROLE vv_audit_mutation_probe; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
+expect_admin_failure "audit DELETE with overprivileged probe role" \
+  "SET ROLE vv_audit_mutation_probe; DELETE FROM audit_events WHERE id = '77777777-7777-4777-8777-777777777777';"
+expect_admin_failure "audit TRUNCATE with overprivileged probe role" \
+  "SET ROLE vv_audit_mutation_probe; TRUNCATE audit_events;"
 expect_admin_failure "outbox UPDATE" \
   "SET app.tenant_id = '$TENANT_ONE'; UPDATE outbox_events SET payload = '{}'::jsonb WHERE id = '99999999-9999-4999-8999-999999999991';"
 expect_admin_failure "outbox DELETE" \
