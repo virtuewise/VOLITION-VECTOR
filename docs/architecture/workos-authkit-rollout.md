@@ -117,9 +117,8 @@ The mapping lookup uses the configured PostgreSQL runtime connection. The startu
 - Vercel encrypted Preview variables have been provisioned for the staging branch: `WORKOS_CLIENT_ID`, `WORKOS_ISSUER`, `WORKOS_COOKIE_PASSWORD`, `NEXT_PUBLIC_WORKOS_REDIRECT_URI`, and `WORKOS_TOKEN_AUDIENCE`. The cookie sealing secret was generated for this environment and is not recorded here. No Production variables were created.
 - The Individual Workspace root page now calls `withAuth({ ensureSignedIn: true })`; workspace content fails closed without an authenticated AuthKit session. Sign-in and callback remain public entry points. Review every future page/API route before adding private functionality; proxy session refresh alone is not an authorization policy.
 - The Vercel deployment-protection setting remains enabled. Custom domains are outside the current Vercel SSO protection scope, so app-level authentication is mandatory.
-- Database verification remains blocked: the connected Neon account currently returns no projects, and the staging Preview has no confirmed `DATABASE_URL` runtime binding. Do not infer database readiness from `/v1/health`, which is liveness-only. Verify the deployed runtime role's non-owner/non-privileged status, tenant FORCE RLS, and minimal identity-column SELECT grants before enabling API authentication.
+- At the time of this earlier inspection, database verification was blocked because no Neon project was available. See the live reinspection below for the current database state and remaining runtime-role/RLS gate.
 - A successful real browser sign-in/callback/session-refresh/sign-out sequence has not yet been observed. It requires a fresh Preview deployment containing the environment variables and workspace guard, plus a working staging database/runtime configuration.
-
 
 ## Live staging and database reinspection (2026-11-08 11:14 UTC)
 
