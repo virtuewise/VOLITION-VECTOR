@@ -52,6 +52,8 @@ describe("PostgresTenantConnectionPool", () => {
         member_of_tenant_owner_role: false,
         member_of_privileged_role: false,
         all_tenant_tables_force_rls: true,
+        has_default_table_privileges: false,
+        has_default_sequence_privileges: false,
         can_read_external_identities: true,
         can_read_accounts: true,
         can_read_private_identity_email: false,
@@ -64,6 +66,8 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[0]).toContain("relowner");
     expect(query.mock.calls[0]?.[0]).toContain("pg_has_role");
     expect(query.mock.calls[0]?.[0]).toContain("relforcerowsecurity");
+    expect(query.mock.calls[0]?.[0]).toContain("pg_default_acl");
+    expect(query.mock.calls[0]?.[0]).toContain("aclexplode");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain(
       "organization_invitation_rate_limits",
     );
@@ -125,6 +129,54 @@ describe("PostgresTenantConnectionPool", () => {
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
       /minimal identity-column SELECT grants/,
+    );
+  });
+
+  it("rejects a runtime role with inherited default table grants", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        has_default_table_privileges: true,
+        has_default_sequence_privileges: false,
+        can_read_external_identities: true,
+        can_read_accounts: true,
+        can_read_private_identity_email: false,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /no inherited default table or sequence grants/,
+    );
+  });
+
+  it("rejects a runtime role with inherited default sequence grants", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        has_default_table_privileges: false,
+        has_default_sequence_privileges: true,
+        can_read_external_identities: true,
+        can_read_accounts: true,
+        can_read_private_identity_email: false,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /no inherited default table or sequence grants/,
     );
   });
 
