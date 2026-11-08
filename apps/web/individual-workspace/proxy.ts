@@ -1,5 +1,9 @@
 import { authkitProxy } from "@workos-inc/authkit-nextjs";
-import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
+import {
+  NextResponse,
+  type NextFetchEvent,
+  type NextRequest,
+} from "next/server";
 
 const authProxy = authkitProxy();
 
