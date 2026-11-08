@@ -48,7 +48,7 @@ describe("WorkOSAccessTokenVerifier", () => {
           WORKOS_CLIENT_ID: CLIENT_ID,
           WORKOS_ISSUER: ISSUER,
         } as NodeJS.ProcessEnv),
-    ).toThrow("WORKOS_CLIENT_ID, WORKOS_ISSUER, and WORKOS_TOKEN_AUDIENCE");
+    ).toThrow("WorkOS client ID, issuer, and API audience");
 
     expect(
       () =>
@@ -99,39 +99,48 @@ describe("WorkOSAccessTokenVerifier", () => {
     expect(verifyAccessToken).toHaveBeenCalledWith("signed-token");
   });
 
-  it("accepts a standards-compliant audience array containing the API", async () => {
-    const { verifier } = verifierFor({
-      sub: "user_123",
-      iss: ISSUER,
-      aud: ["https://another-api.example", AUDIENCE],
-    });
+  it(
+    "accepts a standards-compliant audience array containing the API",
+    async () => {
+      const { verifier } = verifierFor({
+        sub: "user_123",
+        iss: ISSUER,
+        aud: ["https://another-api.example", AUDIENCE],
+      });
 
-    await expect(
-      verifier.verifyBearerToken("Bearer signed-token"),
-    ).resolves.toMatchObject({ subject: "user_123" });
-  });
+      await expect(
+        verifier.verifyBearerToken("Bearer signed-token"),
+      ).resolves.toMatchObject({ subject: "user_123" });
+    },
+  );
 
   it.each([
     { sub: "user_123", iss: ISSUER },
     { sub: "user_123", iss: ISSUER, aud: "https://other-api.example" },
     { sub: "user_123", iss: "https://other-issuer.example", aud: AUDIENCE },
     { iss: ISSUER, aud: AUDIENCE },
-  ])("rejects a token without the required user, issuer or audience claims", async (claims) => {
-    const { verifier } = verifierFor(claims);
+  ])(
+    "rejects a token without the required user, issuer or audience claims",
+    async (claims) => {
+      const { verifier } = verifierFor(claims);
 
-    await expect(
-      verifier.verifyBearerToken("Bearer signed-token"),
-    ).resolves.toBeNull();
-  });
+      await expect(
+        verifier.verifyBearerToken("Bearer signed-token"),
+      ).resolves.toBeNull();
+    },
+  );
 
-  it("does not treat missing or non-bearer credentials as an identity", async () => {
-    const { verifier, verifyAccessToken } = verifierFor(null);
+  it(
+    "does not treat missing or non-bearer credentials as an identity",
+    async () => {
+      const { verifier, verifyAccessToken } = verifierFor(null);
 
-    await expect(verifier.verifyBearerToken(undefined)).resolves.toBeNull();
-    await expect(verifier.verifyBearerToken("Basic abc")).resolves.toBeNull();
-    await expect(verifier.verifyBearerToken("Bearer ")).resolves.toBeNull();
-    expect(verifyAccessToken).not.toHaveBeenCalled();
-  });
+      await expect(verifier.verifyBearerToken(undefined)).resolves.toBeNull();
+      await expect(verifier.verifyBearerToken("Basic abc")).resolves.toBeNull();
+      await expect(verifier.verifyBearerToken("Bearer ")).resolves.toBeNull();
+      expect(verifyAccessToken).not.toHaveBeenCalled();
+    },
+  );
 
   it("rejects oversized bearer credentials before verification", async () => {
     const { verifier, verifyAccessToken } = verifierFor(null);
