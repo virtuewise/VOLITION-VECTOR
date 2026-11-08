@@ -565,6 +565,35 @@ SELECT
   AND NOT has_table_privilege(current_user, 'public.journal_entries', 'DELETE')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'UPDATE')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'DELETE')
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_default_acl AS defaults
+    CROSS JOIN LATERAL aclexplode(defaults.defaclacl) AS privilege
+    WHERE defaults.defaclobjtype = 'r'
+      AND defaults.defaclnamespace IN (0, 'public'::regnamespace)
+      AND privilege.privilege_type IN (
+        'SELECT', 'INSERT', 'UPDATE', 'DELETE',
+        'TRUNCATE', 'REFERENCES', 'TRIGGER'
+      )
+      AND (
+        privilege.grantee = 0 OR
+        privilege.grantee = role.oid OR
+        pg_has_role(role.oid, privilege.grantee, 'MEMBER')
+      )
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_default_acl AS defaults
+    CROSS JOIN LATERAL aclexplode(defaults.defaclacl) AS privilege
+    WHERE defaults.defaclobjtype = 'S'
+      AND defaults.defaclnamespace IN (0, 'public'::regnamespace)
+      AND privilege.privilege_type IN ('USAGE', 'SELECT', 'UPDATE')
+      AND (
+        privilege.grantee = 0 OR
+        privilege.grantee = role.oid OR
+        pg_has_role(role.oid, privilege.grantee, 'MEMBER')
+      )
+  )
 FROM pg_roles AS role
 WHERE role.rolname = current_user;
 SQL
