@@ -119,3 +119,41 @@ The mapping lookup uses the configured PostgreSQL runtime connection. The startu
 - The Vercel deployment-protection setting remains enabled. Custom domains are outside the current Vercel SSO protection scope, so app-level authentication is mandatory.
 - Database verification remains blocked: the connected Neon account currently returns no projects, and the staging Preview has no confirmed `DATABASE_URL` runtime binding. Do not infer database readiness from `/v1/health`, which is liveness-only. Verify the deployed runtime role's non-owner/non-privileged status, tenant FORCE RLS, and minimal identity-column SELECT grants before enabling API authentication.
 - A successful real browser sign-in/callback/session-refresh/sign-out sequence has not yet been observed. It requires a fresh Preview deployment containing the environment variables and workspace guard, plus a working staging database/runtime configuration.
+
+
+## Live staging and database reinspection (2026-11-08 11:14 UTC)
+
+This read-only inspection supersedes the earlier statement that no Neon project existed. It does not change any WorkOS, Vercel, Neon, GitHub or secret configuration.
+
+### WorkOS Staging
+
+- The default AuthKit application is configured with initiate-login URI `https://www.volitionvector.printsync.co.za/app/sign-in`, callback URI `https://www.volitionvector.printsync.co.za/app/callback`, sign-out URI `https://www.volitionvector.printsync.co.za/app/`, and web origin `https://www.volitionvector.printsync.co.za`. Local callback, sign-out and origin entries remain present.
+- The Staging JWT access-token template exists and sets the exact API audience to `https://www.volitionvector.printsync.co.za/v1`, matching the API verifier's required audience.
+- The Staging AuthKit settings currently report MFA Off, a 31,536,000-second maximum session time, a 172,800-second inactivity timeout, sign-up enabled and waitlist enabled. These are observed settings, not an endorsement; security/product owners must review the session and MFA policy before any controlled pilot.
+- The WorkOS Production application remains unconfigured: no initiate-login URI, homepage, redirect URI, logout URI, web origin or JWT template. Production AuthKit MFA is Off. No Production authentication enablement is authorized by this record.
+
+### Vercel deployment and environment records
+
+- The Vercel project remains linked to `virtuewise/VOLITION-VECTOR`. The custom domain `www.volitionvector.printsync.co.za` is verified and assigned to the Preview branch `feat/workos-staging-auth-flow`.
+- The Preview deployment for commit `557f48956473051047209f0a44f8e1e1f16245e6` reports READY. The Production deployment for current main `0fc0f553fbaf8f4a6c215c6018f3b7eb38678766` also reports READY. A READY deployment is not evidence of a successful authenticated browser journey or database authorization.
+- Branch-scoped Preview variable records exist for `WORKOS_CLIENT_ID`, `WORKOS_ISSUER`, `WORKOS_COOKIE_PASSWORD`, `NEXT_PUBLIC_WORKOS_REDIRECT_URI` and `WORKOS_TOKEN_AUDIENCE`. Their values were not decrypted or copied into this repository.
+- The Neon integration has created sensitive `DATABASE_URL` and related database variable records for Preview and Production. Their values were not decrypted; this inspection does not establish which PostgreSQL role either URL uses.
+- Vercel returned no warning/error runtime log records for either deployment in the latest 30-minute query window. The Hobby retention window rejected a 60-minute query, so this is not evidence that no earlier runtime errors occurred.
+
+### Neon database state — blocking finding
+
+- Neon project `volitionvector` exists in AWS `us-east-1` on PostgreSQL 18.6. It has a primary `main` branch and a Vercel-created `preview/feat/workos-staging-auth-flow` branch; both report ready compute.
+- Read-only catalog inspection found no public application tables, no `accounts` or `external_identities` columns, and no `_prisma_migrations` table on either branch. The repository's migrations have not been applied to these Neon branches.
+- The Preview branch currently has only the `neondb_owner` role. PostgreSQL reports that role as BYPASSRLS and replication-capable. No dedicated non-owner, non-BYPASSRLS application runtime role is present.
+- The primary branch also has Neon Auth roles `authenticator`, `anonymous` and `authenticated`, but no application runtime role and no application tables. These roles are not evidence of a correctly provisioned VOLITION VECTOR API runtime identity.
+- The NestJS startup guard in `apps/api/identity/postgres-tenant-connection.pool.ts` intentionally rejects superuser, BYPASSRLS, replication, tenant-table-owner and privileged inherited roles. It also requires every registered tenant table to have ENABLE and FORCE RLS and limits identity lookups to the required columns. Therefore the current Preview role inventory cannot satisfy the API startup contract.
+
+### Required next steps and release gate
+
+1. Provision a dedicated non-owner, non-BYPASSRLS, non-replication API runtime role through the approved secret-management process; do not use `neondb_owner` for application traffic.
+2. Apply the checked-in Prisma migrations to the intended Preview branch through a reviewed migration workflow, not ad-hoc SQL. Verify `accounts`, `external_identities`, all tenant tables, FORCE RLS and exact minimal identity-column grants using the actual runtime role.
+3. Confirm the Preview `DATABASE_URL` binding uses that runtime role without exposing its value, then exercise the identity resolver and negative RLS tests against the deployed database.
+4. Complete a real staging browser sign-in, callback, session refresh and sign-out test, plus a reviewed session revocation/invalidation strategy. The live configuration inspection and READY deployment do not replace these tests.
+5. Keep Production WorkOS unconfigured and keep authenticated API/payment exposure disabled until its own database, identity, security and release gates are separately reviewed.
+
+No database roles, schemas, migrations, environment variables, WorkOS settings, Vercel deployment settings, branch protections or secrets were changed during this inspection.
