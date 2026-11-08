@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { Client } from "pg";
 
 const MIGRATION_LOCK = "volition-vector:database-migrations";
@@ -19,7 +19,8 @@ async function runMigrations(): Promise<void> {
     );
   }
 
-  const databaseEntry = fileURLToPath(import.meta.resolve("@volition/database"));
+  const require = createRequire(__filename);
+  const databaseEntry = require.resolve("@volition/database");
   const migrationsRoot = resolve(
     dirname(databaseEntry),
     "../prisma/migrations",
