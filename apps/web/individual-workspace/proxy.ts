@@ -8,9 +8,11 @@ import {
 const authProxy = authkitProxy();
 
 export default function proxy(request: NextRequest, event: NextFetchEvent) {
+  const cookiePassword = process.env["WORKOS_COOKIE_PASSWORD"];
   const configured =
     Boolean(process.env["WORKOS_CLIENT_ID"]) &&
-    Boolean(process.env["WORKOS_COOKIE_PASSWORD"]) &&
+    Boolean(process.env["WORKOS_ISSUER"]) &&
+    Boolean(cookiePassword && cookiePassword.length >= 32) &&
     Boolean(process.env["NEXT_PUBLIC_WORKOS_REDIRECT_URI"]);
 
   if (!configured) {
