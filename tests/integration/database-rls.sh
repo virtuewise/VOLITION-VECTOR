@@ -610,6 +610,7 @@ SELECT
   AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRUNCATE')
   AND NOT has_table_privilege(current_user, 'public.journal_entries', 'REFERENCES')
   AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'MAINTAIN')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRUNCATE')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'REFERENCES')
   AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRIGGER')
