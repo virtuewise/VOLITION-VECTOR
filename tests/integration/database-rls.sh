@@ -578,7 +578,7 @@ SELECT
       AND (
         privilege.grantee = 0 OR
         privilege.grantee = role.oid OR
-        pg_has_role(role.oid, privilege.grantee, 'MEMBER')
+        pg_has_role(role.oid, NULLIF(privilege.grantee, 0), 'MEMBER')
       )
   )
   AND NOT EXISTS (
@@ -591,7 +591,7 @@ SELECT
       AND (
         privilege.grantee = 0 OR
         privilege.grantee = role.oid OR
-        pg_has_role(role.oid, privilege.grantee, 'MEMBER')
+        pg_has_role(role.oid, NULLIF(privilege.grantee, 0), 'MEMBER')
       )
   )
 FROM pg_roles AS role
