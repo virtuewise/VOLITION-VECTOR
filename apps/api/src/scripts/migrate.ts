@@ -56,6 +56,17 @@ async function runMigrations(): Promise<void> {
       )
     `);
 
+    await client.query(`
+      REVOKE ALL PRIVILEGES ON TABLE public.vv_schema_migrations FROM PUBLIC;
+      DO $migration$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vv_runtime') THEN
+          EXECUTE 'REVOKE ALL PRIVILEGES ON TABLE public.vv_schema_migrations FROM vv_runtime';
+        END IF;
+      END
+      $migration$;
+    `);
+
     const appliedResult = await client.query<MigrationRecord>(
       "SELECT migration_name, checksum FROM public.vv_schema_migrations",
     );
