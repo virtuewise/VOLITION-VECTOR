@@ -1143,9 +1143,9 @@ expect_admin_failure() {
   echo "Verified append-only trigger: $description"
 }
 expect_admin_failure "audit UPDATE with overprivileged probe role" \
-  "SET ROLE vv_audit_mutation_probe; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
+  "SET ROLE vv_audit_mutation_probe; SET app.tenant_id = '$TENANT_ONE'; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
 expect_admin_failure "audit DELETE with overprivileged probe role" \
-  "SET ROLE vv_audit_mutation_probe; DELETE FROM audit_events WHERE id = '77777777-7777-4777-8777-777777777777';"
+  "SET ROLE vv_audit_mutation_probe; SET app.tenant_id = '$TENANT_ONE'; DELETE FROM audit_events WHERE id = '77777777-7777-4777-8777-777777777777';"
 expect_admin_failure "audit TRUNCATE with overprivileged probe role" \
   "SET ROLE vv_audit_mutation_probe; TRUNCATE audit_events;"
 expect_admin_failure "outbox UPDATE" \
