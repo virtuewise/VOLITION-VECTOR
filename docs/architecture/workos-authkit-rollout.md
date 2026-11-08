@@ -45,6 +45,8 @@ Read-only inspection of the Staging environment confirms that the default AuthKi
 
 The Individual Workspace is deployed with `basePath: /app`; the implemented local routes are therefore `/app/sign-in` and `/app/callback`. The existing WorkOS URLs do not match those routes. The current Staging AuthKit settings also report MFA as Off. No WorkOS configuration was changed during this run.
 
+The Production default AuthKit application currently has no initiate-login URI, redirect URI, logout URI, web origin, JWT template or OAuth protected resource configured. Production MFA is also Off. Production authentication must remain disabled until a separately reviewed configuration and release.
+
 Do not invent a resource audience or register a temporary Vercel preview as a durable callback. A durable staging API/web origin and a reviewed JWT-template or protected-resource configuration are required before enabling the API guard. Production remains a separate, unconfigured release gate.
 
 ## Required implementation sequence
@@ -82,7 +84,7 @@ Do not invent a resource audience or register a temporary Vercel preview as a du
 - `@workos-inc/node@12.2.0` is used by the API token verifier.
 - The Individual Workspace Next.js App Router exposes `/app/sign-in` and `/app/callback` externally because its configured basePath is `/app`.
 - The sign-in route returns 503 while its required WorkOS environment is absent.
-- The Next.js 16 proxy bypasses AuthKit when the environment is unconfigured; once configured, it delegates the request and Next fetch event to the pinned SDK's `authkitProxy`.
+- The Next.js 16 proxy bypasses AuthKit unless the client ID, exact issuer, redirect URI and a cookie password of at least 32 characters are present; once configured, it delegates the request and Next fetch event to the pinned SDK's `authkitProxy`. The sign-in route returns 503 when any of these values is missing or the cookie password is too short. The SDK supports keyless public-client mode, so a WorkOS API key is not required for the sign-in/callback/session flow.
 - The API verifier uses the WorkOS Node SDK's public-client configuration with the client ID and exact issuer; an API key is not required for local JWKS verification. It additionally requires the configured API audience before returning a verified identity.
 
 ### Identity mapping and API authorization
