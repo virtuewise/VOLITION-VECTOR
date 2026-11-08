@@ -140,7 +140,7 @@ export class PostgresTenantConnectionPool
              AND (
                privilege.grantee = 0 OR
                privilege.grantee = r.oid OR
-               pg_has_role(r.oid, privilege.grantee, 'MEMBER')
+               pg_has_role(r.oid, NULLIF(privilege.grantee, 0), 'MEMBER')
              )
          ) AS has_default_table_privileges,
          EXISTS (
@@ -153,7 +153,7 @@ export class PostgresTenantConnectionPool
              AND (
                privilege.grantee = 0 OR
                privilege.grantee = r.oid OR
-               pg_has_role(r.oid, privilege.grantee, 'MEMBER')
+               pg_has_role(r.oid, NULLIF(privilege.grantee, 0), 'MEMBER')
              )
          ) AS has_default_sequence_privileges,
          (
