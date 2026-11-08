@@ -43,6 +43,7 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly all_tenant_tables_force_rls: boolean;
   readonly can_read_external_identities: boolean;
   readonly can_read_accounts: boolean;
+  readonly can_read_private_identity_email: boolean;
 }
 
 class PostgresTenantConnection implements TenantConnection {
@@ -124,8 +125,19 @@ export class PostgresTenantConnectionPool
              AND c.relrowsecurity
              AND c.relforcerowsecurity
          ) AS all_tenant_tables_force_rls,
-         has_table_privilege(current_user, 'public.external_identities', 'SELECT') AS can_read_external_identities,
-         has_table_privilege(current_user, 'public.accounts', 'SELECT') AS can_read_accounts
+         (
+           has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
+           AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
+           AND has_column_privilege(current_user, 'public.external_identities', 'subject', 'SELECT')
+         ) AS can_read_external_identities,
+         (
+           has_column_privilege(current_user, 'public.accounts', 'id', 'SELECT')
+           AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
+         ) AS can_read_accounts,
+         (
+           has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
+           OR has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
+         ) AS can_read_private_identity_email
        FROM pg_roles AS r
        WHERE r.rolname = current_user`,
       [[...TENANT_OWNED_TABLES]],
@@ -142,10 +154,11 @@ export class PostgresTenantConnectionPool
       runtimeRole.member_of_privileged_role ||
       !runtimeRole.all_tenant_tables_force_rls ||
       !runtimeRole.can_read_external_identities ||
-      !runtimeRole.can_read_accounts
+      !runtimeRole.can_read_accounts ||
+      runtimeRole.can_read_private_identity_email
     ) {
       throw new Error(
-        "DATABASE_URL must use a non-privileged, non-owner PostgreSQL role with identity-table SELECT access and forced tenant RLS.",
+        "DATABASE_URL role must use minimal identity-column SELECT grants, exclude private identity email fields, and enforce tenant RLS.",
       );
     }
   }
