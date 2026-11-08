@@ -5,39 +5,12 @@ set -euo pipefail
 : "${RUNTIME_DATABASE_URL:?RUNTIME_DATABASE_URL is required}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-MIGRATIONS_DIR="$ROOT_DIR/packages/database/prisma/migrations"
-
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261105133000_identity_tenancy/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261105145000_audit_event_truncate_guard/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261105153000_invitation_token_lookup/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106110000_invitation_rate_limits/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106130000_opportunities/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106150000_service_listings/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106170000_opportunity_applications/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106190000_application_conversations/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106190000_project_workspaces/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106190000_immutable_journal/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106200000_trust_evidence_intake/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261107120000_transactional_outbox/migration.sql"
-
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
   LOGIN PASSWORD 'runtime-test'
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+CREATE ROLE vv_audit_mutation_probe
+  NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
 
 GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
 GRANT USAGE ON SCHEMA public TO vv_runtime;
@@ -45,17 +18,42 @@ GRANT SELECT (account_id, issuer, subject) ON external_identities TO vv_runtime;
 GRANT SELECT (id, status) ON accounts TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, project_workspaces, project_milestones, service_listings, audit_events, journal_entries, journal_entry_lines
+     organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, project_workspaces, project_milestones, service_listings
   TO vv_runtime;
+GRANT SELECT, INSERT ON audit_events TO vv_runtime;
 GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
 GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
 GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
 GRANT SELECT, INSERT ON outbox_events TO vv_runtime;
 
--- Deliberately grant TRUNCATE in this test: the trigger must preserve the
--- append-only invariant even if a runtime grant is accidentally too broad.
-GRANT TRUNCATE ON audit_events TO vv_runtime;
+-- Prove that objects created after the migration runner do not inherit runtime
+-- privileges from PUBLIC or the migration-owner role.
+CREATE TABLE public.vv_future_table_probe (id integer);
+CREATE SEQUENCE public.vv_future_sequence_probe;
+DO $future_object_grants$
+BEGIN
+  IF has_table_privilege(
+       'vv_runtime',
+       'public.vv_future_table_probe',
+       'SELECT'
+     )
+     OR has_sequence_privilege(
+       'vv_runtime',
+       'public.vv_future_sequence_probe',
+       'USAGE'
+     ) THEN
+    RAISE EXCEPTION 'future objects inherited runtime privileges';
+  END IF;
+END;
+$future_object_grants$;
+DROP TABLE public.vv_future_table_probe;
+DROP SEQUENCE public.vv_future_sequence_probe;
+
+-- Use a separate deliberately overprivileged probe to prove the append-only
+-- trigger still blocks mutations even if a future grant is accidentally broad.
+GRANT USAGE ON SCHEMA public TO vv_audit_mutation_probe;
+GRANT SELECT, UPDATE, DELETE, TRUNCATE ON audit_events TO vv_audit_mutation_probe;
 
 INSERT INTO accounts (id) VALUES
   ('11111111-1111-4111-8111-111111111111'),
@@ -515,6 +513,8 @@ SELECT
   NOT role.rolsuper
   AND NOT role.rolbypassrls
   AND NOT role.rolreplication
+  AND has_schema_privilege(current_user, 'public', 'USAGE')
+  AND NOT has_schema_privilege(current_user, 'public', 'CREATE')
   AND NOT EXISTS (
     SELECT 1
     FROM pg_class AS c
@@ -590,6 +590,80 @@ SELECT
   AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
   AND NOT has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
   AND NOT has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
+  AND to_regclass('public.vv_schema_migrations') IS NOT NULL
+  AND NOT has_table_privilege(current_user, 'public.vv_schema_migrations', 'SELECT')
+  AND NOT has_table_privilege(current_user, 'public.vv_schema_migrations', 'INSERT')
+  AND NOT has_table_privilege(current_user, 'public.vv_schema_migrations', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.vv_schema_migrations', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.vv_schema_migrations', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.vv_schema_migrations', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.vv_schema_migrations', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.audit_events', 'MAINTAIN')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'MAINTAIN')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'MAINTAIN')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.outbox_events', 'MAINTAIN')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'MAINTAIN')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'INSERT')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'TRUNCATE')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'REFERENCES')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'TRIGGER')
+  AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'MAINTAIN')
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_default_acl AS defaults
+    CROSS JOIN LATERAL aclexplode(defaults.defaclacl) AS privilege
+    WHERE defaults.defaclobjtype = 'r'
+      AND defaults.defaclnamespace IN (0, 'public'::regnamespace)
+      AND privilege.privilege_type IN (
+        'SELECT', 'INSERT', 'UPDATE', 'DELETE',
+        'TRUNCATE', 'REFERENCES', 'TRIGGER', 'MAINTAIN'
+      )
+      AND (
+        privilege.grantee = 0 OR
+        privilege.grantee = role.oid OR
+        pg_has_role(role.oid, NULLIF(privilege.grantee, 0), 'MEMBER')
+      )
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_default_acl AS defaults
+    CROSS JOIN LATERAL aclexplode(defaults.defaclacl) AS privilege
+    WHERE defaults.defaclobjtype = 'S'
+      AND defaults.defaclnamespace IN (0, 'public'::regnamespace)
+      AND privilege.privilege_type IN ('USAGE', 'SELECT', 'UPDATE')
+      AND (
+        privilege.grantee = 0 OR
+        privilege.grantee = role.oid OR
+        pg_has_role(role.oid, NULLIF(privilege.grantee, 0), 'MEMBER')
+      )
+  )
 FROM pg_roles AS role
 WHERE role.rolname = current_user;
 SQL
@@ -1068,6 +1142,12 @@ expect_admin_failure() {
   fi
   echo "Verified append-only trigger: $description"
 }
+expect_admin_failure "audit UPDATE with overprivileged probe role" \
+  "SET ROLE vv_audit_mutation_probe; SET app.tenant_id = '$TENANT_ONE'; UPDATE audit_events SET event_name = 'tampered' WHERE id = '77777777-7777-4777-8777-777777777777';"
+expect_admin_failure "audit DELETE with overprivileged probe role" \
+  "SET ROLE vv_audit_mutation_probe; SET app.tenant_id = '$TENANT_ONE'; DELETE FROM audit_events WHERE id = '77777777-7777-4777-8777-777777777777';"
+expect_admin_failure "audit TRUNCATE with overprivileged probe role" \
+  "SET ROLE vv_audit_mutation_probe; TRUNCATE audit_events;"
 expect_admin_failure "outbox UPDATE" \
   "SET app.tenant_id = '$TENANT_ONE'; UPDATE outbox_events SET payload = '{}'::jsonb WHERE id = '99999999-9999-4999-8999-999999999991';"
 expect_admin_failure "outbox DELETE" \
