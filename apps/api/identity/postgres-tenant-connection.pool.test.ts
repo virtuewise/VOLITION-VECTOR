@@ -208,26 +208,30 @@ describe("PostgresTenantConnectionPool", () => {
   });
 
   it.each([
-    [],
-    [
-      {
-        account_id: "7f9a6b2c-1111-4111-8111-111111111111",
-        account_status: "suspended",
-      },
-    ],
-    [
-      {
-        account_id: "7f9a6b2c-1111-4111-8111-111111111111",
-        account_status: "active",
-      },
-      {
-        account_id: "8f9a6b2c-1111-4111-8111-111111111112",
-        account_status: "active",
-      },
-    ],
+    { rows: [] },
+    {
+      rows: [
+        {
+          account_id: "7f9a6b2c-1111-4111-8111-111111111111",
+          account_status: "suspended",
+        },
+      ],
+    },
+    {
+      rows: [
+        {
+          account_id: "7f9a6b2c-1111-4111-8111-111111111111",
+          account_status: "active",
+        },
+        {
+          account_id: "8f9a6b2c-1111-4111-8111-111111111112",
+          account_status: "active",
+        },
+      ],
+    },
   ])(
     "rejects missing, inactive or non-unique external identity mappings",
-    async (rows) => {
+    async ({ rows }) => {
       const { pool } = makePool(rows);
       const adapter = new PostgresTenantConnectionPool(pool);
 
