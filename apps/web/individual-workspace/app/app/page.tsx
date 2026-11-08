@@ -3,8 +3,8 @@ import { signOutAction } from "./sign-out/action";
 
 export default async function HomePage() {
   // The Individual Workspace root is an authenticated workspace surface.
-  // Public authentication endpoints live at /sign-in and /callback; never
-  // render workspace content when the AuthKit session is absent.
+  // Public authentication endpoints live at /app/sign-in and /app/callback;
+  // never render workspace content when the AuthKit session is absent.
   const { user } = await withAuth({ ensureSignedIn: true });
 
   return (

@@ -22,6 +22,10 @@ export default function proxy(request: NextRequest, event: NextFetchEvent) {
   return authProxy(request, event);
 }
 
+// Keep the public /app prefix in the route tree instead of using Next.js
+// basePath. Vercel's Next.js 16 proxy integration does not reliably invoke
+// proxy.ts for basePath-mounted apps, which prevents AuthKit from forwarding
+// its trusted session headers to withAuth().
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/app/:path*"],
 };
