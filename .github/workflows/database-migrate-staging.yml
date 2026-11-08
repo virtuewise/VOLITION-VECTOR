@@ -17,9 +17,9 @@ concurrency:
 
 jobs:
   migrate:
-    if: inputs.confirm == 'APPLY'
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'APPLY'
     name: Apply versioned migrations to Staging
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     environment: staging
     env:
