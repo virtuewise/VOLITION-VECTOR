@@ -158,7 +158,9 @@ export class PostgresTenantConnectionPool
       runtimeRole.can_read_private_identity_email
     ) {
       throw new Error(
-        "DATABASE_URL role must use minimal identity-column SELECT grants, exclude private identity email fields, and enforce tenant RLS.",
+        "DATABASE_URL role must be non-privileged and non-owner, use minimal " +
+          "identity-column SELECT grants, exclude private identity email fields, " +
+          "and enforce tenant RLS.",
       );
     }
   }
