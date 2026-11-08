@@ -58,8 +58,10 @@ async function runMigrations(): Promise<void> {
     const appliedResult = await client.query<MigrationRecord>(
       "SELECT migration_name, checksum FROM public.vv_schema_migrations",
     );
-    const applied = new Map(
-      appliedResult.rows.map((row) => [row.migration_name, row.checksum]),
+    const applied = new Map<string, string | null>(
+      appliedResult.rows.map(
+        (row): [string, string | null] => [row.migration_name, row.checksum],
+      ),
     );
 
     for (const migrationName of migrationDirectories) {
