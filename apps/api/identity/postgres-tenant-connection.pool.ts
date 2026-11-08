@@ -44,6 +44,7 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly has_default_table_privileges: boolean;
   readonly has_default_sequence_privileges: boolean;
   readonly migration_ledger_is_private: boolean;
+  readonly can_use_public_schema: boolean;
   readonly can_create_public_objects: boolean;
   readonly immutable_tables_protected: boolean;
   readonly can_read_external_identities: boolean;
@@ -170,6 +171,7 @@ export class PostgresTenantConnectionPool
              AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'REFERENCES')
              AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'TRIGGER')
          END AS migration_ledger_is_private,
+         has_schema_privilege(current_user, 'public', 'USAGE') AS can_use_public_schema,
          has_schema_privilege(current_user, 'public', 'CREATE') AS can_create_public_objects,
          (
            NOT has_table_privilege(current_user, 'public.audit_events', 'UPDATE')
@@ -241,6 +243,7 @@ export class PostgresTenantConnectionPool
       runtimeRole.has_default_table_privileges ||
       runtimeRole.has_default_sequence_privileges ||
       !runtimeRole.migration_ledger_is_private ||
+      !runtimeRole.can_use_public_schema ||
       runtimeRole.can_create_public_objects ||
       !runtimeRole.immutable_tables_protected ||
       !runtimeRole.can_read_external_identities ||
