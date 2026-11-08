@@ -169,7 +169,7 @@ Subsequent Staging-only provisioning changed only the `preview/feat/workos-stagi
 
 ### Deployment and authentication blockers
 
-- The latest existing staging deployment has not yet been refreshed with the new database binding. The most recent redeploy request was queued when last inspected.
+- The existing staging deployment has not yet been refreshed with the new database binding. A new deployment request was subsequently rejected by Vercel with HTTP 402: the team reached its 100-deployments/day API limit (24-hour cooldown). No further deployment creation attempts should be made until the limit resets or Vercel resolves the quota.
 - PR #55 addresses the Individual Workspace HTTP 500 by removing Next.js `basePath` and keeping the public `/app` prefix in the route tree, so the Next.js 16 proxy matcher can run for AuthKit. Quality and CodeQL passed on the PR branch; its Vercel deployment is blocked by the API container image push error: the Vercel Container Registry reports that the `api` repository must exist and rejects the push.
 - Create the `api` repository in the Vercel project's Sandboxes / Container Registry settings, then redeploy the Preview branch. Do not disable SSO or deployment protection to work around this.
 - A real browser sign-in, callback, session refresh and sign-out cycle is still not verified. The current HTTP 500 on the old staging deployment is not a successful auth test.
