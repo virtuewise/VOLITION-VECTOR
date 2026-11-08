@@ -25,7 +25,7 @@ It requires `DATABASE_MIGRATION_URL`, a dedicated migration-owner connection. It
 
 ## Environment separation
 
-- `DATABASE_MIGRATION_URL`: migration-owner secret available only to a controlled migration job or operator session.
+- `DATABASE_MIGRATION_URL`: migration-owner secret available only to a controlled migration job or operator session. Remote URLs must explicitly use `sslmode=verify-full`; only loopback PostgreSQL used by local/CI tests may omit TLS.
 - `DATABASE_URL`: non-owner, non-superuser, non-replication application role with no `BYPASSRLS`, minimal identity-column reads and tenant-scoped table grants.
 - Never store the migration-owner URL in the runtime API environment, expose it to a web app, or print either URL in CI logs.
 
@@ -39,6 +39,6 @@ The Neon branch `preview/feat/workos-staging-auth-flow` was provisioned before t
 
 ## Controlled Staging execution
 
-After this change is merged, `.github/workflows/database-migrate-staging.yml` exposes a manual-only workflow. It runs only from `main`, requires the operator to type `APPLY`, serializes runs, and reads `DATABASE_MIGRATION_URL` from the GitHub `staging` environment secret. Configure that environment with an authorized reviewer and add the migration-owner URL there; do not add it to Vercel or the API runtime environment. The workflow builds and runs the migration command without printing the connection string.
+After this change is merged, `.github/workflows/database-migrate-staging.yml` exposes a manual-only workflow. It runs only from `main`, requires the operator to type `APPLY`, serializes runs, and reads `DATABASE_MIGRATION_URL` from the GitHub `staging` environment secret. Configure that environment with an authorized reviewer and add the migration-owner URL there with `sslmode=verify-full`; do not add it to Vercel or the API runtime environment. The workflow builds and runs the migration command without printing the connection string.
 
 The Staging Neon branch already has a verified baseline ledger. Its 13 NULL-checksum rows are intentionally sealed by the first controlled run; the runner does not reapply those SQL files. Subsequent runs compare checksums and apply only new migrations. Production migration execution is deliberately not provided by this workflow.
