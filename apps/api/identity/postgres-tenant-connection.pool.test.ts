@@ -55,6 +55,7 @@ describe("PostgresTenantConnectionPool", () => {
         has_default_table_privileges: false,
         has_default_sequence_privileges: false,
         migration_ledger_is_private: true,
+        can_use_public_schema: true,
         can_create_public_objects: false,
         immutable_tables_protected: true,
         can_read_external_identities: true,
@@ -151,6 +152,7 @@ describe("PostgresTenantConnectionPool", () => {
         has_default_table_privileges: true,
         has_default_sequence_privileges: false,
         migration_ledger_is_private: true,
+        can_use_public_schema: true,
         can_create_public_objects: false,
         immutable_tables_protected: true,
         can_read_external_identities: true,
@@ -178,6 +180,7 @@ describe("PostgresTenantConnectionPool", () => {
         has_default_table_privileges: false,
         has_default_sequence_privileges: true,
         migration_ledger_is_private: true,
+        can_use_public_schema: true,
         can_create_public_objects: false,
         immutable_tables_protected: true,
         can_read_external_identities: true,
@@ -217,6 +220,34 @@ describe("PostgresTenantConnectionPool", () => {
     );
   });
 
+  it("rejects a runtime role without public schema usage", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        has_default_table_privileges: false,
+        has_default_sequence_privileges: false,
+        migration_ledger_is_private: true,
+        can_use_public_schema: false,
+        can_create_public_objects: false,
+        immutable_tables_protected: true,
+        can_read_external_identities: true,
+        can_read_accounts: true,
+        can_read_private_identity_email: false,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /non-privileged and non-owner/,
+    );
+  });
+
   it("rejects a runtime role that can create public schema objects", async () => {
     const { pool } = makePool([
       {
@@ -230,6 +261,7 @@ describe("PostgresTenantConnectionPool", () => {
         has_default_table_privileges: false,
         has_default_sequence_privileges: false,
         migration_ledger_is_private: true,
+        can_use_public_schema: true,
         can_create_public_objects: true,
         immutable_tables_protected: true,
         can_read_external_identities: true,
@@ -257,6 +289,7 @@ describe("PostgresTenantConnectionPool", () => {
         has_default_table_privileges: false,
         has_default_sequence_privileges: false,
         migration_ledger_is_private: true,
+        can_use_public_schema: true,
         can_create_public_objects: false,
         immutable_tables_protected: false,
         can_read_external_identities: true,
