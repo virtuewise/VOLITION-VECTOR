@@ -1,9 +1,13 @@
 import { authkitProxy } from "@workos-inc/authkit-nextjs";
-import { NextResponse, type NextRequest } from "next/server";
+import {
+  NextResponse,
+  type NextFetchEvent,
+  type NextRequest,
+} from "next/server";
 
 const authProxy = authkitProxy();
 
-export default function proxy(request: NextRequest) {
+export default function proxy(request: NextRequest, event: NextFetchEvent) {
   const configured =
     Boolean(process.env["WORKOS_CLIENT_ID"]) &&
     Boolean(process.env["WORKOS_COOKIE_PASSWORD"]) &&
@@ -13,7 +17,7 @@ export default function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  return authProxy(request);
+  return authProxy(request, event);
 }
 
 export const config = {
