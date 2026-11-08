@@ -219,7 +219,7 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-privileged, non-owner PostgreSQL role/,
+      /DATABASE_URL role must/,
     );
   });
 
@@ -228,7 +228,7 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-privileged, non-owner PostgreSQL role/,
+      /DATABASE_URL role must/,
     );
   });
 
