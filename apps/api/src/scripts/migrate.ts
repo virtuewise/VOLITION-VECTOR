@@ -25,9 +25,11 @@ async function runMigrations(): Promise<void> {
     dirname(databaseEntry),
     "../prisma/migrations",
   );
-  const migrationDirectories = (await readdir(migrationsRoot, {
-    withFileTypes: true,
-  }))
+  const migrationDirectories = (
+    await readdir(migrationsRoot, {
+      withFileTypes: true,
+    })
+  )
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
@@ -41,10 +43,9 @@ async function runMigrations(): Promise<void> {
 
   try {
     await client.connect();
-    await client.query(
-      "SELECT pg_advisory_lock(hashtextextended($1, 0))",
-      [MIGRATION_LOCK],
-    );
+    await client.query("SELECT pg_advisory_lock(hashtextextended($1, 0))", [
+      MIGRATION_LOCK,
+    ]);
     lockAcquired = true;
 
     await client.query(`
@@ -59,9 +60,10 @@ async function runMigrations(): Promise<void> {
       "SELECT migration_name, checksum FROM public.vv_schema_migrations",
     );
     const applied = new Map<string, string | null>(
-      appliedResult.rows.map(
-        (row): [string, string | null] => [row.migration_name, row.checksum],
-      ),
+      appliedResult.rows.map((row): [string, string | null] => [
+        row.migration_name,
+        row.checksum,
+      ]),
     );
 
     for (const migrationName of migrationDirectories) {
