@@ -5,35 +5,6 @@ set -euo pipefail
 : "${RUNTIME_DATABASE_URL:?RUNTIME_DATABASE_URL is required}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-MIGRATIONS_DIR="$ROOT_DIR/packages/database/prisma/migrations"
-
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261105133000_identity_tenancy/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261105145000_audit_event_truncate_guard/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261105153000_invitation_token_lookup/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106110000_invitation_rate_limits/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106130000_opportunities/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106150000_service_listings/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106170000_opportunity_applications/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106190000_application_conversations/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106190000_project_workspaces/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106190000_immutable_journal/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106200000_trust_evidence_intake/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
-  -f "$MIGRATIONS_DIR/20261107120000_transactional_outbox/migration.sql"
-
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
   LOGIN PASSWORD 'runtime-test'
@@ -45,7 +16,7 @@ GRANT SELECT (account_id, issuer, subject) ON external_identities TO vv_runtime;
 GRANT SELECT (id, status) ON accounts TO vv_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON organizations, organization_memberships, organization_invitations,
-     organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, project_workspaces, project_milestones, service_listings, audit_events, journal_entries, journal_entry_lines
+     organization_invitation_rate_limits, opportunities, opportunity_applications, conversations, conversation_participants, messages, project_workspaces, project_milestones, service_listings, audit_events
   TO vv_runtime;
 GRANT SELECT ON public_opportunities, public_service_listings TO vv_runtime;
 GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
@@ -590,6 +561,10 @@ SELECT
   AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
   AND NOT has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
   AND NOT has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entries', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'DELETE')
 FROM pg_roles AS role
 WHERE role.rolname = current_user;
 SQL
