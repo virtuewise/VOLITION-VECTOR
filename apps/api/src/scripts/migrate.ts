@@ -62,7 +62,7 @@ async function runMigrations(): Promise<void> {
     );
 
     for (const migrationName of migrationDirectories) {
-      if (!/^\\d{14}_[a-z0-9_]+$/.test(migrationName)) {
+      if (!/^\d{14}_[a-z0-9_]+$/.test(migrationName)) {
         throw new Error(`Invalid migration directory name: ${migrationName}`);
       }
 
