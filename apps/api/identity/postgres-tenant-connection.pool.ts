@@ -44,6 +44,8 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly has_default_table_privileges: boolean;
   readonly has_default_sequence_privileges: boolean;
   readonly migration_ledger_is_private: boolean;
+  readonly can_create_public_objects: boolean;
+  readonly immutable_tables_protected: boolean;
   readonly can_read_external_identities: boolean;
   readonly can_read_accounts: boolean;
   readonly can_read_private_identity_email: boolean;
@@ -168,6 +170,40 @@ export class PostgresTenantConnectionPool
              AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'REFERENCES')
              AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'TRIGGER')
          END AS migration_ledger_is_private,
+         has_schema_privilege(current_user, 'public', 'CREATE') AS can_create_public_objects,
+         (
+           NOT has_table_privilege(current_user, 'public.audit_events', 'UPDATE')
+           AND NOT has_table_privilege(current_user, 'public.audit_events', 'DELETE')
+           AND NOT has_table_privilege(current_user, 'public.audit_events', 'TRUNCATE')
+           AND NOT has_table_privilege(current_user, 'public.audit_events', 'REFERENCES')
+           AND NOT has_table_privilege(current_user, 'public.audit_events', 'TRIGGER')
+           AND NOT has_table_privilege(current_user, 'public.journal_entries', 'UPDATE')
+           AND NOT has_table_privilege(current_user, 'public.journal_entries', 'DELETE')
+           AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRUNCATE')
+           AND NOT has_table_privilege(current_user, 'public.journal_entries', 'REFERENCES')
+           AND NOT has_table_privilege(current_user, 'public.journal_entries', 'TRIGGER')
+           AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'UPDATE')
+           AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'DELETE')
+           AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRUNCATE')
+           AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'REFERENCES')
+           AND NOT has_table_privilege(current_user, 'public.journal_entry_lines', 'TRIGGER')
+           AND NOT has_table_privilege(current_user, 'public.outbox_events', 'UPDATE')
+           AND NOT has_table_privilege(current_user, 'public.outbox_events', 'DELETE')
+           AND NOT has_table_privilege(current_user, 'public.outbox_events', 'TRUNCATE')
+           AND NOT has_table_privilege(current_user, 'public.outbox_events', 'REFERENCES')
+           AND NOT has_table_privilege(current_user, 'public.outbox_events', 'TRIGGER')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'UPDATE')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'DELETE')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'TRUNCATE')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'REFERENCES')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence', 'TRIGGER')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'INSERT')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'UPDATE')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'DELETE')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'TRUNCATE')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'REFERENCES')
+           AND NOT has_table_privilege(current_user, 'public.trust_evidence_decisions', 'TRIGGER')
+         ) AS immutable_tables_protected,
          (
            has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
            AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
@@ -199,6 +235,8 @@ export class PostgresTenantConnectionPool
       runtimeRole.has_default_table_privileges ||
       runtimeRole.has_default_sequence_privileges ||
       !runtimeRole.migration_ledger_is_private ||
+      runtimeRole.can_create_public_objects ||
+      !runtimeRole.immutable_tables_protected ||
       !runtimeRole.can_read_external_identities ||
       !runtimeRole.can_read_accounts ||
       runtimeRole.can_read_private_identity_email
@@ -207,7 +245,8 @@ export class PostgresTenantConnectionPool
         "DATABASE_URL role must be non-privileged and non-owner, use minimal " +
           "identity-column SELECT grants, exclude private identity email fields, " +
           "enforce tenant RLS, have no inherited default table/sequence grants, " +
-          "and cannot access the migration ledger.",
+          "cannot access the migration ledger, cannot create public objects, " +
+          "and cannot mutate immutable audit/journal/outbox/evidence-decision tables.",
       );
     }
   }
