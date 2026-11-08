@@ -54,6 +54,7 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         has_default_table_privileges: false,
         has_default_sequence_privileges: false,
+        migration_ledger_is_private: true,
         can_read_external_identities: true,
         can_read_accounts: true,
         can_read_private_identity_email: false,
@@ -68,6 +69,7 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[0]).toContain("relforcerowsecurity");
     expect(query.mock.calls[0]?.[0]).toContain("pg_default_acl");
     expect(query.mock.calls[0]?.[0]).toContain("aclexplode");
+    expect(query.mock.calls[0]?.[0]).toContain("vv_schema_migrations");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain(
       "organization_invitation_rate_limits",
     );
@@ -144,6 +146,7 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         has_default_table_privileges: true,
         has_default_sequence_privileges: false,
+        migration_ledger_is_private: true,
         can_read_external_identities: true,
         can_read_accounts: true,
         can_read_private_identity_email: false,
@@ -152,7 +155,7 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /no inherited default table or sequence grants/,
+      /no inherited default table\/sequence grants/,
     );
   });
 
@@ -168,6 +171,7 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         has_default_table_privileges: false,
         has_default_sequence_privileges: true,
+        migration_ledger_is_private: true,
         can_read_external_identities: true,
         can_read_accounts: true,
         can_read_private_identity_email: false,
@@ -176,7 +180,32 @@ describe("PostgresTenantConnectionPool", () => {
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /no inherited default table or sequence grants/,
+      /no inherited default table\/sequence grants/,
+    );
+  });
+
+  it("rejects a runtime role that can access the migration ledger", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        has_default_table_privileges: false,
+        has_default_sequence_privileges: false,
+        migration_ledger_is_private: false,
+        can_read_external_identities: true,
+        can_read_accounts: true,
+        can_read_private_identity_email: false,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /cannot access the migration ledger/,
     );
   });
 
