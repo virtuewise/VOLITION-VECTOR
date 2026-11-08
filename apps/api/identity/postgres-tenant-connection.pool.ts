@@ -41,6 +41,8 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly member_of_tenant_owner_role: boolean;
   readonly member_of_privileged_role: boolean;
   readonly all_tenant_tables_force_rls: boolean;
+  readonly has_default_table_privileges: boolean;
+  readonly has_default_sequence_privileges: boolean;
   readonly can_read_external_identities: boolean;
   readonly can_read_accounts: boolean;
   readonly can_read_private_identity_email: boolean;
@@ -125,6 +127,35 @@ export class PostgresTenantConnectionPool
              AND c.relrowsecurity
              AND c.relforcerowsecurity
          ) AS all_tenant_tables_force_rls,
+         EXISTS (
+           SELECT 1
+           FROM pg_default_acl AS defaults
+           CROSS JOIN LATERAL aclexplode(defaults.defaclacl) AS privilege
+           WHERE defaults.defaclobjtype = 'r'
+             AND defaults.defaclnamespace IN (0, 'public'::regnamespace)
+             AND privilege.privilege_type IN (
+               'SELECT', 'INSERT', 'UPDATE', 'DELETE',
+               'TRUNCATE', 'REFERENCES', 'TRIGGER'
+             )
+             AND (
+               privilege.grantee = 0 OR
+               privilege.grantee = r.oid OR
+               pg_has_role(r.oid, privilege.grantee, 'MEMBER')
+             )
+         ) AS has_default_table_privileges,
+         EXISTS (
+           SELECT 1
+           FROM pg_default_acl AS defaults
+           CROSS JOIN LATERAL aclexplode(defaults.defaclacl) AS privilege
+           WHERE defaults.defaclobjtype = 'S'
+             AND defaults.defaclnamespace IN (0, 'public'::regnamespace)
+             AND privilege.privilege_type IN ('USAGE', 'SELECT', 'UPDATE')
+             AND (
+               privilege.grantee = 0 OR
+               privilege.grantee = r.oid OR
+               pg_has_role(r.oid, privilege.grantee, 'MEMBER')
+             )
+         ) AS has_default_sequence_privileges,
          (
            has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
            AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
@@ -153,6 +184,8 @@ export class PostgresTenantConnectionPool
       runtimeRole.member_of_tenant_owner_role ||
       runtimeRole.member_of_privileged_role ||
       !runtimeRole.all_tenant_tables_force_rls ||
+      runtimeRole.has_default_table_privileges ||
+      runtimeRole.has_default_sequence_privileges ||
       !runtimeRole.can_read_external_identities ||
       !runtimeRole.can_read_accounts ||
       runtimeRole.can_read_private_identity_email
@@ -160,7 +193,7 @@ export class PostgresTenantConnectionPool
       throw new Error(
         "DATABASE_URL role must be non-privileged and non-owner, use minimal " +
           "identity-column SELECT grants, exclude private identity email fields, " +
-          "and enforce tenant RLS.",
+          "enforce tenant RLS, and have no inherited default table or sequence grants.",
       );
     }
   }
