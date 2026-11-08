@@ -43,6 +43,7 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly all_tenant_tables_force_rls: boolean;
   readonly has_default_table_privileges: boolean;
   readonly has_default_sequence_privileges: boolean;
+  readonly migration_ledger_is_private: boolean;
   readonly can_read_external_identities: boolean;
   readonly can_read_accounts: boolean;
   readonly can_read_private_identity_email: boolean;
@@ -156,6 +157,17 @@ export class PostgresTenantConnectionPool
                pg_has_role(r.oid, NULLIF(privilege.grantee, 0), 'MEMBER')
              )
          ) AS has_default_sequence_privileges,
+         CASE
+           WHEN to_regclass('public.vv_schema_migrations') IS NULL THEN false
+           ELSE
+             NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'SELECT')
+             AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'INSERT')
+             AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'UPDATE')
+             AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'DELETE')
+             AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'TRUNCATE')
+             AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'REFERENCES')
+             AND NOT has_table_privilege(current_user, to_regclass('public.vv_schema_migrations'), 'TRIGGER')
+         END AS migration_ledger_is_private,
          (
            has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
            AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
@@ -186,6 +198,7 @@ export class PostgresTenantConnectionPool
       !runtimeRole.all_tenant_tables_force_rls ||
       runtimeRole.has_default_table_privileges ||
       runtimeRole.has_default_sequence_privileges ||
+      !runtimeRole.migration_ledger_is_private ||
       !runtimeRole.can_read_external_identities ||
       !runtimeRole.can_read_accounts ||
       runtimeRole.can_read_private_identity_email
@@ -193,7 +206,8 @@ export class PostgresTenantConnectionPool
       throw new Error(
         "DATABASE_URL role must be non-privileged and non-owner, use minimal " +
           "identity-column SELECT grants, exclude private identity email fields, " +
-          "enforce tenant RLS, and have no inherited default table or sequence grants.",
+          "enforce tenant RLS, have no inherited default table/sequence grants, " +
+          "and cannot access the migration ledger.",
       );
     }
   }
