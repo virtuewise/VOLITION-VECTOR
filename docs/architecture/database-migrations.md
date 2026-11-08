@@ -21,7 +21,7 @@ It requires `DATABASE_MIGRATION_URL`, a dedicated migration-owner connection. It
 - Skips an already-applied migration only when its checksum still matches.
 - Fails closed if an applied migration file is edited; create a new migration instead.
 - Supports a verified pre-runner baseline by inserting a migration name with a NULL checksum. The next successful runner invocation seals that row to the current file checksum without reapplying the SQL.
-- Does not run automatically during API startup. Runtime application credentials do not receive DDL privileges or access to the migration ledger.
+- Does not run automatically during API startup. Runtime application credentials do not receive DDL privileges or access to the migration ledger. The API startup guard also rejects public-schema CREATE, inherited default table/sequence grants, access to the migration ledger, and mutation privileges on append-only audit/journal/outbox/evidence-decision tables.
 
 ## Environment separation
 
@@ -31,7 +31,7 @@ It requires `DATABASE_MIGRATION_URL`, a dedicated migration-owner connection. It
 
 ## CI
 
-The PostgreSQL tenant-security workflow builds and runs the migration command twice against a fresh PostgreSQL service. The second invocation verifies idempotency. It then provisions a deliberately restricted test role and runs the RLS, identity mapping, immutable audit/journal/outbox and cross-tenant integration suite.
+The PostgreSQL tenant-security workflow builds and runs the migration command twice against a fresh PostgreSQL service. The second invocation verifies idempotency. It then provisions a deliberately restricted test role, verifies the actual API runtime-role startup guard against that live PostgreSQL connection, and runs the RLS, identity mapping, immutable audit/journal/outbox and cross-tenant integration suite. An isolated overprivileged probe role verifies that append-only triggers still reject audit UPDATE/DELETE/TRUNCATE without granting those privileges to the application runtime role.
 
 ## Existing Staging baseline
 
