@@ -108,3 +108,14 @@ The mapping lookup uses the configured PostgreSQL runtime connection. The startu
 - The Individual Workspace exposes a server-action sign-out control using AuthKit `signOut()`. A default WorkOS Sign-out URI or explicitly allowlisted `WORKOS_SIGN_OUT_REDIRECT_URI` is still required before the end-to-end redirect can be exercised.
 - WorkOS Staging remains unconfigured for the API audience JWT template; API authentication must remain disabled until that is completed.
 - WorkOS Production remains unconfigured.
+
+## Staging configuration update (2026-11-08)
+
+- Durable staging hostname: `https://www.volitionvector.printsync.co.za`, attached to the Vercel Preview branch `feat/workos-staging-auth-flow`; Vercel domain verification reports verified.
+- WorkOS Staging default AuthKit application now has the staging initiate-login URL `https://www.volitionvector.printsync.co.za/app/sign-in`, default callback `https://www.volitionvector.printsync.co.za/app/callback`, default sign-out URI `https://www.volitionvector.printsync.co.za/app/`, and the staging web origin. Local development callback and sign-out URLs remain registered as secondary entries.
+- The Staging JWT access-token template has been validated and saved with the exact API audience claim `aud=https://www.volitionvector.printsync.co.za/v1`. This is a Staging-only environment template; do not copy it into Production without separate review.
+- Vercel encrypted Preview variables have been provisioned for the staging branch: `WORKOS_CLIENT_ID`, `WORKOS_ISSUER`, `WORKOS_COOKIE_PASSWORD`, `NEXT_PUBLIC_WORKOS_REDIRECT_URI`, and `WORKOS_TOKEN_AUDIENCE`. The cookie sealing secret was generated for this environment and is not recorded here. No Production variables were created.
+- The Individual Workspace root page now calls `withAuth({ ensureSignedIn: true })`; workspace content fails closed without an authenticated AuthKit session. Sign-in and callback remain public entry points. Review every future page/API route before adding private functionality; proxy session refresh alone is not an authorization policy.
+- The Vercel deployment-protection setting remains enabled. Custom domains are outside the current Vercel SSO protection scope, so app-level authentication is mandatory.
+- Database verification remains blocked: the connected Neon account currently returns no projects, and the staging Preview has no confirmed `DATABASE_URL` runtime binding. Do not infer database readiness from `/v1/health`, which is liveness-only. Verify the deployed runtime role's non-owner/non-privileged status, tenant FORCE RLS, and minimal identity-column SELECT grants before enabling API authentication.
+- A successful real browser sign-in/callback/session-refresh/sign-out sequence has not yet been observed. It requires a fresh Preview deployment containing the environment variables and workspace guard, plus a working staging database/runtime configuration.
