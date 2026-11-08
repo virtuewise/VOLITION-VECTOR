@@ -76,6 +76,24 @@ describe("WorkOSAuthenticationGuard", () => {
     expect(identities.resolveActiveAccountId).not.toHaveBeenCalled();
   });
 
+  it("reports a JWKS/network failure as unavailable instead of invalid credentials", async () => {
+    const verifier = {
+      enabled: true,
+      verifyBearerToken: vi.fn().mockRejectedValue(new Error("JWKS offline")),
+    } as unknown as WorkOSAccessTokenVerifier;
+    const identities = {
+      resolveActiveAccountId: vi.fn(),
+    } as unknown as WorkOSIdentityResolver;
+    const guard = new WorkOSAuthenticationGuard(verifier, identities);
+
+    await expect(
+      guard.canActivate(
+        contextFor({ headers: { authorization: "Bearer signed-token" } }),
+      ),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(identities.resolveActiveAccountId).not.toHaveBeenCalled();
+  });
+
   it("rejects identities without an active internal account mapping", async () => {
     const verifier = {
       enabled: true,
