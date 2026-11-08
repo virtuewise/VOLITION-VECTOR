@@ -61,9 +61,42 @@ async function runMigrations(): Promise<void> {
       REVOKE CREATE ON SCHEMA public FROM PUBLIC;
       DO $migration$
       BEGIN
+        EXECUTE format(
+          'ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL ON TABLES FROM PUBLIC',
+          current_user
+        );
+        EXECUTE format(
+          'ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL ON SEQUENCES FROM PUBLIC',
+          current_user
+        );
+        EXECUTE format(
+          'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON TABLES FROM PUBLIC',
+          current_user
+        );
+        EXECUTE format(
+          'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON SEQUENCES FROM PUBLIC',
+          current_user
+        );
+
         IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vv_runtime') THEN
           EXECUTE 'REVOKE ALL PRIVILEGES ON TABLE public.vv_schema_migrations FROM vv_runtime';
           EXECUTE 'REVOKE CREATE ON SCHEMA public FROM vv_runtime';
+          EXECUTE format(
+            'ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL ON TABLES FROM vv_runtime',
+            current_user
+          );
+          EXECUTE format(
+            'ALTER DEFAULT PRIVILEGES FOR ROLE %I REVOKE ALL ON SEQUENCES FROM vv_runtime',
+            current_user
+          );
+          EXECUTE format(
+            'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON TABLES FROM vv_runtime',
+            current_user
+          );
+          EXECUTE format(
+            'ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON SEQUENCES FROM vv_runtime',
+            current_user
+          );
         END IF;
       END
       $migration$;
