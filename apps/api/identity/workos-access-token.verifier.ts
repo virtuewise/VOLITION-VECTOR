@@ -7,9 +7,7 @@ interface WorkOSAccessTokenClaims extends Record<string, unknown> {
 
 interface WorkOSVerificationClient {
   readonly userManagement: {
-    verifyAccessToken(
-      token: string,
-    ): Promise<WorkOSAccessTokenClaims | null>;
+    verifyAccessToken(token: string): Promise<WorkOSAccessTokenClaims | null>;
   };
 }
 
