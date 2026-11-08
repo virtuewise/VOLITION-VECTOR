@@ -27,6 +27,29 @@ GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
 GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
 GRANT SELECT, INSERT ON outbox_events TO vv_runtime;
 
+-- Prove that objects created after the migration runner do not inherit runtime
+-- privileges from PUBLIC or the migration-owner role.
+CREATE TABLE public.vv_future_table_probe (id integer);
+CREATE SEQUENCE public.vv_future_sequence_probe;
+DO $future_object_grants$
+BEGIN
+  IF has_table_privilege(
+       'vv_runtime',
+       'public.vv_future_table_probe',
+       'SELECT'
+     )
+     OR has_sequence_privilege(
+       'vv_runtime',
+       'public.vv_future_sequence_probe',
+       'USAGE'
+     ) THEN
+    RAISE EXCEPTION 'future objects inherited runtime privileges';
+  END IF;
+END;
+$future_object_grants$;
+DROP TABLE public.vv_future_table_probe;
+DROP SEQUENCE public.vv_future_sequence_probe;
+
 -- Use a separate deliberately overprivileged probe to prove the append-only
 -- trigger still blocks mutations even if a future grant is accidentally broad.
 GRANT USAGE ON SCHEMA public TO vv_audit_mutation_probe;
