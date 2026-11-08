@@ -54,6 +54,7 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         can_read_external_identities: true,
         can_read_accounts: true,
+        can_read_private_identity_email: false,
       },
     ]);
     const adapter = new PostgresTenantConnectionPool(pool);
@@ -95,12 +96,57 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         can_read_external_identities: false,
         can_read_accounts: true,
+        can_read_private_identity_email: false,
       },
     ]);
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
-      /identity-table SELECT access/,
+      /minimal identity-column SELECT grants/,
+    );
+  });
+
+  it("rejects a runtime role without account identity lookup columns", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        can_read_external_identities: true,
+        can_read_accounts: false,
+        can_read_private_identity_email: false,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /minimal identity-column SELECT grants/,
+    );
+  });
+
+  it("rejects a runtime role with private external identity email access", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        can_read_external_identities: true,
+        can_read_accounts: true,
+        can_read_private_identity_email: true,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /exclude private identity email fields/,
     );
   });
 
