@@ -1,4 +1,4 @@
-import { createPostgresTenantConnectionPool } from "../identity/postgres-tenant-connection.pool.js";
+import { createPostgresTenantConnectionPool } from "../../identity/postgres-tenant-connection.pool.js";
 
 async function verifyRuntimeRole(): Promise<void> {
   const connectionString = process.env["RUNTIME_DATABASE_URL"];
