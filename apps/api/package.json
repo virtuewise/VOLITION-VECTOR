@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "db:migrate": "node dist/src/scripts/migrate.js"
+    "db:migrate": "node dist/src/scripts/migrate.js",
+    "db:verify-runtime": "node dist/src/scripts/verify-runtime-role.js"
   },
   "dependencies": {
     "@nestjs/common": "12.3.3",
