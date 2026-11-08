@@ -13,33 +13,42 @@ An account may join multiple organizations. Do not treat an email address, displ
 
 ## Request authorization sequence
 
-1. Validate the authenticated issuer/subject through the future identity adapter.
-2. Resolve the external identity to an active account.
-3. Resolve an active membership for the requested organization.
-4. Evaluate the requested permission using the shared permission policy.
-5. Begin a database transaction and set `app.tenant_id` transaction-locally using the parameterized `withTenantTransaction` helper.
+1. Verify a WorkOS user access token using the configured client ID, exact HTTPS issuer and WorkOS user-token profile. The pinned WorkOS SDK verifies the signature and expiry; the application separately requires the exact configured API audience.
+2. Resolve the verified issuer/subject pair to exactly one external identity mapped to an active internal account. Email and WorkOS organization/role claims are not account or authorization evidence.
+3. The `WorkOSAuthenticationGuard` populates the trusted internal account ID. The `IdentityContextGuard` validates its UUID shape and creates the application principal.
+4. For tenant-owned mutation paths, begin a transaction and set `app.tenant_id` transaction-locally using the parameterized `withTenantTransaction` helper.
+5. Load current actor, target and resource membership facts under RLS and evaluate the applicable server-side permission policy before any write. The membership mutation repository deliberately performs this read-and-authorize step inside the locked transaction to avoid a time-of-check/time-of-use race.
 6. Execute tenant-owned reads and writes under PostgreSQL RLS.
-7. Append a minimal audit event for material actions.
+7. Append a minimal audit event in the same transaction as each material state transition.
 
-Any missing, invalid, suspended or mismatched context must fail closed.
+Any missing, invalid, suspended or mismatched context must fail closed. A verified external identity does not itself establish organization membership or permission.
 
 ## Runtime database requirements
 
-- Use a non-owner role without BYPASSRLS for application traffic.
+- Use a non-owner role without BYPASSRLS or replication privileges for application traffic.
 - Keep migration credentials separate from runtime credentials.
 - Set tenant context inside every transaction; never use a connection-global tenant setting.
 - Never concatenate a tenant identifier into SQL.
 - Test RLS using the actual runtime role, including absent and malicious tenant context.
+- Grant the identity resolver only column-level SELECT on `external_identities.account_id`, `external_identities.issuer`, `external_identities.subject`, `accounts.id` and `accounts.status`; do not grant access to private identity email fields.
 - Never expose invitation token hashes or audit metadata through public APIs.
 
 ## Transaction adapter
 
-`withTenantTransaction` validates the tenant UUID before acquiring a connection, begins a transaction, binds the tenant ID as a parameter to PostgreSQL `set_config` with transaction-local scope, runs the caller's work, and commits. Any work or context-setting failure triggers rollback. The connection is always released. The caller remains responsible for authenticating the principal and authorizing active organization membership before entering the transaction.
+`withTenantTransaction` validates the tenant UUID before acquiring a connection, begins a transaction, binds the tenant ID as a parameter to PostgreSQL `set_config` with transaction-local scope, runs the caller's work, and commits. Any work or context-setting failure triggers rollback. The connection is always released. For mutation paths, the service/repository must load the current membership and resource facts and evaluate authorization inside the same transaction before the write; a pre-transaction check alone is vulnerable to concurrent role or membership changes.
 
 ## Current implementation boundary
 
-The repository contains identity and organization contracts, the initial relational migration, shared membership policy, tenant UUID validation, and the transaction-scoped RLS helper. It also contains `PostgresMembershipRepository` and a node-postgres adapter used by the NestJS membership command when `DATABASE_URL` is configured. The adapter checks at startup that the connected role is not a superuser, BYPASSRLS or replication role, does not own tenant tables or inherit a privileged/table-owner role, and that every table registered in the tenant-owned table inventory has both ENABLE and FORCE ROW LEVEL SECURITY. Production database URLs must specify `sslmode=verify-full`.
+The API includes a WorkOS access-token verifier, identity resolver and NestJS authentication guard. The verifier requires `WORKOS_CLIENT_ID`, exact HTTPS `WORKOS_ISSUER` and `WORKOS_TOKEN_AUDIENCE` together; partial configuration fails at startup. The WorkOS SDK verifies the token signature, expiry and user-token profile, while the application checks the exact issuer and API audience. A provider/JWKS or identity-database outage returns HTTP 503; missing/invalid credentials or an absent/inactive internal identity return HTTP 401.
 
-The membership API is still not authenticated. `IdentityContextGuard` validates the shape of an upstream `request.user.accountId`; it does not verify tokens, sessions, issuer/audience, revocation or account status. No trusted middleware currently populates that context, so the routes fail closed with HTTP 401. If a database URL is absent, the membership command fails closed with HTTP 503. The adapter's unit tests and the PostgreSQL RLS integration script provide different evidence: the integration script exercises the database role, RLS policies and SQL concurrency contract, but does not instantiate the TypeScript node-postgres adapter.
+`WorkOSIdentityResolver` maps the verified issuer/subject pair through the unique external identity mapping and accepts only exactly one active internal account. The lookup does not use email or WorkOS organization claims. The database startup check rejects superuser, BYPASSRLS, replication, tenant-table-owner and inherited privileged roles, and requires every registered tenant-owned table to have both ENABLE and FORCE ROW LEVEL SECURITY. Production database URLs must specify `sslmode=verify-full`.
 
-Still deferred are a selected and configured OIDC/session provider, trusted identity middleware and active-account resolution, production database credentials and role provisioning, an operational migration process, invitation delivery and rate-limit adapters, and tenant-aware persistence for the remaining domains. No production identity integration, production database deployment or production readiness is claimed.
+The organization membership controller explicitly applies `WorkOSAuthenticationGuard` followed by `IdentityContextGuard`. The latter still validates request-context shape only; it is not a credential verifier and must not be used alone. No global application guard is registered, so every future private controller must explicitly apply the trusted guard and its own service-level object/tenant permission checks.
+
+The membership mutation repository takes a tenant-scoped advisory lock, loads actor/target memberships and active-owner count under row locks, evaluates the shared deny-by-default membership policy, performs the mutation and appends its audit event in the same transaction. This policy is for organization membership management only; it does not grant financial posting authority or substitute for action-specific policies in other domains.
+
+The WorkOS Staging callback, sign-out, web origin and API JWT audience are configured and verified in the linked rollout record. A real browser sign-in/callback/session-refresh/sign-out journey and a tested session revocation strategy remain outstanding. The observed Staging access-token expiry is 300 seconds; offline JWT verification does not provide immediate revocation of an already-issued token. Internal account suspension is checked during each API identity resolution, but WorkOS session invalidation and the effective revocation window still require end-to-end verification. Production WorkOS remains unconfigured.
+
+The connected Neon project now exists, but the inspected main and Preview branches have no application tables or Prisma migration history. The Preview branch has only the `neondb_owner` role, which has BYPASSRLS and replication capability; no dedicated non-owner API runtime role is present. The Vercel Neon integration variable record exists, but its value was not decrypted and its actual database role is therefore unverified. See [WorkOS AuthKit rollout and staging readiness](./workos-authkit-rollout.md) for the live environment evidence and release gate.
+
+Still deferred are least-privilege runtime-role provisioning, a reviewed operational migration process, deployed identity mapping verification, real browser-flow and session-invalidation tests, invitation delivery and rate-limit adapters, and tenant-aware persistence/workflows for the remaining domains. The membership controller is the only currently verified API controller using the WorkOS guard. No production identity integration, production database deployment or production readiness is claimed.
