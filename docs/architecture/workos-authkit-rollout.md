@@ -32,6 +32,21 @@ The Vercel project remains linked to `virtuewise/VOLITION-VECTOR`, framework pre
 
 The Vercel runtime error cluster observed during this inspection belongs to an older non-production deployment on branch `deploy/vercel-multi-service`, commit `14d951b0dd0b65451b8b79b0f82c3bbf4cc76825`. It reported two `/container` exits. It is not evidence that the current `main` deployment is failing. Runtime logs for that historical window were not retained by the current Vercel plan, so the precise process exit cause remains unverified.
 
+## WorkOS Staging reinspection (2026-11-08)
+
+Read-only inspection of the Staging environment confirms that the default AuthKit application still has:
+
+- Initiate-login URI: `http://localhost:3002/sign-in`.
+- Redirect URI: `http://localhost:3002/callback`.
+- Logout URI: `http://localhost:3002/`.
+- Web origin: `http://localhost:3002`.
+- No JWT access-token template (`jwtTemplate: null`).
+- No AuthKit OAuth protected resources configured.
+
+The Individual Workspace is deployed with `basePath: /app`; the implemented local routes are therefore `/app/sign-in` and `/app/callback`. The existing WorkOS URLs do not match those routes. The current Staging AuthKit settings also report MFA as Off. No WorkOS configuration was changed during this run.
+
+Do not invent a resource audience or register a temporary Vercel preview as a durable callback. A durable staging API/web origin and a reviewed JWT-template or protected-resource configuration are required before enabling the API guard. Production remains a separate, unconfigured release gate.
+
 ## Required implementation sequence
 
 1. **Partially implemented:** the API verifier requires `WORKOS_CLIENT_ID`, exact HTTPS `WORKOS_ISSUER` and `WORKOS_TOKEN_AUDIENCE` together. The web routes require the AuthKit client, cookie and redirect values. The API audience must be an exact resource URI configured both as `WORKOS_TOKEN_AUDIENCE` and as the `aud` claim in the WorkOS environment's JWT template. AuthKit session access tokens do not include `aud` by default; do not enable the API guard until this template is configured and a staging token is verified.
