@@ -44,9 +44,10 @@ export class WorkOSAuthenticationGuard implements CanActivate {
         request.headers.authorization,
       );
     } catch {
-      // Do not expose JWKS, signature, issuer or token parsing details.
-      throw new UnauthorizedException(
-        "A valid WorkOS access token is required.",
+      // A JWKS/network outage is not evidence that the caller's token is
+      // invalid. Keep the boundary closed and report provider unavailability.
+      throw new ServiceUnavailableException(
+        "WorkOS token verification is temporarily unavailable.",
       );
     }
 
