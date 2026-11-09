@@ -1,6 +1,28 @@
 -- Keep verified identity email values private from the application runtime role.
 -- The API receives only a boolean eligibility result after it has locked the
 -- tenant-scoped invitation row and supplied its token hash.
+-- Fail the migration if its owner cannot execute the private predicate.
+DO $verify_migration_owner$
+BEGIN
+  IF NOT (
+    has_column_privilege(current_user, 'public.organization_invitations', 'id', 'SELECT')
+    AND has_column_privilege(current_user, 'public.organization_invitations', 'organization_id', 'SELECT')
+    AND has_column_privilege(current_user, 'public.organization_invitations', 'token_hash', 'SELECT')
+    AND has_column_privilege(current_user, 'public.organization_invitations', 'accepted_at', 'SELECT')
+    AND has_column_privilege(current_user, 'public.organization_invitations', 'revoked_at', 'SELECT')
+    AND has_column_privilege(current_user, 'public.organization_invitations', 'expires_at', 'SELECT')
+    AND has_column_privilege(current_user, 'public.organization_invitations', 'invited_email', 'SELECT')
+    AND has_column_privilege(current_user, 'public.accounts', 'id', 'SELECT')
+    AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
+    AND has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
+    AND has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
+    AND has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
+  ) THEN
+    RAISE EXCEPTION 'Migration owner must have the narrowly required SELECT privileges for the invitation eligibility predicate.';
+  END IF;
+END;
+$verify_migration_owner$;
+
 CREATE OR REPLACE FUNCTION public.is_invitation_acceptance_eligible(
   p_invitation_id uuid,
   p_token_hash bytea,
