@@ -53,13 +53,13 @@ SELECT
   )
   AND NOT EXISTS (
     SELECT 1
-    FROM pg_proc AS procedure
-    JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+    FROM pg_proc AS proc_record
+    JOIN pg_proc_schema AS proc_schema ON proc_schema.oid = proc_record.proproc_schema
     CROSS JOIN LATERAL aclexplode(
-      COALESCE(procedure.proacl, acldefault('f', procedure.proowner))
+      COALESCE(proc_record.proacl, acldefault('f', proc_record.proowner))
     ) AS privilege
-    WHERE namespace.nspname = 'public'
-      AND procedure.proname = 'is_invitation_acceptance_eligible'
+    WHERE proc_schema.nspname = 'public'
+      AND proc_record.proname = 'is_invitation_acceptance_eligible'
       AND privilege.grantee = 0
       AND privilege.privilege_type = 'EXECUTE'
   );
