@@ -269,9 +269,11 @@ describe("PostgresInvitationRepository", () => {
     expect(query.mock.calls[5]?.[0]).toContain(
       "is_invitation_acceptance_eligible",
     );
-    expect(query.mock.calls.some(([sql]) =>
-      sql.startsWith("INSERT INTO organization_memberships"),
-    )).toBe(false);
+    expect(
+      query.mock.calls.some(([sql]) =>
+        sql.startsWith("INSERT INTO organization_memberships"),
+      ),
+    ).toBe(false);
     expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
     expect(release).toHaveBeenCalledWith(undefined);
   });
