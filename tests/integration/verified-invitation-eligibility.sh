@@ -13,10 +13,16 @@ ACCOUNT_VERIFIED="77777777-7777-4777-8777-777777777777"
 ACCOUNT_UNVERIFIED="88888888-8888-4888-8888-888888888888"
 ACCOUNT_SUSPENDED="66666666-6666-4666-8666-666666666666"
 
-# The RLS harness provisions vv_runtime after the base migrations. Reapplying
-# this idempotent function migration after role creation grants EXECUTE only
-# to that role. The tracked migration runner still records the canonical hash.
-psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f "$MIGRATION"
+# The tracked migration runner may already have applied this migration
+# before the RLS harness creates vv_runtime. Apply only when the function is
+# absent; then grant the test runtime role explicitly after its creation.
+function_exists="$(
+  psql "$DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT to_regprocedure('public.is_invitation_acceptance_eligible(uuid,bytea,uuid,text)') IS NOT NULL;"
+)"
+if [[ "$function_exists" != "t" ]]; then
+  psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f "$MIGRATION"
+fi
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<SQL
 INSERT INTO accounts (id) VALUES
