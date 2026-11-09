@@ -287,7 +287,12 @@ export class PostgresInvitationRepository {
       const eligible = firstRow<EligibilityRow>(
         await client.query(
           "SELECT public.is_invitation_acceptance_eligible($1, $2, $3, $4) AS eligible",
-          [invitation.id, input.tokenHash, input.accountId, input.verifiedEmail],
+          [
+            invitation.id,
+            input.tokenHash,
+            input.accountId,
+            input.verifiedEmail,
+          ],
         ),
       );
       if (eligible?.eligible !== true) {
