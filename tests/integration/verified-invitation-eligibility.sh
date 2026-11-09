@@ -59,6 +59,19 @@ SELECT
     'public.is_invitation_acceptance_eligible(uuid,bytea,uuid,text)',
     'EXECUTE'
   )
+  AND EXISTS (
+    SELECT 1
+    FROM pg_proc AS secured_function
+    JOIN pg_namespace AS secured_schema
+      ON secured_schema.oid = secured_function.pronamespace
+    WHERE secured_schema.nspname = 'public'
+      AND secured_function.proname = 'is_invitation_acceptance_eligible'
+      AND secured_function.prosecdef
+      AND secured_function.proconfig @> ARRAY['search_path=pg_catalog']
+      AND secured_function.proowner <> (
+        SELECT oid FROM pg_roles WHERE rolname = 'vv_runtime'
+      )
+  )
   AND NOT EXISTS (
     SELECT 1
     FROM pg_proc AS proc_record
