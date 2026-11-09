@@ -181,7 +181,6 @@ Subsequent Staging-only provisioning changed only the `preview/feat/workos-stagi
 - Issue #39 still requires a human decision on financial authority boundaries. No authenticated payment, journal-post, reversal or refund route should be enabled before that decision and the corresponding authorization/audit tests.
 - Production WorkOS, Production database migrations and Production Vercel configuration remain untouched.
 
-
 ## Live staging reinspection — 2026-11-09 12:36 UTC
 
 This read-only catalog check supersedes the earlier statement that the shared Staging Preview branch had no application schema or runtime role. It does not modify Neon, Vercel, WorkOS, GitHub settings or secrets.
