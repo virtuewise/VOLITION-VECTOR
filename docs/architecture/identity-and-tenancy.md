@@ -31,6 +31,7 @@ Any missing, invalid, suspended or mismatched context must fail closed.
 - Never concatenate a tenant identifier into SQL.
 - Test RLS using the actual runtime role, including absent and malicious tenant context.
 - Never expose invitation token hashes or audit metadata through public APIs.
+- Invitation acceptance must not grant the runtime role direct access to private external-identity email columns. A narrowly scoped SECURITY DEFINER predicate may verify a pending invitation using the transaction-local tenant context, invitation ID, token hash, active account and verified email. It returns only a boolean, uses a fixed safe search path, revokes EXECUTE from PUBLIC, and grants execution only to the runtime role.
 
 ## Transaction adapter
 
