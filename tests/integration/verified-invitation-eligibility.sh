@@ -54,7 +54,7 @@ SELECT
   AND NOT EXISTS (
     SELECT 1
     FROM pg_proc AS proc_record
-    JOIN pg_proc_schema AS proc_schema ON proc_schema.oid = proc_record.proproc_schema
+    JOIN pg_namespace AS proc_schema ON proc_schema.oid = proc_record.pronamespace
     CROSS JOIN LATERAL aclexplode(
       COALESCE(proc_record.proacl, acldefault('f', proc_record.proowner))
     ) AS privilege
