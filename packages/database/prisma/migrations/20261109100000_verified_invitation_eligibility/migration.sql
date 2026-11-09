@@ -19,9 +19,9 @@ AS $function$
     JOIN public.accounts AS account
       ON account.id = p_account_id
      AND account.status = 'active'
-    JOIN public.external_identities AS identity
-      ON identity.account_id = account.id
-     AND identity.email_verified IS TRUE
+    JOIN public.external_identities AS external_identity
+      ON external_identity.account_id = account.id
+     AND external_external_identity.email_verified IS TRUE
     WHERE invitation.id = p_invitation_id
       AND invitation.token_hash = p_token_hash
       AND invitation.organization_id::text =
@@ -36,7 +36,7 @@ AS $function$
       AND length(btrim(p_verified_email)) BETWEEN 3 AND 320
       AND lower(btrim(invitation.invited_email)) =
         lower(btrim(p_verified_email))
-      AND lower(btrim(identity.email)) =
+      AND lower(btrim(external_identity.email)) =
         lower(btrim(p_verified_email))
   );
 $function$;
