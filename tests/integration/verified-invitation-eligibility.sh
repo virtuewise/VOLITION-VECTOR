@@ -7,9 +7,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MIGRATION="$ROOT_DIR/packages/database/prisma/migrations/20261109100000_verified_invitation_eligibility/migration.sql"
 TENANT_ONE="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+TENANT_TWO="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 INVITATION_ID="55555555-5555-4555-8555-555555555555"
 ACCOUNT_VERIFIED="77777777-7777-4777-8777-777777777777"
 ACCOUNT_UNVERIFIED="88888888-8888-4888-8888-888888888888"
+ACCOUNT_SUSPENDED="66666666-6666-4666-8666-666666666666"
 
 # The RLS harness provisions vv_runtime after the base migrations. Reapplying
 # this idempotent function migration after role creation grants EXECUTE only
@@ -20,6 +22,12 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<SQL
 INSERT INTO accounts (id) VALUES
   ('$ACCOUNT_VERIFIED'),
   ('$ACCOUNT_UNVERIFIED');
+
+UPDATE external_identities
+SET email = 'one@example.test', email_verified = true
+WHERE account_id = '$ACCOUNT_SUSPENDED'
+  AND issuer = 'https://issuer.example/user_management/client'
+  AND subject = 'suspended-subject';
 
 INSERT INTO external_identities
   (account_id, issuer, subject, email, email_verified)
@@ -89,11 +97,12 @@ check_predicate() {
   local expected="$1"
   local description="$2"
   local arguments="$3"
+  local tenant_id="${4:-$TENANT_ONE}"
   local actual
   actual="$(
     psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<SQL
 BEGIN;
-SELECT set_config('app.tenant_id', '$TENANT_ONE', true);
+SELECT set_config('app.tenant_id', '$tenant_id', true);
 SELECT public.is_invitation_acceptance_eligible($arguments);
 ROLLBACK;
 SQL
@@ -114,6 +123,11 @@ check_predicate "f" "email mismatch" \
   "'$INVITATION_ID', decode(repeat('01', 32), 'hex'), '$ACCOUNT_VERIFIED', 'other@example.test'"
 check_predicate "f" "unverified external identity" \
   "'$INVITATION_ID', decode(repeat('01', 32), 'hex'), '$ACCOUNT_UNVERIFIED', 'one@example.test'"
+check_predicate "f" "suspended account" \
+  "'$INVITATION_ID', decode(repeat('01', 32), 'hex'), '$ACCOUNT_SUSPENDED', 'one@example.test'"
+check_predicate "f" "cross-tenant context" \
+  "'$INVITATION_ID', decode(repeat('01', 32), 'hex'), '$ACCOUNT_VERIFIED', 'one@example.test'" \
+  "$TENANT_TWO"
 
 without_tenant="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
