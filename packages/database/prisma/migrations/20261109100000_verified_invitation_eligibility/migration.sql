@@ -21,7 +21,7 @@ AS $function$
      AND account.status = 'active'
     JOIN public.external_identities AS external_identity
       ON external_identity.account_id = account.id
-     AND external_external_identity.email_verified IS TRUE
+     AND external_identity.email_verified IS TRUE
     WHERE invitation.id = p_invitation_id
       AND invitation.token_hash = p_token_hash
       AND invitation.organization_id::text =
