@@ -117,5 +117,112 @@ The mapping lookup uses the configured PostgreSQL runtime connection. The startu
 - Vercel encrypted Preview variables have been provisioned for the staging branch: `WORKOS_CLIENT_ID`, `WORKOS_ISSUER`, `WORKOS_COOKIE_PASSWORD`, `NEXT_PUBLIC_WORKOS_REDIRECT_URI`, and `WORKOS_TOKEN_AUDIENCE`. The cookie sealing secret was generated for this environment and is not recorded here. No Production variables were created.
 - The Individual Workspace root page now calls `withAuth({ ensureSignedIn: true })`; workspace content fails closed without an authenticated AuthKit session. Sign-in and callback remain public entry points. Review every future page/API route before adding private functionality; proxy session refresh alone is not an authorization policy.
 - The Vercel deployment-protection setting remains enabled. Custom domains are outside the current Vercel SSO protection scope, so app-level authentication is mandatory.
-- Database verification remains blocked: the connected Neon account currently returns no projects, and the staging Preview has no confirmed `DATABASE_URL` runtime binding. Do not infer database readiness from `/v1/health`, which is liveness-only. Verify the deployed runtime role's non-owner/non-privileged status, tenant FORCE RLS, and minimal identity-column SELECT grants before enabling API authentication.
+- At the time of this earlier inspection, database verification was blocked because no Neon project was available. See the live reinspection below for the current database state and remaining runtime-role/RLS gate.
 - A successful real browser sign-in/callback/session-refresh/sign-out sequence has not yet been observed. It requires a fresh Preview deployment containing the environment variables and workspace guard, plus a working staging database/runtime configuration.
+
+## Live staging and database reinspection (2026-11-08 11:14 UTC)
+
+This read-only inspection supersedes the earlier statement that no Neon project existed. It does not change any WorkOS, Vercel, Neon, GitHub or secret configuration.
+
+### WorkOS Staging
+
+- The default AuthKit application is configured with initiate-login URI `https://www.volitionvector.printsync.co.za/app/sign-in`, callback URI `https://www.volitionvector.printsync.co.za/app/callback`, sign-out URI `https://www.volitionvector.printsync.co.za/app/`, and web origin `https://www.volitionvector.printsync.co.za`. Local callback, sign-out and origin entries remain present.
+- The Staging JWT access-token template exists and sets the exact API audience to `https://www.volitionvector.printsync.co.za/v1`, matching the API verifier's required audience.
+- The Staging AuthKit settings currently report MFA Off, a 31,536,000-second maximum session time, a 172,800-second inactivity timeout, sign-up enabled and waitlist enabled. These are observed settings, not an endorsement; security/product owners must review the session and MFA policy before any controlled pilot.
+- The WorkOS Production application remains unconfigured: no initiate-login URI, homepage, redirect URI, logout URI, web origin or JWT template. Production AuthKit MFA is Off. No Production authentication enablement is authorized by this record.
+
+### Vercel deployment and environment records
+
+- The Vercel project remains linked to `virtuewise/VOLITION-VECTOR`. The custom domain `www.volitionvector.printsync.co.za` is verified and assigned to the Preview branch `feat/workos-staging-auth-flow`.
+- The Preview deployment for commit `557f48956473051047209f0a44f8e1e1f16245e6` reports READY. The Production deployment for current main `0fc0f553fbaf8f4a6c215c6018f3b7eb38678766` also reports READY. A READY deployment is not evidence of a successful authenticated browser journey or database authorization.
+- Branch-scoped Preview variable records exist for `WORKOS_CLIENT_ID`, `WORKOS_ISSUER`, `WORKOS_COOKIE_PASSWORD`, `NEXT_PUBLIC_WORKOS_REDIRECT_URI` and `WORKOS_TOKEN_AUDIENCE`. Their values were not decrypted or copied into this repository.
+- The Staging Preview branch now has a branch-scoped sensitive `DATABASE_URL` using the restricted `vv_runtime` role and `sslmode=verify-full`. No Production `DATABASE_URL` was created or changed; secret values are never recorded here.
+- Vercel returned no warning/error runtime log records for either deployment in the latest 30-minute query window. The Hobby retention window rejected a 60-minute query, so this is not evidence that no earlier runtime errors occurred.
+
+### Neon database state — blocking finding
+
+- Neon project `volitionvector` exists in AWS `us-east-1` on PostgreSQL 18.6. It has a primary `main` branch and a Vercel-created `preview/feat/workos-staging-auth-flow` branch; both report ready compute.
+- The primary `main` branch remains unprovisioned: no public application tables, `accounts`, `external_identities` or `_prisma_migrations` table were found there. On the dedicated Preview branch `preview/feat/workos-staging-auth-flow`, all 13 checked-in Prisma SQL migrations (169 SQL statements) have now been applied successfully; 20 public base tables and the two safe public projection views are present.
+- The Preview branch has a dedicated `vv_runtime` login role. Catalog verification confirms it is not superuser, does not BYPASSRLS, is not replication-capable, cannot create roles/databases, owns no tenant tables and is not a member of a privileged role. All 18 registered tenant tables have both ENABLE and FORCE RLS. Runtime identity access is limited to the required `external_identities` and `accounts` columns; private email columns are denied, and journal UPDATE/DELETE privileges are absent.
+- The primary branch also has Neon Auth roles `authenticator`, `anonymous` and `authenticated`, but no application runtime role and no application tables. These roles are not evidence of a correctly provisioned VOLITION VECTOR API runtime identity.
+- The NestJS startup guard in `apps/api/identity/postgres-tenant-connection.pool.ts` intentionally rejects superuser, BYPASSRLS, replication, tenant-table-owner and privileged inherited roles. The provisioned Preview `vv_runtime` role satisfies the inspected catalog checks. A live API startup/health check against the new `DATABASE_URL` is still pending.
+
+### Required next steps and release gate
+
+1. Redeploy the staging API with the newly provisioned Preview `DATABASE_URL`; verify `/v1/health` and the NestJS startup guard against the deployed runtime connection.
+2. Exercise the identity resolver and negative RLS tests against the deployed database, including cross-tenant reads/writes and the denied private identity columns.
+3. Complete a real staging browser sign-in, callback, session refresh and sign-out test, plus a reviewed session revocation/invalidation strategy. The live configuration inspection and READY deployment do not replace these tests.
+4. Keep the Neon `main` branch and Production database untouched until a separate migration and runtime-role plan is reviewed. Keep Production WorkOS unconfigured and authenticated API/payment exposure disabled until its own database, identity, security and release gates are separately reviewed.
+
+Subsequent Staging-only provisioning changed only the `preview/feat/workos-staging-auth-flow` Neon branch: checked-in migrations were applied, the least-privilege `vv_runtime` role was created and verified, and a sensitive Preview-only `DATABASE_URL` was saved in Vercel. The Neon `main` branch, Production environment, WorkOS Production settings, Vercel SSO and branch protections were not changed.
+
+## Verification update — 2026-11-08
+
+### Database state after staging-only provisioning
+
+- All 13 checked-in SQL migration files (169 statements) were applied to Neon branch `preview/feat/workos-staging-auth-flow` in a single successful transaction.
+- The branch now contains 20 public base tables; all 18 registered tenant-owned tables have RLS enabled and forced.
+- `vv_runtime` is non-superuser, non-owner, non-replication, non-BYPASSRLS and not a member of a privileged role. It has only the required identity lookup columns, cannot read private identity email fields, and has no journal UPDATE/DELETE grants.
+- The Neon-provisioned default table/sequence grants were revoked for `vv_runtime`. A newly-created table probe confirmed that future tables receive no automatic runtime SELECT grant. The runtime role also cannot read `vv_schema_migrations`.
+- A private `vv_schema_migrations` ledger now records the 13 already-applied migrations as a verified pre-runner baseline (NULL checksums). PR #56 adds the checksum-sealing migration runner and checks the default-privilege invariant at API startup and in CI.
+- Vercel Preview `DATABASE_URL` is stored as a sensitive variable scoped only to branch `feat/workos-staging-auth-flow`, using `vv_runtime` and `sslmode=verify-full`. No Production database URL or Production database change was made.
+
+### Deployment and authentication blockers
+
+- The existing staging deployment has not yet been refreshed with the new database binding. A new deployment request was subsequently rejected by Vercel with HTTP 402: the team reached its 100-deployments/day API limit (24-hour cooldown). No further deployment creation attempts should be made until the limit resets or Vercel resolves the quota.
+- PR #55 addresses the Individual Workspace HTTP 500 by removing Next.js `basePath` and keeping the public `/app` prefix in the route tree, so the Next.js 16 proxy matcher can run for AuthKit. Quality and CodeQL passed on the PR branch. The exact-head Vercel build completed the API image build but the push to `vcr.vercel.com/virtuewise/volition-vector/api` was denied because that repository has reached its maximum allowed number of images. PR #57 encounters the same registry-capacity error. This is not a missing-repository error.
+- A Vercel team administrator must review the Container Registry image quota and remove obsolete images or increase the applicable capacity before another Preview deployment. No image cleanup or deployment retry was performed. Do not disable SSO or deployment protection to work around this.
+- A real browser sign-in, callback, session refresh and sign-out cycle is still not verified. The current HTTP 500 on the old staging deployment is not a successful auth test.
+
+### Remaining governance and release gates
+
+- GitHub branch rulesets query returned no rulesets. The branch-protection endpoint could not be read with the connected GitHub permissions; administrator confirmation and required-check enforcement on `main` remain outstanding.
+- Security-alert endpoints are not readable through the current GitHub connection, so this record makes no claim that the repository has zero alerts.
+- Issue #39 still requires a human decision on financial authority boundaries. No authenticated payment, journal-post, reversal or refund route should be enabled before that decision and the corresponding authorization/audit tests.
+- Production WorkOS, Production database migrations and Production Vercel configuration remain untouched.
+
+## Live staging reinspection — 2026-11-09 12:36 UTC
+
+This read-only catalog check supersedes the earlier statement that the shared Staging Preview branch had no application schema or runtime role. It does not modify Neon, Vercel, WorkOS, GitHub settings or secrets.
+
+### Distinguish the Neon branches
+
+- Shared Staging branch: `preview/feat/workos-staging-auth-flow`. It currently contains all 13 checked-in migration records and the application schema: 20 public base tables, including the identity, organization, marketplace, communication, project, Trust, journal, audit and outbox tables.
+- PR #54's Vercel-created branch: `preview/docs/staging-identity-readiness-2026-11-08`. It is a separate preview branch; the latest catalog query found no public application tables or `vv_runtime` role there. Do not confuse this disposable PR Preview branch with the shared Staging database branch.
+- Neon primary `main`: still has no public application tables and no `vv_runtime` role. Production database provisioning remains untouched.
+- The Vercel-created Preview branch for PR #56 also has the application schema and runtime role. This is not evidence that the Neon primary branch is provisioned.
+
+### Verified shared Staging runtime-role checks
+
+I connected to `preview/feat/workos-staging-auth-flow` explicitly as `vv_runtime` and ran the same read-only role predicates used by the API startup guard. The returned values were:
+
+- `rolsuper=false`, `rolbypassrls=false`, `rolreplication=false`.
+- `owns_tenant_tables=false`, `member_of_tenant_owner_role=false`, `member_of_privileged_role=false`.
+- All 18 registered tenant-owned tables have both ENABLE and FORCE RLS.
+- Required column-level identity lookup grants are present for external identity account/issuer/subject and account id/status.
+- Private `external_identities.email` and `email_verified` SELECT are denied.
+- Public schema USAGE is present and CREATE is denied.
+- Runtime INSERT is present for audit, outbox and journal records; UPDATE/DELETE/TRUNCATE remain denied on the append-only audit, outbox and journal tables. Runtime INSERT on `trust_evidence_decisions` remains denied.
+- The runtime role cannot read the private `vv_schema_migrations` ledger.
+
+The exact startup-guard predicate query returned every required safe value, so the shared Staging database role/catalog boundary now passes the inspected startup-role checks. This does not prove that the deployed API is connected to this branch or that its process has started successfully.
+
+### Migration ledger and invitation predicate
+
+The shared Staging `vv_schema_migrations` table contains the 13 pre-runner migration names with NULL checksums. This is the baseline PR #56 is designed to seal with SHA-256 checksums after its migration runner is reviewed and merged. PR #56 is not merged, and its manual-only Staging workflow has not been run against this branch.
+
+The PR #57 invitation-eligibility function is not yet present in this Staging branch. Its migration is still open for review; do not assume invitation acceptance is ready. The runtime role must continue to be denied direct access to private identity email columns.
+
+### Current deployment blocker
+
+Vercel's latest Preview build for this PR's current commit `df3b8a216d4c7e5145178f9ee327e00a0238e0cc` successfully built the API container image, then failed while pushing its manifest to `vcr.vercel.com/virtuewise/volition-vector/api`: the registry reported that the repository had reached the maximum allowed number of images. The connected Vercel team is on the Hobby plan. The earlier 100-deployments/day HTTP 402 observation is historical; the current reproducible blocker is the Container Registry image cap.
+
+The Vercel project owner must review Container Registry retention/capacity and decide whether to remove obsolete images or change capacity/plan before another deployment. No image cleanup, plan change, deployment retry, environment-variable read or secret modification was performed.
+
+### Remaining verification gates
+
+- Confirm the deployed Preview API uses the intended branch-scoped `vv_runtime` connection without exposing the secret value; complete a real API startup and health check after the registry blocker is resolved.
+- Complete the real WorkOS browser sign-in, callback, refresh and sign-out journey, plus a bounded session-revocation strategy.
+- Review the Staging MFA/session-duration settings before any controlled pilot.
+- Keep Neon primary `main`, Production database and WorkOS Production unconfigured until their separate migration, runtime-role, identity, security and release gates are reviewed.
+- Keep authenticated payment routes and financial posting authority disabled pending issue #39.
