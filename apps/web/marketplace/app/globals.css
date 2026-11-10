@@ -157,6 +157,14 @@ a {
   background: #3b4d25;
 }
 
+.search input:focus-visible,
+.search select:focus-visible,
+.search button:focus-visible,
+.topbar a:focus-visible {
+  outline: 3px solid var(--olive);
+  outline-offset: 3px;
+}
+
 .hero-note {
   display: flex;
   flex-wrap: wrap;
@@ -385,5 +393,11 @@ a {
 
   .footer {
     flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
