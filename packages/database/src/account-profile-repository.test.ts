@@ -144,6 +144,12 @@ describe("PostgresAccountProfileRepository", () => {
       statement.includes("INSERT INTO account_profiles"),
     );
     expect(insertCall?.[1]).toEqual([ACCOUNT_ID, "New Person", "en", "UTC"]);
+    const auditCall = query.mock.calls.find(([statement]) =>
+      statement.includes("INSERT INTO account_audit_events"),
+    );
+    expect(auditCall?.[1]?.[2]).toBe(
+      JSON.stringify({ changedFields: ["displayName"] }),
+    );
   });
 
   it.each([
