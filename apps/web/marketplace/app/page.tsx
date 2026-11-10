@@ -49,6 +49,7 @@ function getApiOrigin(): string | null {
     const isLocal =
       url.protocol === "http:" &&
       (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+
     return isSecure || isLocal ? url.origin : null;
   } catch {
     return null;
@@ -93,6 +94,7 @@ function formatMoney(
   currency: string | null,
 ): string | null {
   if (amount === null || currency === null) return null;
+
   const numericAmount = Number(amount);
   if (!Number.isFinite(numericAmount)) return null;
 
@@ -108,8 +110,15 @@ function formatMoney(
 }
 
 function formatCompensation(item: PublicOpportunity): string | null {
-  const minimum = formatMoney(item.compensationMin, item.compensationCurrency);
-  const maximum = formatMoney(item.compensationMax, item.compensationCurrency);
+  const minimum = formatMoney(
+    item.compensationMin,
+    item.compensationCurrency,
+  );
+  const maximum = formatMoney(
+    item.compensationMax,
+    item.compensationCurrency,
+  );
+
   if (minimum && maximum) return minimum + " – " + maximum;
   if (minimum) return "From " + minimum;
   if (maximum) return "Up to " + maximum;
@@ -118,6 +127,7 @@ function formatCompensation(item: PublicOpportunity): string | null {
 
 function formatServicePrice(item: PublicService): string {
   if (item.pricingModel === "quote") return "Request a quote";
+
   const amount = formatMoney(item.priceAmount, item.priceCurrency);
   if (!amount) return "Pricing available on request";
   if (item.pricingModel === "hourly") return amount + " / hour";
@@ -128,7 +138,10 @@ function formatServicePrice(item: PublicService): string {
 function formatDate(value: string): string | null {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+  }).format(date);
 }
 
 export default async function MarketplaceHome({
@@ -137,7 +150,8 @@ export default async function MarketplaceHome({
   readonly searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const query = typeof params.q === "string" ? params.q.trim().slice(0, 200) : "";
+  const query =
+    typeof params.q === "string" ? params.q.trim().slice(0, 200) : "";
   const requestedView = typeof params.view === "string" ? params.view : "all";
   const view =
     requestedView === "opportunities" || requestedView === "services"
@@ -145,6 +159,7 @@ export default async function MarketplaceHome({
       : "all";
   const apiOrigin = getApiOrigin();
   const search = new URLSearchParams({ limit: "20" });
+
   if (query) search.set("q", query);
 
   let opportunities: Collection<PublicOpportunity> = { items: null };
@@ -167,13 +182,15 @@ export default async function MarketplaceHome({
             search.toString(),
           ),
     ]);
+
     opportunities = results[0];
     services = results[1];
   }
 
   const opportunitiesUnavailable =
     view !== "services" && opportunities.items === null;
-  const servicesUnavailable = view !== "opportunities" && services.items === null;
+  const servicesUnavailable =
+    view !== "opportunities" && services.items === null;
 
   return (
     <main className="marketplace">
@@ -228,7 +245,8 @@ export default async function MarketplaceHome({
           <strong>Live discovery is not connected yet.</strong>
           <span>
             Configure VOLITION_API_URL with the API origin to display published
-            opportunities and services. No sample listings are shown as real data.
+            opportunities and services. No sample listings are shown as real
+            data.
           </span>
         </div>
       ) : null}
@@ -240,32 +258,48 @@ export default async function MarketplaceHome({
               <p className="eyebrow">MAKE YOUR NEXT MOVE</p>
               <h2>Opportunities</h2>
             </div>
-            <span className="section-caption">Work · Projects · Tenders · Partnerships</span>
+            <span className="section-caption">
+              Work · Projects · Tenders · Partnerships
+            </span>
           </div>
           {opportunitiesUnavailable ? (
             <p className="empty-state">
-              Opportunity listings are temporarily unavailable. Please try again later.
+              Opportunity listings are temporarily unavailable. Please try
+              again later.
             </p>
           ) : opportunities.items?.length ? (
             <div className="listing-grid">
               {opportunities.items.map((item) => (
                 <article className="listing-card" key={item.id}>
                   <div className="card-topline">
-                    <span className="type-pill">{humanize(item.opportunityType)}</span>
-                    {item.isRemote ? <span className="quiet-label">Remote</span> : null}
+                    <span className="type-pill">
+                      {humanize(item.opportunityType)}
+                    </span>
+                    {item.isRemote ? (
+                      <span className="quiet-label">Remote</span>
+                    ) : null}
                   </div>
                   <h3>{item.title}</h3>
                   <p>{item.summary}</p>
                   <div className="card-meta">
-                    <span>{item.locationLabel ?? (item.isRemote ? "Remote" : "Location not specified")}</span>
+                    <span>
+                      {item.locationLabel ??
+                        (item.isRemote
+                          ? "Remote"
+                          : "Location not specified")}
+                    </span>
                     {formatCompensation(item) ? (
                       <strong>{formatCompensation(item)}</strong>
                     ) : null}
                   </div>
                   <div className="card-footer">
-                    <span>Published {formatDate(item.publishedAt) ?? "recently"}</span>
+                    <span>
+                      Published {formatDate(item.publishedAt) ?? "recently"}
+                    </span>
                     {item.expiresAt ? (
-                      <span>Closes {formatDate(item.expiresAt) ?? "as listed"}</span>
+                      <span>
+                        Closes {formatDate(item.expiresAt) ?? "as listed"}
+                      </span>
                     ) : null}
                   </div>
                 </article>
@@ -273,8 +307,8 @@ export default async function MarketplaceHome({
             </div>
           ) : (
             <p className="empty-state">
-              No published opportunities match this search yet. Try another search
-              or check back soon.
+              No published opportunities match this search yet. Try another
+              search or check back soon.
             </p>
           )}
         </section>
@@ -287,30 +321,44 @@ export default async function MarketplaceHome({
               <p className="eyebrow">WORK WITH TRUSTED PROVIDERS</p>
               <h2>Services</h2>
             </div>
-            <span className="section-caption">Professional services · Remote · On-site</span>
+            <span className="section-caption">
+              Professional services · Remote · On-site
+            </span>
           </div>
           {servicesUnavailable ? (
             <p className="empty-state">
-              Service listings are temporarily unavailable. Please try again later.
+              Service listings are temporarily unavailable. Please try again
+              later.
             </p>
           ) : services.items?.length ? (
             <div className="listing-grid">
               {services.items.map((item) => (
                 <article className="listing-card" key={item.id}>
                   <div className="card-topline">
-                    <span className="type-pill">{humanize(item.category)}</span>
-                    <span className="quiet-label">{humanize(item.deliveryMode)}</span>
+                    <span className="type-pill">
+                      {humanize(item.category)}
+                    </span>
+                    <span className="quiet-label">
+                      {humanize(item.deliveryMode)}
+                    </span>
                   </div>
                   <h3>{item.title}</h3>
                   <p>{item.summary}</p>
                   <div className="card-meta">
-                    <span>{item.locationLabel ?? humanize(item.deliveryMode)}</span>
+                    <span>
+                      {item.locationLabel ?? humanize(item.deliveryMode)}
+                    </span>
                     <strong>{formatServicePrice(item)}</strong>
                   </div>
                   <div className="card-footer">
-                    <span>Published {formatDate(item.publishedAt) ?? "recently"}</span>
+                    <span>
+                      Published {formatDate(item.publishedAt) ?? "recently"}
+                    </span>
                     {item.expiresAt ? (
-                      <span>Available until {formatDate(item.expiresAt) ?? "as listed"}</span>
+                      <span>
+                        Available until{" "}
+                        {formatDate(item.expiresAt) ?? "as listed"}
+                      </span>
                     ) : null}
                   </div>
                 </article>
@@ -318,8 +366,8 @@ export default async function MarketplaceHome({
             </div>
           ) : (
             <p className="empty-state">
-              No published services match this search yet. Try a different term
-              or check back soon.
+              No published services match this search yet. Try a different
+              term or check back soon.
             </p>
           )}
         </section>
