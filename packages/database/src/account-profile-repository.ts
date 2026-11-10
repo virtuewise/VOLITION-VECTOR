@@ -63,7 +63,11 @@ function normalizeDisplayName(value: string | null): string | null {
 }
 
 function normalizeLocale(value: string): string {
-  if (value.trim() !== value || value.length > 35) {
+  if (
+    value.trim() !== value ||
+    value.length > 35 ||
+    !/^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/.test(value)
+  ) {
     throw new TypeError("A valid BCP 47 locale is required.");
   }
   try {
