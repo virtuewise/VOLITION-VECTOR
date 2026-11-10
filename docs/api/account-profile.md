@@ -36,11 +36,10 @@ documented safe defaults.
 
 Accepted fields:
 
-| Field         | Rules                                                        |
-| ------------- | ------------------------------------------------------------ |
-| `displayName` | Optional string or null; 1–120 printable characters when set; null clears it |
-| `locale`      | Optional canonicalizable BCP 47 locale, maximum 35 characters |
-| `timeZone`    | Optional valid IANA time-zone identifier, maximum 64 characters |
+- `displayName`: optional string or null; 1–120 printable characters when
+  set; null clears it.
+- `locale`: optional canonicalizable BCP 47 locale, maximum 35 characters.
+- `timeZone`: optional valid IANA time-zone identifier, maximum 64 characters.
 
 At least one field must be supplied. Unknown fields are rejected by the global
 NestJS validation pipe. Empty strings are not a clearing operation; send null
