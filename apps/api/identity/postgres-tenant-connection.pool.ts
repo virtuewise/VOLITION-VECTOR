@@ -80,9 +80,9 @@ class PostgresTenantConnection implements TenantConnection {
 }
 
 /**
- * Adapts node-postgres to the tenant transaction port. The pool refuses to
- * start with a superuser, BYPASSRLS/replication role, tenant-table owner, or
- * role that can assume one of those privileged roles.
+ * Adapts node-postgres to the tenant and account transaction ports. The pool
+ * refuses to start with a superuser, BYPASSRLS/replication role, tenant- or
+ * account-table owner, or role that can assume one of those privileged roles.
  */
 export class PostgresTenantConnectionPool
   implements TenantConnectionPool, OnModuleInit, OnModuleDestroy
