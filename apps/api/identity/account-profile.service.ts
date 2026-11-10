@@ -10,7 +10,9 @@ import type {
   AccountProfileRecord,
   UpdateAccountProfileInput,
 } from "@volition/database";
-import type { AuthenticatedPrincipal } from "./identity-membership.contracts.js";
+import type {
+  AuthenticatedPrincipal,
+} from "./identity-membership.contracts.js";
 
 export interface AccountProfileRepository {
   getForAccount(accountId: string): Promise<AccountProfileRecord | null>;
