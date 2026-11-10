@@ -53,7 +53,8 @@ CREATE TABLE public.account_audit_events (
   resource_type text NOT NULL
     CHECK (length(trim(resource_type)) BETWEEN 1 AND 120),
   resource_id text,
-  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb
+    CHECK (jsonb_typeof(metadata) = 'object'),
   occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
   CONSTRAINT account_audit_events_self_actor
     CHECK (actor_account_id = account_id)
