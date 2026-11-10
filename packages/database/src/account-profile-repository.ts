@@ -55,7 +55,9 @@ function normalizeDisplayName(value: string | null): string | null {
     normalized.length > 120 ||
     /[\u0000-\u001f\u007f]/u.test(normalized)
   ) {
-    throw new TypeError("Display name must contain 1 to 120 printable characters.");
+    throw new TypeError(
+      "Display name must contain 1 to 120 printable characters.",
+    );
   }
   return normalized;
 }
@@ -161,7 +163,9 @@ export class PostgresAccountProfileRepository {
 
       const changedFields = current
         ? [
-            ...(current.displayName === nextDisplayName ? [] : ["displayName"]),
+            ...(current.displayName === nextDisplayName
+              ? []
+              : ["displayName"]),
             ...(current.locale === nextLocale ? [] : ["locale"]),
             ...(current.timeZone === nextTimeZone ? [] : ["timeZone"]),
           ]
