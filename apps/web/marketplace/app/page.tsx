@@ -193,8 +193,10 @@ export default async function MarketplaceHome({
           VOLITION <span>VECTOR</span>
         </Link>
         <nav aria-label="Main navigation">
-          <a href="#opportunities">Opportunities</a>
-          <a href="#services">Services</a>
+          {view !== "services" ? (
+            <a href="#opportunities">Opportunities</a>
+          ) : null}
+          {view !== "opportunities" ? <a href="#services">Services</a> : null}
         </nav>
       </header>
 
