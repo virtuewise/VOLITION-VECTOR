@@ -33,6 +33,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261107120000_transactional_outbox/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261110100000_account_profiles/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -52,6 +54,8 @@ GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
 GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
 GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
 GRANT SELECT, INSERT ON outbox_events TO vv_runtime;
+GRANT SELECT, INSERT, UPDATE ON account_profiles TO vv_runtime;
+GRANT INSERT ON account_audit_events TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
@@ -63,6 +67,11 @@ INSERT INTO accounts (id) VALUES
 
 INSERT INTO accounts (id, status) VALUES
   ('66666666-6666-4666-8666-666666666666', 'suspended');
+
+INSERT INTO account_profiles (account_id, display_name, locale, time_zone)
+VALUES
+  ('11111111-1111-4111-8111-111111111111', 'Account One', 'en-US', 'UTC'),
+  ('22222222-2222-4222-8222-222222222222', 'Account Two', 'en-GB', 'Europe/London');
 
 INSERT INTO external_identities (account_id, issuer, subject)
 VALUES
@@ -504,6 +513,7 @@ expect_failure() {
 TENANT_ONE="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 TENANT_TWO="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 ACCOUNT_ONE="11111111-1111-4111-8111-111111111111"
+ACCOUNT_TWO="22222222-2222-4222-8222-222222222222"
 IDENTITY_ISSUER="https://issuer.example/user_management/client"
 OTHER_IDENTITY_ISSUER="https://other-issuer.example/user_management/client"
 SUSPENDED_ACCOUNT_ID="66666666-6666-4666-8666-666666666666"
@@ -539,6 +549,20 @@ SELECT
         'trust_evidence',
         'trust_evidence_decisions',
         'outbox_events'
+      ]::text[])
+      AND (
+        c.relowner = role.oid OR
+        pg_has_role(role.oid, c.relowner, 'MEMBER')
+      )
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_class AS c
+    JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND c.relname = ANY(ARRAY[
+        'account_profiles',
+        'account_audit_events'
       ]::text[])
       AND (
         c.relowner = role.oid OR
@@ -583,6 +607,28 @@ SELECT
       AND c.relrowsecurity
       AND c.relforcerowsecurity
   )
+  AND (
+    SELECT count(*) = 2
+    FROM pg_class AS c
+    JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND c.relname = ANY(ARRAY[
+        'account_profiles',
+        'account_audit_events'
+      ]::text[])
+      AND c.relrowsecurity
+      AND c.relforcerowsecurity
+  )
+  AND has_table_privilege(current_user, 'public.account_profiles', 'SELECT')
+  AND has_table_privilege(current_user, 'public.account_profiles', 'INSERT')
+  AND has_table_privilege(current_user, 'public.account_profiles', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.account_profiles', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.account_profiles', 'TRUNCATE')
+  AND has_table_privilege(current_user, 'public.account_audit_events', 'INSERT')
+  AND NOT has_table_privilege(current_user, 'public.account_audit_events', 'SELECT')
+  AND NOT has_table_privilege(current_user, 'public.account_audit_events', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.account_audit_events', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.account_audit_events', 'TRUNCATE')
   AND has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
   AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
   AND has_column_privilege(current_user, 'public.external_identities', 'subject', 'SELECT')
@@ -1074,6 +1120,83 @@ expect_admin_failure "outbox DELETE" \
   "SET app.tenant_id = '$TENANT_ONE'; DELETE FROM outbox_events WHERE id = '99999999-9999-4999-8999-999999999991';"
 expect_admin_failure "outbox TRUNCATE" "TRUNCATE outbox_events;"
 
+# Account profile rows are visible only within the authenticated account context.
+profile_one_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM account_profiles;"
+)"
+profile_two_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_TWO'; SELECT count(*) FROM account_profiles;"
+)"
+profile_cross_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM account_profiles WHERE account_id = '$ACCOUNT_TWO';"
+)"
+if [[ "$profile_one_count" != "1" || "$profile_two_count" != "1" || "$profile_cross_count" != "0" ]]; then
+  echo "Account profile RLS did not isolate individual accounts." >&2
+  exit 1
+fi
+
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -c "SET app.account_id = '$ACCOUNT_ONE'; UPDATE account_profiles SET display_name = 'Updated Account One' WHERE account_id = '$ACCOUNT_ONE';"
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -c "SET app.account_id = '$ACCOUNT_ONE'; UPDATE account_profiles SET display_name = 'Cross Account Attempt' WHERE account_id = '$ACCOUNT_TWO';"
+cross_update_name="$(
+  psql "$DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT display_name FROM account_profiles WHERE account_id = '$ACCOUNT_TWO';"
+)"
+if [[ "$cross_update_name" != "Account Two" ]]; then
+  echo "Cross-account profile update modified another account." >&2
+  exit 1
+fi
+
+expect_failure "runtime cannot delete account profiles" \
+  "SET app.account_id = '$ACCOUNT_ONE'; DELETE FROM account_profiles WHERE account_id = '$ACCOUNT_ONE';"
+expect_failure "runtime cannot truncate account profiles" "TRUNCATE account_profiles;"
+expect_failure "cross-account profile insert" \
+  "SET app.account_id = '$ACCOUNT_ONE'; INSERT INTO account_profiles (account_id, display_name) VALUES ('$ACCOUNT_TWO', 'Spoofed Profile');"
+expect_failure "account profile insert without account context" \
+  "INSERT INTO account_profiles (account_id, display_name) VALUES ('$ACCOUNT_ONE', 'Missing Context');"
+
+psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<SQL
+BEGIN;
+SELECT set_config('app.account_id', '$ACCOUNT_ONE', true);
+INSERT INTO account_audit_events
+  (account_id, actor_account_id, event_name, resource_type, resource_id, metadata)
+VALUES
+  ('$ACCOUNT_ONE', '$ACCOUNT_ONE', 'account.profile.updated',
+   'account_profile', '$ACCOUNT_ONE', '{"changedFields":["displayName"]}'::jsonb);
+COMMIT;
+SQL
+
+expect_failure "cross-account account audit insert" \
+  "SET app.account_id = '$ACCOUNT_ONE'; INSERT INTO account_audit_events (account_id, actor_account_id, event_name, resource_type) VALUES ('$ACCOUNT_TWO', '$ACCOUNT_ONE', 'account.profile.updated', 'account_profile');"
+expect_failure "account audit insert without account context" \
+  "INSERT INTO account_audit_events (account_id, actor_account_id, event_name, resource_type) VALUES ('$ACCOUNT_ONE', '$ACCOUNT_ONE', 'account.profile.updated', 'account_profile');"
+expect_failure "account audit actor mismatch" \
+  "SET app.account_id = '$ACCOUNT_ONE'; INSERT INTO account_audit_events (account_id, actor_account_id, event_name, resource_type) VALUES ('$ACCOUNT_ONE', '$ACCOUNT_TWO', 'account.profile.updated', 'account_profile');"
+expect_failure "runtime cannot update account audit events" \
+  "SET app.account_id = '$ACCOUNT_ONE'; UPDATE account_audit_events SET event_name = 'tampered' WHERE account_id = '$ACCOUNT_ONE';"
+expect_failure "runtime cannot delete account audit events" \
+  "SET app.account_id = '$ACCOUNT_ONE'; DELETE FROM account_audit_events WHERE account_id = '$ACCOUNT_ONE';"
+expect_failure "runtime cannot truncate account audit events" "TRUNCATE account_audit_events;"
+
+account_audit_count="$(
+  psql "$DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM account_audit_events WHERE account_id = '$ACCOUNT_ONE';"
+)"
+if [[ "$account_audit_count" != "1" ]]; then
+  echo "Account audit event was not persisted for the owning account." >&2
+  exit 1
+fi
+
+expect_admin_failure "account audit event UPDATE" \
+  "UPDATE account_audit_events SET event_name = 'tampered' WHERE account_id = '$ACCOUNT_ONE';"
+expect_admin_failure "account audit event DELETE" \
+  "DELETE FROM account_audit_events WHERE account_id = '$ACCOUNT_ONE';"
+expect_admin_failure "account audit event TRUNCATE" "TRUNCATE account_audit_events;"
+
 # A journal header/lines, audit event and outbox event written in one
 # transaction must all disappear when that transaction rolls back.
 audit_before="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
@@ -1136,4 +1259,4 @@ fi
 
 bash "$ROOT_DIR/tests/integration/payments-journal.sh"
 
-echo "PostgreSQL tenant RLS, project workspaces, private conversations, private Trust evidence, immutable journal, append-only audit/outbox and concurrent owner-continuity checks passed."
+echo "PostgreSQL tenant and account RLS, private account profiles, append-only account audit, project workspaces, private conversations, private Trust evidence, immutable journal, append-only audit/outbox and concurrent owner-continuity checks passed."
