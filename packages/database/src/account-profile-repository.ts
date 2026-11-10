@@ -198,7 +198,8 @@ export class PostgresAccountProfileRepository {
 
       await client.query(
         "INSERT INTO account_audit_events " +
-          "(account_id, actor_account_id, event_name, resource_type, resource_id, metadata) " +
+          "(account_id, actor_account_id, event_name, " +
+            "resource_type, resource_id, metadata) " +
           "VALUES ($1, $1, $2, 'account_profile', $1::text, $3::jsonb)",
         [
           accountId,
