@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { PostgresAccountProfileRepository } from "./account-profile-repository.js";
+import {
+  PostgresAccountProfileRepository,
+} from "./account-profile-repository.js";
 import type { TenantConnectionPool } from "./tenant-transaction.js";
 
 const ACCOUNT_ID = "11111111-1111-4111-8111-111111111111";
