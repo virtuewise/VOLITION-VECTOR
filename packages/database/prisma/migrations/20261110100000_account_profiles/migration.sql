@@ -19,6 +19,22 @@ CREATE TABLE public.account_profiles (
 ALTER TABLE public.account_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.account_profiles FORCE ROW LEVEL SECURITY;
 
+CREATE FUNCTION public.touch_account_profile_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog
+AS $
+BEGIN
+  NEW.updated_at = clock_timestamp();
+  RETURN NEW;
+END;
+$;
+
+CREATE TRIGGER account_profiles_touch_updated_at
+  BEFORE UPDATE ON public.account_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.touch_account_profile_updated_at();
+
 CREATE POLICY account_profiles_self_access
   ON public.account_profiles
   USING (
@@ -82,6 +98,7 @@ CREATE TRIGGER account_audit_events_no_truncate
 
 REVOKE ALL ON TABLE public.account_profiles FROM PUBLIC;
 REVOKE ALL ON TABLE public.account_audit_events FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.touch_account_profile_updated_at() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.prevent_account_audit_event_mutation() FROM PUBLIC;
 
 DO $account_profile_runtime_grants$
@@ -89,7 +106,8 @@ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vv_runtime') THEN
     GRANT SELECT, INSERT, UPDATE ON TABLE public.account_profiles TO vv_runtime;
     GRANT INSERT ON TABLE public.account_audit_events TO vv_runtime;
-    REVOKE UPDATE, DELETE, TRUNCATE
+    REVOKE DELETE, TRUNCATE ON TABLE public.account_profiles FROM vv_runtime;
+    REVOKE SELECT, UPDATE, DELETE, TRUNCATE
       ON TABLE public.account_audit_events FROM vv_runtime;
   END IF;
 END;
