@@ -9,7 +9,7 @@ export class UpdateAccountProfileDto {
   @IsOptional()
   @IsString()
   @MaxLength(35)
-  @Matches(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/)
+  @Matches(/^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/)
   locale?: string;
 
   @IsOptional()
