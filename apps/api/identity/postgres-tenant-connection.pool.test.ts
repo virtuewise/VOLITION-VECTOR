@@ -57,7 +57,9 @@ describe("PostgresTenantConnectionPool", () => {
     ).not.toThrow();
   });
 
-  it("accepts a least-privilege role with forced tenant and account RLS", async () => {
+  it(
+    "accepts a least-privilege role with forced tenant and account RLS",
+    async () => {
     const { pool, query } = makePool([
       {
         is_superuser: false,
@@ -152,7 +154,9 @@ describe("PostgresTenantConnectionPool", () => {
     );
   });
 
-  it("rejects runtime mutation privileges on account audit events", async () => {
+  it(
+    "rejects runtime mutation privileges on account audit events",
+    async () => {
     const { pool } = makePool([{ can_mutate_account_audit_events: true }]);
     const adapter = new PostgresTenantConnectionPool(pool);
 
@@ -330,7 +334,9 @@ describe("PostgresTenantConnectionPool", () => {
     );
   });
 
-  it("resolves a single active account by exact issuer and subject", async () => {
+  it(
+    "resolves a single active account by exact issuer and subject",
+    async () => {
     const { pool, query } = makePool([
       {
         account_id: "7f9a6b2c-1111-4111-8111-111111111111",
@@ -388,7 +394,9 @@ describe("PostgresTenantConnectionPool", () => {
     },
   );
 
-  it("adapts parameterized queries and forwards connection discard errors", async () => {
+  it(
+    "adapts parameterized queries and forwards connection discard errors",
+    async () => {
     const clientQuery = vi.fn().mockResolvedValue({
       rows: [{ account_id: "11111111-1111-4111-8111-111111111111" }],
     });
