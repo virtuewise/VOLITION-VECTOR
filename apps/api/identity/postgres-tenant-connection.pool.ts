@@ -28,6 +28,11 @@ const TENANT_OWNED_TABLES = [
   "outbox_events",
 ] as const;
 
+const ACCOUNT_OWNED_TABLES = [
+  "account_profiles",
+  "account_audit_events",
+] as const;
+
 interface ExternalIdentityAccountRow extends QueryResultRow {
   readonly account_id: string;
   readonly account_status: string;
@@ -39,10 +44,17 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly is_replication_role: boolean;
   readonly owns_tenant_tables: boolean;
   readonly member_of_tenant_owner_role: boolean;
+  readonly owns_account_tables: boolean;
+  readonly member_of_account_owner_role: boolean;
   readonly member_of_privileged_role: boolean;
   readonly all_tenant_tables_force_rls: boolean;
+  readonly all_account_tables_force_rls: boolean;
   readonly can_read_external_identities: boolean;
   readonly can_read_accounts: boolean;
+  readonly can_read_account_profiles: boolean;
+  readonly can_write_account_profiles: boolean;
+  readonly can_insert_account_audit_events: boolean;
+  readonly can_mutate_account_audit_events: boolean;
   readonly can_read_private_identity_email: boolean;
 }
 
@@ -108,6 +120,22 @@ export class PostgresTenantConnectionPool
          ) AS member_of_tenant_owner_role,
          EXISTS (
            SELECT 1
+           FROM pg_class AS c
+           JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+           WHERE nsp.nspname = 'public'
+             AND c.relname = ANY($2::text[])
+             AND c.relowner = r.oid
+         ) AS owns_account_tables,
+         EXISTS (
+           SELECT 1
+           FROM pg_class AS c
+           JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+           WHERE nsp.nspname = 'public'
+             AND c.relname = ANY($2::text[])
+             AND pg_has_role(r.oid, c.relowner, 'MEMBER')
+         ) AS member_of_account_owner_role,
+         EXISTS (
+           SELECT 1
            FROM pg_roles AS privileged
            WHERE (
              privileged.rolsuper OR
@@ -126,6 +154,15 @@ export class PostgresTenantConnectionPool
              AND c.relforcerowsecurity
          ) AS all_tenant_tables_force_rls,
          (
+           SELECT count(*) = cardinality($2::text[])
+           FROM pg_class AS c
+           JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+           WHERE nsp.nspname = 'public'
+             AND c.relname = ANY($2::text[])
+             AND c.relrowsecurity
+             AND c.relforcerowsecurity
+         ) AS all_account_tables_force_rls,
+         (
            has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
            AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
            AND has_column_privilege(current_user, 'public.external_identities', 'subject', 'SELECT')
@@ -134,13 +171,26 @@ export class PostgresTenantConnectionPool
            has_column_privilege(current_user, 'public.accounts', 'id', 'SELECT')
            AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
          ) AS can_read_accounts,
+         has_table_privilege(current_user, 'public.account_profiles', 'SELECT')
+           AS can_read_account_profiles,
+         (
+           has_table_privilege(current_user, 'public.account_profiles', 'INSERT')
+           AND has_table_privilege(current_user, 'public.account_profiles', 'UPDATE')
+         ) AS can_write_account_profiles,
+         has_table_privilege(current_user, 'public.account_audit_events', 'INSERT')
+           AS can_insert_account_audit_events,
+         (
+           has_table_privilege(current_user, 'public.account_audit_events', 'UPDATE')
+           OR has_table_privilege(current_user, 'public.account_audit_events', 'DELETE')
+           OR has_table_privilege(current_user, 'public.account_audit_events', 'TRUNCATE')
+         ) AS can_mutate_account_audit_events,
          (
            has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
            OR has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
          ) AS can_read_private_identity_email
        FROM pg_roles AS r
        WHERE r.rolname = current_user`,
-      [[...TENANT_OWNED_TABLES]],
+      [[...TENANT_OWNED_TABLES], [...ACCOUNT_OWNED_TABLES]],
     );
 
     const runtimeRole = result.rows[0];
@@ -151,16 +201,23 @@ export class PostgresTenantConnectionPool
       runtimeRole.is_replication_role ||
       runtimeRole.owns_tenant_tables ||
       runtimeRole.member_of_tenant_owner_role ||
+      runtimeRole.owns_account_tables ||
+      runtimeRole.member_of_account_owner_role ||
       runtimeRole.member_of_privileged_role ||
       !runtimeRole.all_tenant_tables_force_rls ||
+      !runtimeRole.all_account_tables_force_rls ||
       !runtimeRole.can_read_external_identities ||
       !runtimeRole.can_read_accounts ||
+      !runtimeRole.can_read_account_profiles ||
+      !runtimeRole.can_write_account_profiles ||
+      !runtimeRole.can_insert_account_audit_events ||
+      runtimeRole.can_mutate_account_audit_events ||
       runtimeRole.can_read_private_identity_email
     ) {
       throw new Error(
         "DATABASE_URL role must be non-privileged and non-owner, use minimal " +
-          "identity-column SELECT grants, exclude private identity email fields, " +
-          "and enforce tenant RLS.",
+          "identity-column SELECT grants, private account-profile RLS, " +
+          "append-only account audit access, and exclude private identity email fields.",
       );
     }
   }
