@@ -91,7 +91,9 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("journal_entries");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("journal_entry_lines");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("trust_evidence");
-    expect(query.mock.calls[0]?.[1]?.[0]).toContain("trust_evidence_decisions");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain(
+      "trust_evidence_decisions",
+    );
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("conversations");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain(
       "conversation_participants",
@@ -171,7 +173,7 @@ describe("PostgresTenantConnectionPool", () => {
     },
   );
 
-  it("rejects a runtime role that can assume the account table owner", async () => {
+  it("rejects a runtime role inheriting account-table ownership", async () => {
     const { pool } = makePool([{ member_of_account_owner_role: true }]);
     const adapter = new PostgresTenantConnectionPool(pool);
 
@@ -180,7 +182,7 @@ describe("PostgresTenantConnectionPool", () => {
     );
   });
 
-  it("rejects a runtime role without external identity lookup grants", async () => {
+  it("rejects a runtime role without identity lookup grants", async () => {
     const { pool } = makePool([
       {
         is_superuser: false,
@@ -202,7 +204,7 @@ describe("PostgresTenantConnectionPool", () => {
     );
   });
 
-  it("rejects a runtime role without account identity lookup columns", async () => {
+  it("rejects a runtime role without account lookup columns", async () => {
     const { pool } = makePool([
       {
         is_superuser: false,
@@ -224,7 +226,7 @@ describe("PostgresTenantConnectionPool", () => {
     );
   });
 
-  it("rejects a runtime role with private external identity email access", async () => {
+  it("rejects private external identity email access", async () => {
     const { pool } = makePool([
       {
         is_superuser: false,
