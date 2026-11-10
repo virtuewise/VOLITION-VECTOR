@@ -18,7 +18,9 @@ import { AccountProfileApplicationService } from "./account-profile.service.js";
 @Controller("me/profile")
 @UseGuards(WorkOSAuthenticationGuard, IdentityContextGuard)
 export class AccountProfileController {
-  constructor(private readonly profiles: AccountProfileApplicationService) {}
+  constructor(
+    private readonly profiles: AccountProfileApplicationService,
+  ) {}
 
   @Get()
   get(@Req() request: IdentityRequest) {
