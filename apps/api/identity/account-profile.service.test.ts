@@ -21,49 +21,40 @@ function profile(): AccountProfileRecord {
 }
 
 describe("AccountProfileApplicationService", () => {
-  it(
-    "returns private safe defaults without creating a profile row",
-    async () => {
-      const repository = {
-        getForAccount: vi.fn().mockResolvedValue(null),
-        updateForAccount: vi.fn(),
-      };
-      const service = new AccountProfileApplicationService(repository);
+  it("returns private safe defaults without creating a profile row", async () => {
+    const repository = {
+      getForAccount: vi.fn().mockResolvedValue(null),
+      updateForAccount: vi.fn(),
+    };
+    const service = new AccountProfileApplicationService(repository);
 
-      await expect(service.get({ accountId: ACCOUNT_ID })).resolves.toEqual({
-        accountId: ACCOUNT_ID,
-        displayName: null,
-        locale: "en",
-        timeZone: "UTC",
-        updatedAt: null,
-      });
-      expect(repository.getForAccount).toHaveBeenCalledWith(ACCOUNT_ID);
-      expect(repository.updateForAccount).not.toHaveBeenCalled();
-    },
-  );
+    await expect(service.get({ accountId: ACCOUNT_ID })).resolves.toEqual({
+      accountId: ACCOUNT_ID,
+      displayName: null,
+      locale: "en",
+      timeZone: "UTC",
+      updatedAt: null,
+    });
+    expect(repository.getForAccount).toHaveBeenCalledWith(ACCOUNT_ID);
+    expect(repository.updateForAccount).not.toHaveBeenCalled();
+  });
 
-  it(
-    "updates only the authenticated principal's account profile",
-    async () => {
-      const repository = {
-        getForAccount: vi.fn(),
-        updateForAccount: vi.fn().mockResolvedValue(profile()),
-      };
-      const service = new AccountProfileApplicationService(repository);
+  it("updates only the authenticated principal's account profile", async () => {
+    const repository = {
+      getForAccount: vi.fn(),
+      updateForAccount: vi.fn().mockResolvedValue(profile()),
+    };
+    const service = new AccountProfileApplicationService(repository);
 
-      await expect(
-        service.update(
-          { accountId: ACCOUNT_ID },
-          { displayName: "New Name" },
-        ),
-      ).resolves.toEqual(profile());
+    await expect(
+      service.update({ accountId: ACCOUNT_ID }, { displayName: "New Name" }),
+    ).resolves.toEqual(profile());
 
-      expect(repository.updateForAccount).toHaveBeenCalledWith({
-        accountId: ACCOUNT_ID,
-        displayName: "New Name",
-      });
-    },
-  );
+    expect(repository.updateForAccount).toHaveBeenCalledWith({
+      accountId: ACCOUNT_ID,
+      displayName: "New Name",
+    });
+  });
 
   it("rejects an empty patch", async () => {
     const repository = {
@@ -93,9 +84,9 @@ describe("AccountProfileApplicationService", () => {
   it("fails closed when profile persistence is not configured", async () => {
     const service = new AccountProfileApplicationService(null);
 
-    await expect(
-      service.get({ accountId: ACCOUNT_ID }),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(service.get({ accountId: ACCOUNT_ID })).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
   });
 
   it("maps repository field validation errors to a bad request", async () => {
