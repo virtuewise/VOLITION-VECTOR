@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { PostgresAccountProfileRepository } from "@volition/database";
 import {
   MEMBERSHIP_MUTATION_COMMAND,
   UnconfiguredMembershipMutationCommand,
@@ -9,6 +10,11 @@ import { WorkOSAccessTokenVerifier } from "./workos-access-token.verifier.js";
 import { WorkOSIdentityResolver } from "./workos-identity.resolver.js";
 import { WorkOSAuthenticationGuard } from "./workos-authentication.guard.js";
 import { OrganizationMembershipController } from "./organization-membership.controller.js";
+import { AccountProfileController } from "./account-profile.controller.js";
+import {
+  ACCOUNT_PROFILE_REPOSITORY,
+  AccountProfileApplicationService,
+} from "./account-profile.service.js";
 import { OrganizationMembershipApplicationService } from "./organization-membership.service.js";
 import {
   createPostgresTenantConnectionPool,
@@ -23,13 +29,20 @@ import { PostgresInvitationRateLimiter } from "./invitations/postgres-invitation
 import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invitation.repository.js";
 
 @Module({
-  controllers: [OrganizationMembershipController],
+  controllers: [OrganizationMembershipController, AccountProfileController],
   providers: [
     IdentityContextGuard,
     WorkOSAccessTokenVerifier,
     WorkOSIdentityResolver,
     WorkOSAuthenticationGuard,
     OrganizationMembershipApplicationService,
+    AccountProfileApplicationService,
+    {
+      provide: ACCOUNT_PROFILE_REPOSITORY,
+      inject: [PostgresTenantConnectionPool],
+      useFactory: (pool: PostgresTenantConnectionPool | null) =>
+        pool ? new PostgresAccountProfileRepository(pool) : null,
+    },
     {
       provide: PostgresTenantConnectionPool,
       useFactory: () => {
@@ -64,6 +77,7 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
   ],
   exports: [
     OrganizationMembershipApplicationService,
+    AccountProfileApplicationService,
     WorkOSAccessTokenVerifier,
     WorkOSIdentityResolver,
     INVITATION_REPOSITORY,
