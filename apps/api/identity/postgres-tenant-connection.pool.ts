@@ -53,6 +53,8 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly can_read_accounts: boolean;
   readonly can_read_account_profiles: boolean;
   readonly can_write_account_profiles: boolean;
+  readonly can_mutate_account_profiles: boolean;
+  readonly can_read_account_audit_events: boolean;
   readonly can_insert_account_audit_events: boolean;
   readonly can_mutate_account_audit_events: boolean;
   readonly can_read_private_identity_email: boolean;
@@ -177,6 +179,12 @@ export class PostgresTenantConnectionPool
            has_table_privilege(current_user, 'public.account_profiles', 'INSERT')
            AND has_table_privilege(current_user, 'public.account_profiles', 'UPDATE')
          ) AS can_write_account_profiles,
+         (
+           has_table_privilege(current_user, 'public.account_profiles', 'DELETE')
+           OR has_table_privilege(current_user, 'public.account_profiles', 'TRUNCATE')
+         ) AS can_mutate_account_profiles,
+         has_table_privilege(current_user, 'public.account_audit_events', 'SELECT')
+           AS can_read_account_audit_events,
          has_table_privilege(current_user, 'public.account_audit_events', 'INSERT')
            AS can_insert_account_audit_events,
          (
@@ -210,6 +218,8 @@ export class PostgresTenantConnectionPool
       !runtimeRole.can_read_accounts ||
       !runtimeRole.can_read_account_profiles ||
       !runtimeRole.can_write_account_profiles ||
+      runtimeRole.can_mutate_account_profiles ||
+      runtimeRole.can_read_account_audit_events ||
       !runtimeRole.can_insert_account_audit_events ||
       runtimeRole.can_mutate_account_audit_events ||
       runtimeRole.can_read_private_identity_email
