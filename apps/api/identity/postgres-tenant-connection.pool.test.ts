@@ -11,6 +11,8 @@ const SAFE_ACCOUNT_ROLE_DEFAULTS = {
   all_account_tables_force_rls: true,
   can_read_account_profiles: true,
   can_write_account_profiles: true,
+  can_mutate_account_profiles: false,
+  can_read_account_audit_events: false,
   can_insert_account_audit_events: true,
   can_mutate_account_audit_events: false,
 };
@@ -121,6 +123,24 @@ describe("PostgresTenantConnectionPool", () => {
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
       /private account-profile RLS/,
+    );
+  });
+
+  it("rejects DELETE or TRUNCATE privileges on account profiles", async () => {
+    const { pool } = makePool([{ can_mutate_account_profiles: true }]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /private account-profile RLS/,
+    );
+  });
+
+  it("rejects SELECT privileges on private account audit events", async () => {
+    const { pool } = makePool([{ can_read_account_audit_events: true }]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /append-only account audit access/,
     );
   });
 
