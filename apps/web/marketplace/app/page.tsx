@@ -236,9 +236,9 @@ export default async function MarketplaceHome({
         <div className="connection-notice" role="status">
           <strong>Live discovery is not connected yet.</strong>
           <span>
-            Configure VOLITION_API_URL with the API origin to display published
-            opportunities and services. No sample listings are shown as real
-            data.
+            Configure VOLITION_API_URL with the API origin to
+            display published opportunities and services. No sample
+            listings are shown as real data.
           </span>
         </div>
       ) : null}
@@ -250,10 +250,15 @@ export default async function MarketplaceHome({
               <p className="eyebrow">MAKE YOUR NEXT MOVE</p>
               <h2>Opportunities</h2>
             </div>
-            <span className="section-caption">Work · Projects · Tenders · Partnerships</span>
+            <span className="section-caption">
+              Work · Projects · Tenders · Partnerships
+            </span>
           </div>
           {opportunitiesUnavailable ? (
-            <p className="empty-state">Opportunity listings are temporarily unavailable. Please try again later.</p>
+            <p className="empty-state">
+              Opportunity listings are temporarily unavailable. Please
+              try again later.
+            </p>
           ) : opportunities.items?.length ? (
             <div className="listing-grid">
               {opportunities.items.map((item) => (
@@ -280,9 +285,13 @@ export default async function MarketplaceHome({
                     ) : null}
                   </div>
                   <div className="card-footer">
-                    <span>Published {formatDate(item.publishedAt) ?? "recently"}</span>
+                    <span>
+                      Published {formatDate(item.publishedAt) ?? "recently"}
+                    </span>
                     {item.expiresAt ? (
-                      <span>Closes {formatDate(item.expiresAt) ?? "as listed"}</span>
+                      <span>
+                        Closes {formatDate(item.expiresAt) ?? "as listed"}
+                      </span>
                     ) : null}
                   </div>
                 </article>
@@ -304,10 +313,15 @@ export default async function MarketplaceHome({
               <p className="eyebrow">WORK WITH TRUSTED PROVIDERS</p>
               <h2>Services</h2>
             </div>
-            <span className="section-caption">Professional services · Remote · On-site</span>
+            <span className="section-caption">
+              Professional services · Remote · On-site
+            </span>
           </div>
           {servicesUnavailable ? (
-            <p className="empty-state">Service listings are temporarily unavailable. Please try again later.</p>
+            <p className="empty-state">
+              Service listings are temporarily unavailable. Please try
+              again later.
+            </p>
           ) : services.items?.length ? (
             <div className="listing-grid">
               {services.items.map((item) => (
@@ -333,7 +347,10 @@ export default async function MarketplaceHome({
                       Published {formatDate(item.publishedAt) ?? "recently"}
                     </span>
                     {item.expiresAt ? (
-                      <span>Available until {formatDate(item.expiresAt) ?? "as listed"}</span>
+                      <span>
+                        Available until{" "}
+                        {formatDate(item.expiresAt) ?? "as listed"}
+                      </span>
                     ) : null}
                   </div>
                 </article>
