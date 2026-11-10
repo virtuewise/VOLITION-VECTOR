@@ -99,9 +99,7 @@ function normalizeTimeZone(value: string): string {
 export class PostgresAccountProfileRepository {
   constructor(private readonly pool: TenantConnectionPool) {}
 
-  async getForAccount(
-    accountId: string,
-  ): Promise<AccountProfileRecord | null> {
+  async getForAccount(accountId: string): Promise<AccountProfileRecord | null> {
     const normalizedAccountId = normalizeAccountId(accountId);
     return withAccountTransaction(
       this.pool,
@@ -167,9 +165,7 @@ export class PostgresAccountProfileRepository {
 
       const changedFields = current
         ? [
-            ...(current.displayName === nextDisplayName
-              ? []
-              : ["displayName"]),
+            ...(current.displayName === nextDisplayName ? [] : ["displayName"]),
             ...(current.locale === nextLocale ? [] : ["locale"]),
             ...(current.timeZone === nextTimeZone ? [] : ["timeZone"]),
           ]
@@ -203,7 +199,7 @@ export class PostgresAccountProfileRepository {
       await client.query(
         "INSERT INTO account_audit_events " +
           "(account_id, actor_account_id, event_name, " +
-            "resource_type, resource_id, metadata) " +
+          "resource_type, resource_id, metadata) " +
           "VALUES ($1, $1, $2, 'account_profile', $1::text, $3::jsonb)",
         [
           accountId,
