@@ -10,9 +10,9 @@ describe("normalizeAccountId", () => {
 
   it("rejects malformed and injectable values", () => {
     expect(() => normalizeAccountId("not-a-uuid")).toThrow(TypeError);
-    expect(() => normalizeAccountId("'; SET ROLE postgres; --")).toThrow(
-      TypeError,
-    );
+    expect(() =>
+      normalizeAccountId("'; SET ROLE postgres; --"),
+    ).toThrow(TypeError);
     expect(() => normalizeAccountId("")).toThrow(TypeError);
   });
 });
