@@ -10,9 +10,7 @@ import type {
   AccountProfileRecord,
   UpdateAccountProfileInput,
 } from "@volition/database";
-import type {
-  AuthenticatedPrincipal,
-} from "./identity-membership.contracts.js";
+import type { AuthenticatedPrincipal } from "./identity-membership.contracts.js";
 
 export interface AccountProfileRepository {
   getForAccount(accountId: string): Promise<AccountProfileRecord | null>;
@@ -21,9 +19,7 @@ export interface AccountProfileRepository {
   ): Promise<AccountProfileRecord>;
 }
 
-export const ACCOUNT_PROFILE_REPOSITORY = Symbol(
-  "ACCOUNT_PROFILE_REPOSITORY",
-);
+export const ACCOUNT_PROFILE_REPOSITORY = Symbol("ACCOUNT_PROFILE_REPOSITORY");
 
 export interface AccountProfileView {
   readonly accountId: string;
@@ -40,9 +36,7 @@ export class AccountProfileApplicationService {
     private readonly repository: AccountProfileRepository | null,
   ) {}
 
-  async get(
-    principal: AuthenticatedPrincipal,
-  ): Promise<AccountProfileView> {
+  async get(principal: AuthenticatedPrincipal): Promise<AccountProfileView> {
     const accountId = this.requireAccountId(principal);
     const repository = this.requireRepository();
     const profile = await repository.getForAccount(accountId);
