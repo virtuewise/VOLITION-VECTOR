@@ -57,7 +57,7 @@ describe("PostgresTenantConnectionPool", () => {
     ).not.toThrow();
   });
 
-  it("accepts a least-privilege role with forced tenant RLS", async () => {
+  it("accepts a least-privilege role with forced tenant and account RLS", async () => {
     const { pool, query } = makePool([
       {
         is_superuser: false,
@@ -157,6 +157,15 @@ describe("PostgresTenantConnectionPool", () => {
     const { pool } = makePool([
       { owns_account_tables: true },
     ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /non-privileged and non-owner/,
+    );
+  });
+
+  it("rejects a runtime role that can assume the account table owner", async () => {
+    const { pool } = makePool([{ member_of_account_owner_role: true }]);
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
