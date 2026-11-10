@@ -159,13 +159,17 @@ export class PostgresAccountProfileRepository {
       const nextLocale = locale ?? current?.locale ?? "en";
       const nextTimeZone = timeZone ?? current?.timeZone ?? "UTC";
 
-      const changedFields = [
-        ...(current && current.displayName === nextDisplayName
-          ? []
-          : ["displayName"]),
-        ...(current && current.locale === nextLocale ? [] : ["locale"]),
-        ...(current && current.timeZone === nextTimeZone ? [] : ["timeZone"]),
-      ];
+      const changedFields = current
+        ? [
+            ...(current.displayName === nextDisplayName ? [] : ["displayName"]),
+            ...(current.locale === nextLocale ? [] : ["locale"]),
+            ...(current.timeZone === nextTimeZone ? [] : ["timeZone"]),
+          ]
+        : [
+            ...(displayName === undefined ? [] : ["displayName"]),
+            ...(locale === undefined ? [] : ["locale"]),
+            ...(timeZone === undefined ? [] : ["timeZone"]),
+          ];
 
       if (current && changedFields.length === 0) return current;
 
