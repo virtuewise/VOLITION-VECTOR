@@ -513,6 +513,7 @@ expect_failure() {
 TENANT_ONE="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 TENANT_TWO="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 ACCOUNT_ONE="11111111-1111-4111-8111-111111111111"
+ACCOUNT_TWO="22222222-2222-4222-8222-222222222222"
 IDENTITY_ISSUER="https://issuer.example/user_management/client"
 OTHER_IDENTITY_ISSUER="https://other-issuer.example/user_management/client"
 SUSPENDED_ACCOUNT_ID="66666666-6666-4666-8666-666666666666"
@@ -548,6 +549,20 @@ SELECT
         'trust_evidence',
         'trust_evidence_decisions',
         'outbox_events'
+      ]::text[])
+      AND (
+        c.relowner = role.oid OR
+        pg_has_role(role.oid, c.relowner, 'MEMBER')
+      )
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM pg_class AS c
+    JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND c.relname = ANY(ARRAY[
+        'account_profiles',
+        'account_audit_events'
       ]::text[])
       AND (
         c.relowner = role.oid OR
@@ -592,6 +607,28 @@ SELECT
       AND c.relrowsecurity
       AND c.relforcerowsecurity
   )
+  AND (
+    SELECT count(*) = 2
+    FROM pg_class AS c
+    JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
+    WHERE nsp.nspname = 'public'
+      AND c.relname = ANY(ARRAY[
+        'account_profiles',
+        'account_audit_events'
+      ]::text[])
+      AND c.relrowsecurity
+      AND c.relforcerowsecurity
+  )
+  AND has_table_privilege(current_user, 'public.account_profiles', 'SELECT')
+  AND has_table_privilege(current_user, 'public.account_profiles', 'INSERT')
+  AND has_table_privilege(current_user, 'public.account_profiles', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.account_profiles', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.account_profiles', 'TRUNCATE')
+  AND has_table_privilege(current_user, 'public.account_audit_events', 'INSERT')
+  AND NOT has_table_privilege(current_user, 'public.account_audit_events', 'SELECT')
+  AND NOT has_table_privilege(current_user, 'public.account_audit_events', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.account_audit_events', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.account_audit_events', 'TRUNCATE')
   AND has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
   AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
   AND has_column_privilege(current_user, 'public.external_identities', 'subject', 'SELECT')
