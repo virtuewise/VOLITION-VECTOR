@@ -74,7 +74,9 @@ async function loadCollection<T>(
     if (!response.ok) return { items: null };
 
     const payload: unknown = await response.json();
-    return Array.isArray(payload) ? { items: payload as T[] } : { items: null };
+    return Array.isArray(payload)
+      ? { items: payload as T[] }
+      : { items: null };
   } catch {
     return { items: null };
   }
