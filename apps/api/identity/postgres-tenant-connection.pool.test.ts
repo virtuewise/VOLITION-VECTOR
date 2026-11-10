@@ -83,7 +83,9 @@ describe("PostgresTenantConnectionPool", () => {
       "organization_invitation_rate_limits",
     );
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("opportunities");
-    expect(query.mock.calls[0]?.[1]?.[0]).toContain("opportunity_applications");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain(
+      "opportunity_applications",
+    );
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("project_workspaces");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("project_milestones");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("journal_entries");
@@ -99,8 +101,12 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("outbox_events");
     expect(query.mock.calls[0]?.[1]?.[1]).toContain("account_profiles");
     expect(query.mock.calls[0]?.[1]?.[1]).toContain("account_audit_events");
-    expect(query.mock.calls[0]?.[0]).toContain("all_account_tables_force_rls");
-    expect(query.mock.calls[0]?.[0]).toContain("can_insert_account_audit_events");
+    expect(query.mock.calls[0]?.[0]).toContain(
+      "all_account_tables_force_rls",
+    );
+    expect(query.mock.calls[0]?.[0]).toContain(
+      "can_insert_account_audit_events",
+    );
   });
 
   it("rejects account-owned tables without forced account RLS", async () => {
@@ -153,16 +159,17 @@ describe("PostgresTenantConnectionPool", () => {
     );
   });
 
-  it("rejects a runtime role that owns account tables or can assume their owner", async () => {
-    const { pool } = makePool([
-      { owns_account_tables: true },
-    ]);
-    const adapter = new PostgresTenantConnectionPool(pool);
+  it(
+    "rejects a runtime role that owns account tables or can assume their owner",
+    async () => {
+      const { pool } = makePool([{ owns_account_tables: true }]);
+      const adapter = new PostgresTenantConnectionPool(pool);
 
-    await expect(adapter.onModuleInit()).rejects.toThrow(
-      /non-privileged and non-owner/,
-    );
-  });
+      await expect(adapter.onModuleInit()).rejects.toThrow(
+        /non-privileged and non-owner/,
+      );
+    },
+  );
 
   it("rejects a runtime role that can assume the account table owner", async () => {
     const { pool } = makePool([{ member_of_account_owner_role: true }]);
