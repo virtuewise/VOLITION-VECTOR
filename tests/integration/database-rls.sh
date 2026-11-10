@@ -1142,7 +1142,18 @@ psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -c "SET app.account_id = '$ACCOUNT_ONE'; UPDATE account_profiles SET display_name = 'Updated Account One' WHERE account_id = '$ACCOUNT_ONE';"
 psql "$RUNTIME_DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -c "SET app.account_id = '$ACCOUNT_ONE'; UPDATE account_profiles SET display_name = 'Cross Account Attempt' WHERE account_id = '$ACCOUNT_TWO';"
+cross_update_name="$(
+  psql "$DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT display_name FROM account_profiles WHERE account_id = '$ACCOUNT_TWO';"
+)"
+if [[ "$cross_update_name" != "Account Two" ]]; then
+  echo "Cross-account profile update modified another account." >&2
+  exit 1
+fi
 
+expect_failure "runtime cannot delete account profiles" \
+  "SET app.account_id = '$ACCOUNT_ONE'; DELETE FROM account_profiles WHERE account_id = '$ACCOUNT_ONE';"
+expect_failure "runtime cannot truncate account profiles" "TRUNCATE account_profiles;"
 expect_failure "cross-account profile insert" \
   "SET app.account_id = '$ACCOUNT_ONE'; INSERT INTO account_profiles (account_id, display_name) VALUES ('$ACCOUNT_TWO', 'Spoofed Profile');"
 expect_failure "account profile insert without account context" \
@@ -1161,6 +1172,10 @@ SQL
 
 expect_failure "cross-account account audit insert" \
   "SET app.account_id = '$ACCOUNT_ONE'; INSERT INTO account_audit_events (account_id, actor_account_id, event_name, resource_type) VALUES ('$ACCOUNT_TWO', '$ACCOUNT_ONE', 'account.profile.updated', 'account_profile');"
+expect_failure "account audit insert without account context" \
+  "INSERT INTO account_audit_events (account_id, actor_account_id, event_name, resource_type) VALUES ('$ACCOUNT_ONE', '$ACCOUNT_ONE', 'account.profile.updated', 'account_profile');"
+expect_failure "account audit actor mismatch" \
+  "SET app.account_id = '$ACCOUNT_ONE'; INSERT INTO account_audit_events (account_id, actor_account_id, event_name, resource_type) VALUES ('$ACCOUNT_ONE', '$ACCOUNT_TWO', 'account.profile.updated', 'account_profile');"
 expect_failure "runtime cannot update account audit events" \
   "SET app.account_id = '$ACCOUNT_ONE'; UPDATE account_audit_events SET event_name = 'tampered' WHERE account_id = '$ACCOUNT_ONE';"
 expect_failure "runtime cannot delete account audit events" \
