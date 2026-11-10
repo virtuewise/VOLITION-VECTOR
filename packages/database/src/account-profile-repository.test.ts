@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  PostgresAccountProfileRepository,
-} from "./account-profile-repository.js";
+import { PostgresAccountProfileRepository } from "./account-profile-repository.js";
 import type { TenantConnectionPool } from "./tenant-transaction.js";
 
 const ACCOUNT_ID = "11111111-1111-4111-8111-111111111111";
@@ -36,66 +34,60 @@ function makePool(
 }
 
 describe("PostgresAccountProfileRepository", () => {
-  it(
-    "reads only the profile bound to the transaction-local account context",
-    async () => {
-      const { pool, query } = makePool(async (statement) =>
-        statement.includes("FROM account_profiles")
-          ? { rows: [row()] }
-          : { rows: [] },
-      );
-      const repository = new PostgresAccountProfileRepository(pool);
+  it("reads only the profile bound to the transaction-local account context", async () => {
+    const { pool, query } = makePool(async (statement) =>
+      statement.includes("FROM account_profiles")
+        ? { rows: [row()] }
+        : { rows: [] },
+    );
+    const repository = new PostgresAccountProfileRepository(pool);
 
-      await expect(repository.getForAccount(ACCOUNT_ID)).resolves.toEqual({
+    await expect(repository.getForAccount(ACCOUNT_ID)).resolves.toEqual({
+      accountId: ACCOUNT_ID,
+      displayName: "Current Name",
+      locale: "en",
+      timeZone: "UTC",
+      updatedAt: UPDATED_AT,
+    });
+
+    expect(query).toHaveBeenCalledWith(
+      "SELECT set_config('app.account_id', $1, true)",
+      [ACCOUNT_ID],
+    );
+    expect(
+      query.mock.calls.some(([statement]) =>
+        statement.includes("FROM account_profiles"),
+      ),
+    ).toBe(true);
+  });
+
+  it("updates the profile and audits changed field names without storing values", async () => {
+    const saved = row({ display_name: "Updated Name" });
+    const { pool, query } = makePool(async (statement) => {
+      if (statement.includes("FOR UPDATE")) return { rows: [row()] };
+      if (statement.includes("INSERT INTO account_profiles")) {
+        return { rows: [saved] };
+      }
+      return { rows: [] };
+    });
+    const repository = new PostgresAccountProfileRepository(pool);
+
+    await expect(
+      repository.updateForAccount({
         accountId: ACCOUNT_ID,
-        displayName: "Current Name",
-        locale: "en",
-        timeZone: "UTC",
-        updatedAt: UPDATED_AT,
-      });
+        displayName: " Updated Name ",
+      }),
+    ).resolves.toMatchObject({ displayName: "Updated Name" });
 
-      expect(query).toHaveBeenCalledWith(
-        "SELECT set_config('app.account_id', $1, true)",
-        [ACCOUNT_ID],
-      );
-      expect(
-        query.mock.calls.some(([statement]) =>
-          statement.includes("FROM account_profiles"),
-        ),
-      ).toBe(true);
-    },
-  );
-
-  it(
-    "updates the profile and audits changed field names without storing values",
-    async () => {
-      const saved = row({ display_name: "Updated Name" });
-      const { pool, query } = makePool(async (statement) => {
-        if (statement.includes("FOR UPDATE")) return { rows: [row()] };
-        if (statement.includes("INSERT INTO account_profiles")) {
-          return { rows: [saved] };
-        }
-        return { rows: [] };
-      });
-      const repository = new PostgresAccountProfileRepository(pool);
-
-      await expect(
-        repository.updateForAccount({
-          accountId: ACCOUNT_ID,
-          displayName: " Updated Name ",
-        }),
-      ).resolves.toMatchObject({ displayName: "Updated Name" });
-
-      const auditCall = query.mock.calls.find(([statement]) =>
-        statement.includes("INSERT INTO account_audit_events"),
-      );
-      expect(auditCall?.[1]?.[1]).toBe("account.profile.updated");
-      expect(auditCall?.[1]?.[2]).toBe(
-        JSON.stringify({ changedFields: ["displayName"] }),
-      );
-      expect(auditCall?.[1]?.[2]).not.toContain("Updated Name");
-    },
-  );
+    const auditCall = query.mock.calls.find(([statement]) =>
+      statement.includes("INSERT INTO account_audit_events"),
+    );
+    expect(auditCall?.[1]?.[1]).toBe("account.profile.updated");
+    expect(auditCall?.[1]?.[2]).toBe(
+      JSON.stringify({ changedFields: ["displayName"] }),
+    );
+    expect(auditCall?.[1]?.[2]).not.toContain("Updated Name");
+  });
 
   it("does not emit an audit event for a no-op update", async () => {
     const { pool, query } = makePool(async (statement) =>
@@ -122,51 +114,43 @@ describe("PostgresAccountProfileRepository", () => {
     ).toBe(false);
   });
 
-  it(
-    "creates a private profile with safe defaults for omitted fields",
-    async () => {
-      const saved = row({
-        display_name: "New Person",
-        locale: "en",
-        time_zone: "UTC",
-      });
-      const { pool, query } = makePool(async (statement) =>
-        statement.includes("FOR UPDATE")
-          ? { rows: [] }
-          : statement.includes("INSERT INTO account_profiles")
-            ? { rows: [saved] }
-            : { rows: [] },
-      );
-      const repository = new PostgresAccountProfileRepository(pool);
+  it("creates a private profile with safe defaults for omitted fields", async () => {
+    const saved = row({
+      display_name: "New Person",
+      locale: "en",
+      time_zone: "UTC",
+    });
+    const { pool, query } = makePool(async (statement) =>
+      statement.includes("FOR UPDATE")
+        ? { rows: [] }
+        : statement.includes("INSERT INTO account_profiles")
+          ? { rows: [saved] }
+          : { rows: [] },
+    );
+    const repository = new PostgresAccountProfileRepository(pool);
 
-      await expect(
-        repository.updateForAccount({
-          accountId: ACCOUNT_ID,
-          displayName: "New Person",
-        }),
-      ).resolves.toMatchObject({
+    await expect(
+      repository.updateForAccount({
+        accountId: ACCOUNT_ID,
         displayName: "New Person",
-        locale: "en",
-        timeZone: "UTC",
-      });
+      }),
+    ).resolves.toMatchObject({
+      displayName: "New Person",
+      locale: "en",
+      timeZone: "UTC",
+    });
 
-      const insertCall = query.mock.calls.find(([statement]) =>
-        statement.includes("INSERT INTO account_profiles"),
-      );
-      expect(insertCall?.[1]).toEqual([
-        ACCOUNT_ID,
-        "New Person",
-        "en",
-        "UTC",
-      ]);
-      const auditCall = query.mock.calls.find(([statement]) =>
-        statement.includes("INSERT INTO account_audit_events"),
-      );
-      expect(auditCall?.[1]?.[2]).toBe(
-        JSON.stringify({ changedFields: ["displayName"] }),
-      );
-    },
-  );
+    const insertCall = query.mock.calls.find(([statement]) =>
+      statement.includes("INSERT INTO account_profiles"),
+    );
+    expect(insertCall?.[1]).toEqual([ACCOUNT_ID, "New Person", "en", "UTC"]);
+    const auditCall = query.mock.calls.find(([statement]) =>
+      statement.includes("INSERT INTO account_audit_events"),
+    );
+    expect(auditCall?.[1]?.[2]).toBe(
+      JSON.stringify({ changedFields: ["displayName"] }),
+    );
+  });
 
   it.each([
     { displayName: "" },
