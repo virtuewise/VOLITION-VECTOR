@@ -23,12 +23,12 @@ CREATE FUNCTION public.touch_account_profile_updated_at()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = pg_catalog
-AS $
+AS $function$
 BEGIN
   NEW.updated_at = clock_timestamp();
   RETURN NEW;
 END;
-$;
+$function$;
 
 CREATE TRIGGER account_profiles_touch_updated_at
   BEFORE UPDATE ON public.account_profiles
