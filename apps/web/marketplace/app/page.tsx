@@ -62,21 +62,16 @@ async function loadCollection<T>(
   query: string,
 ): Promise<Collection<T>> {
   try {
-    const response = await fetch(
-      apiOrigin + "/v1/" + resource + "?" + query,
-      {
-        cache: "no-store",
-        headers: { accept: "application/json" },
-        signal: AbortSignal.timeout(5_000),
-      },
-    );
+    const response = await fetch(apiOrigin + "/v1/" + resource + "?" + query, {
+      cache: "no-store",
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(5_000),
+    });
 
     if (!response.ok) return { items: null };
 
     const payload: unknown = await response.json();
-    return Array.isArray(payload)
-      ? { items: payload as T[] }
-      : { items: null };
+    return Array.isArray(payload) ? { items: payload as T[] } : { items: null };
   } catch {
     return { items: null };
   }
@@ -240,9 +235,9 @@ export default async function MarketplaceHome({
         <div className="connection-notice" role="status">
           <strong>Live discovery is not connected yet.</strong>
           <span>
-            Configure VOLITION_API_URL with the API origin to
-            display published opportunities and services. No sample
-            listings are shown as real data.
+            Configure VOLITION_API_URL with the API origin to display published
+            opportunities and services. No sample listings are shown as real
+            data.
           </span>
         </div>
       ) : null}
@@ -260,8 +255,8 @@ export default async function MarketplaceHome({
           </div>
           {opportunitiesUnavailable ? (
             <p className="empty-state">
-              Opportunity listings are temporarily unavailable. Please
-              try again later.
+              Opportunity listings are temporarily unavailable. Please try again
+              later.
             </p>
           ) : opportunities.items?.length ? (
             <div className="listing-grid">
@@ -280,9 +275,7 @@ export default async function MarketplaceHome({
                   <div className="card-meta">
                     <span>
                       {item.locationLabel ??
-                        (item.isRemote
-                          ? "Remote"
-                          : "Location not specified")}
+                        (item.isRemote ? "Remote" : "Location not specified")}
                     </span>
                     {formatCompensation(item) ? (
                       <strong>{formatCompensation(item)}</strong>
@@ -323,17 +316,15 @@ export default async function MarketplaceHome({
           </div>
           {servicesUnavailable ? (
             <p className="empty-state">
-              Service listings are temporarily unavailable. Please try
-              again later.
+              Service listings are temporarily unavailable. Please try again
+              later.
             </p>
           ) : services.items?.length ? (
             <div className="listing-grid">
               {services.items.map((item) => (
                 <article className="listing-card" key={item.id}>
                   <div className="card-topline">
-                    <span className="type-pill">
-                      {humanize(item.category)}
-                    </span>
+                    <span className="type-pill">{humanize(item.category)}</span>
                     <span className="quiet-label">
                       {humanize(item.deliveryMode)}
                     </span>
@@ -362,8 +353,8 @@ export default async function MarketplaceHome({
             </div>
           ) : (
             <p className="empty-state">
-              No published services match this search yet. Try a different
-              term or check back soon.
+              No published services match this search yet. Try a different term
+              or check back soon.
             </p>
           )}
         </section>
@@ -376,3 +367,4 @@ export default async function MarketplaceHome({
     </main>
   );
 }
+##[group]Run 
