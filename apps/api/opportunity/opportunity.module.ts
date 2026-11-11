@@ -9,13 +9,17 @@ import {
 } from "@volition/permissions";
 import { IdentityModule } from "../identity/identity.module.js";
 import { PostgresTenantConnectionPool } from "../identity/postgres-tenant-connection.pool.js";
+import { OpportunityApplicationController } from "./opportunity-application.controller.js";
 import { PublicOpportunityController } from "./public-opportunity.controller.js";
 import { OPPORTUNITY_REPOSITORY } from "./opportunity.repository.js";
 import { OPPORTUNITY_APPLICATION_REPOSITORY } from "./opportunity-application.repository.js";
 
 @Module({
   imports: [IdentityModule],
-  controllers: [PublicOpportunityController],
+  controllers: [
+    PublicOpportunityController,
+    OpportunityApplicationController,
+  ],
   providers: [
     {
       provide: OPPORTUNITY_REPOSITORY,
