@@ -11,9 +11,7 @@ import {
 } from "@volition/database";
 import type { OpportunityApplicationRecord } from "@volition/database";
 import type { IdentityRequest } from "../identity/identity-context.guard.js";
-import type {
-  OpportunityApplicationRepositoryPort,
-} from "./opportunity-application.repository.js";
+import type { OpportunityApplicationRepositoryPort } from "./opportunity-application.repository.js";
 import { OpportunityApplicationController } from "./opportunity-application.controller.js";
 import { describe, expect, it, vi } from "vitest";
 
@@ -54,44 +52,38 @@ function identityRequest(accountId = applicantAccountId): IdentityRequest {
 }
 
 describe("OpportunityApplicationController", () => {
-  it(
-    "submits using the verified principal instead of a caller-supplied actor",
-    async () => {
-      const repository = createRepository();
-      const controller = new OpportunityApplicationController(repository);
+  it("submits using the verified principal instead of a caller-supplied actor", async () => {
+    const repository = createRepository();
+    const controller = new OpportunityApplicationController(repository);
 
-      await expect(
-        controller.submit(identityRequest(), organizationId, opportunityId, {
-          coverNote: "I am interested in this role.",
-        }),
-      ).resolves.toEqual(application);
-
-      expect(repository.submit).toHaveBeenCalledWith({
-        organizationId,
-        opportunityId,
-        applicantAccountId,
+    await expect(
+      controller.submit(identityRequest(), organizationId, opportunityId, {
         coverNote: "I am interested in this role.",
-      });
-    },
-  );
+      }),
+    ).resolves.toEqual(application);
 
-  it(
-    "lists only the verified applicant's applications with bounded query inputs",
-    async () => {
-      const repository = createRepository();
-      const controller = new OpportunityApplicationController(repository);
+    expect(repository.submit).toHaveBeenCalledWith({
+      organizationId,
+      opportunityId,
+      applicantAccountId,
+      coverNote: "I am interested in this role.",
+    });
+  });
 
-      await expect(
-        controller.listMine(identityRequest(), { limit: "10", offset: "20" }),
-      ).resolves.toEqual([application]);
+  it("lists only the verified applicant's applications with bounded query inputs", async () => {
+    const repository = createRepository();
+    const controller = new OpportunityApplicationController(repository);
 
-      expect(repository.listMine).toHaveBeenCalledWith(
-        applicantAccountId,
-        10,
-        20,
-      );
-    },
-  );
+    await expect(
+      controller.listMine(identityRequest(), { limit: "10", offset: "20" }),
+    ).resolves.toEqual([application]);
+
+    expect(repository.listMine).toHaveBeenCalledWith(
+      applicantAccountId,
+      10,
+      20,
+    );
+  });
 
   it("rejects unknown and malformed list query parameters", async () => {
     const controller = new OpportunityApplicationController(createRepository());
