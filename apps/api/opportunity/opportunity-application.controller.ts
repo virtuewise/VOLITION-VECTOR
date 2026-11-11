@@ -20,10 +20,11 @@ import {
   OpportunityApplicationConflictError,
   OpportunityApplicationInputError,
 } from "@volition/database";
-import type {
-  OpportunityApplicationRecord,
-} from "@volition/database";
-import { IdentityContextGuard, requireIdentityPrincipal } from "../identity/identity-context.guard.js";
+import type { OpportunityApplicationRecord } from "@volition/database";
+import {
+  IdentityContextGuard,
+  requireIdentityPrincipal,
+} from "../identity/identity-context.guard.js";
 import type { IdentityRequest } from "../identity/identity-context.guard.js";
 import { WorkOSAuthenticationGuard } from "../identity/workos-authentication.guard.js";
 import {
@@ -45,7 +46,7 @@ function parseInteger(
   field: string,
 ): number {
   if (value === undefined) return fallback;
-  if (!/^(0|[1-9]\\d*)$/.test(value)) {
+  if (!/^(0|[1-9]\d*)$/.test(value)) {
     throw new BadRequestException(`Invalid ${field} query parameter.`);
   }
   const parsed = Number(value);
