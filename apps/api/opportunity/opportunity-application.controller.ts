@@ -84,7 +84,9 @@ export class OpportunityApplicationController {
     private readonly repository: OpportunityApplicationRepositoryPort | null,
   ) {}
 
-  @Post("organizations/:organizationId/opportunities/:opportunityId/applications")
+  @Post(
+    "organizations/:organizationId/opportunities/:opportunityId/applications",
+  )
   async submit(
     @Req() request: IdentityRequest,
     @Param("organizationId", new ParseUUIDPipe({ version: "4" }))
