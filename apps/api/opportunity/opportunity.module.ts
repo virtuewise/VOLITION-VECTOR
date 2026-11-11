@@ -16,10 +16,7 @@ import { OPPORTUNITY_APPLICATION_REPOSITORY } from "./opportunity-application.re
 
 @Module({
   imports: [IdentityModule],
-  controllers: [
-    PublicOpportunityController,
-    OpportunityApplicationController,
-  ],
+  controllers: [PublicOpportunityController, OpportunityApplicationController],
   providers: [
     {
       provide: OPPORTUNITY_REPOSITORY,
