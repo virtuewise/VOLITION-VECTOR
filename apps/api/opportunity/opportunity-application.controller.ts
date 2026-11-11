@@ -28,12 +28,8 @@ import {
 } from "../identity/identity-context.guard.js";
 import type { IdentityRequest } from "../identity/identity-context.guard.js";
 import { WorkOSAuthenticationGuard } from "../identity/workos-authentication.guard.js";
-import {
-  OPPORTUNITY_APPLICATION_REPOSITORY,
-} from "./opportunity-application.repository.js";
-import type {
-  OpportunityApplicationRepositoryPort,
-} from "./opportunity-application.repository.js";
+import { OPPORTUNITY_APPLICATION_REPOSITORY } from "./opportunity-application.repository.js";
+import type { OpportunityApplicationRepositoryPort } from "./opportunity-application.repository.js";
 import {
   ReviewOpportunityApplicationDto,
   SubmitOpportunityApplicationDto,
