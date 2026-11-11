@@ -95,10 +95,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Security audit
         run: pnpm audit --audit-level=moderate
-      - name: Temporary formatter diagnostic
-        run: |
-          pnpm exec prettier --write apps/api/opportunity/opportunity-application.controller.ts apps/api/opportunity/opportunity-application.controller.test.ts
-          git diff -- apps/api/opportunity/opportunity-application.controller.ts apps/api/opportunity/opportunity-application.controller.test.ts
       - name: Formatting
         run: pnpm format:check
       - name: Lint
