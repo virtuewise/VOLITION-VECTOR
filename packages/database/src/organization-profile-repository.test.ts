@@ -37,26 +37,47 @@ function makePool(options?: {
     query: async (sql, parameters): Promise<TenantQueryResult> => {
       calls.push({ sql, parameters });
       if (sql.includes("FROM organizations AS organization")) {
-        return { rows: options?.access === null ? [] : [options?.access ?? accessRow] };
+        return {
+          rows: options?.access === null ? [] : [options?.access ?? accessRow],
+        };
       }
-      if (sql.includes("FROM organization_profiles") && sql.includes("FOR UPDATE")) {
-        return { rows: options?.profile === null ? [] : [options?.profile ?? profileRow] };
+      if (
+        sql.includes("FROM organization_profiles") &&
+        sql.includes("FOR UPDATE")
+      ) {
+        return {
+          rows:
+            options?.profile === null ? [] : [options?.profile ?? profileRow],
+        };
       }
       if (sql.includes("FROM organization_profiles")) {
-        return { rows: options?.profile === null ? [] : [options?.profile ?? profileRow] };
+        return {
+          rows:
+            options?.profile === null ? [] : [options?.profile ?? profileRow],
+        };
       }
       if (sql.includes("INSERT INTO organization_profiles")) {
-        return { rows: options?.saved === null ? [] : [options?.saved ?? profileRow] };
+        return {
+          rows: options?.saved === null ? [] : [options?.saved ?? profileRow],
+        };
       }
       return { rows: [] };
     },
     release: vi.fn(),
   };
-  const pool: TenantConnectionPool = { connect: vi.fn().mockResolvedValue(client) };
+  const pool: TenantConnectionPool = {
+    connect: vi.fn().mockResolvedValue(client),
+  };
   return { pool, calls, client };
 }
 
-function authorize(input: { accountStatus: string; organizationStatus: string; membershipStatus: string; role: string; permission: string }) {
+function authorize(input: {
+  accountStatus: string;
+  organizationStatus: string;
+  membershipStatus: string;
+  role: string;
+  permission: string;
+}) {
   return (
     input.accountStatus === "active" &&
     input.organizationStatus === "active" &&
@@ -70,7 +91,10 @@ function authorize(input: { accountStatus: string; organizationStatus: string; m
 describe("PostgresOrganizationProfileRepository", () => {
   it("reads only after active account, organization and membership authorization", async () => {
     const { pool, calls } = makePool();
-    const repository = new PostgresOrganizationProfileRepository(pool, authorize);
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
 
     await expect(
       repository.getForOrganization({ organizationId, actorAccountId }),
@@ -79,13 +103,22 @@ describe("PostgresOrganizationProfileRepository", () => {
       description: "A research organization",
       countryCode: "ZA",
     });
-    expect(calls.some((call) => call.sql.includes("set_config('app.tenant_id'"))).toBe(true);
-    expect(calls.some((call) => call.sql.includes("FOR SHARE OF organization, membership"))).toBe(true);
+    expect(
+      calls.some((call) => call.sql.includes("set_config('app.tenant_id'")),
+    ).toBe(true);
+    expect(
+      calls.some((call) =>
+        call.sql.includes("FOR SHARE OF organization, membership"),
+      ),
+    ).toBe(true);
   });
 
   it("returns a safe default profile when an authorized organization has no profile row", async () => {
     const { pool } = makePool({ profile: null });
-    const repository = new PostgresOrganizationProfileRepository(pool, authorize);
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
 
     await expect(
       repository.getForOrganization({ organizationId, actorAccountId }),
@@ -104,19 +137,27 @@ describe("PostgresOrganizationProfileRepository", () => {
     const { pool, calls } = makePool({
       access: { ...accessRow, account_status: "suspended" },
     });
-    const repository = new PostgresOrganizationProfileRepository(pool, authorize);
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
 
     await expect(
       repository.getForOrganization({ organizationId, actorAccountId }),
     ).resolves.toBeNull();
-    expect(calls.some((call) => call.sql.includes("FROM organization_profiles"))).toBe(false);
+    expect(
+      calls.some((call) => call.sql.includes("FROM organization_profiles")),
+    ).toBe(false);
   });
 
   it("fails closed when the caller has no active membership", async () => {
     const { pool, calls } = makePool({
       access: { ...accessRow, membership_status: "revoked" },
     });
-    const repository = new PostgresOrganizationProfileRepository(pool, authorize);
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
 
     await expect(
       repository.updateForOrganization({
@@ -125,7 +166,11 @@ describe("PostgresOrganizationProfileRepository", () => {
         description: "Updated description",
       }),
     ).resolves.toBeNull();
-    expect(calls.some((call) => call.sql.includes("INSERT INTO organization_profiles"))).toBe(false);
+    expect(
+      calls.some((call) =>
+        call.sql.includes("INSERT INTO organization_profiles"),
+      ),
+    ).toBe(false);
   });
 
   it("updates a profile and appends only changed field names to the audit event", async () => {
@@ -137,7 +182,10 @@ describe("PostgresOrganizationProfileRepository", () => {
       profile: null,
       saved,
     });
-    const repository = new PostgresOrganizationProfileRepository(pool, authorize);
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
 
     await expect(
       repository.updateForOrganization({
@@ -151,7 +199,9 @@ describe("PostgresOrganizationProfileRepository", () => {
       countryCode: "ZA",
     });
 
-    const audit = calls.find((call) => call.sql.includes("INSERT INTO audit_events"));
+    const audit = calls.find((call) =>
+      call.sql.includes("INSERT INTO audit_events"),
+    );
     expect(audit).toBeDefined();
     expect(JSON.parse(String(audit?.parameters?.[3]))).toEqual({
       changedFields: ["description", "countryCode"],
@@ -160,7 +210,10 @@ describe("PostgresOrganizationProfileRepository", () => {
 
   it("suppresses no-op updates and does not append an audit event", async () => {
     const { pool, calls } = makePool();
-    const repository = new PostgresOrganizationProfileRepository(pool, authorize);
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
 
     await expect(
       repository.updateForOrganization({
@@ -169,12 +222,17 @@ describe("PostgresOrganizationProfileRepository", () => {
         description: profileRow.description,
       }),
     ).resolves.toMatchObject({ description: profileRow.description });
-    expect(calls.some((call) => call.sql.includes("INSERT INTO audit_events"))).toBe(false);
+    expect(
+      calls.some((call) => call.sql.includes("INSERT INTO audit_events")),
+    ).toBe(false);
   });
 
   it("rejects insecure URLs before opening a transaction", async () => {
     const { pool } = makePool();
-    const repository = new PostgresOrganizationProfileRepository(pool, authorize);
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
 
     await expect(
       repository.updateForOrganization({
@@ -188,7 +246,10 @@ describe("PostgresOrganizationProfileRepository", () => {
 
   it("rejects invalid locale and time-zone values before opening a transaction", async () => {
     const { pool } = makePool();
-    const repository = new PostgresOrganizationProfileRepository(pool, authorize);
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
 
     await expect(
       repository.updateForOrganization({

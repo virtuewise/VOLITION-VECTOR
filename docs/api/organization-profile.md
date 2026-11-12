@@ -20,13 +20,13 @@ Both routes require the WorkOS access-token guard and the internal identity-cont
 
 The PATCH body accepts only the fields below. Unknown fields are rejected by the existing global validation pipe.
 
-| Field | Type | Rule |
-|---|---|---|
-| \`description\` | string or null | 1–2000 printable characters |
-| \`websiteUrl\` | string or null | HTTPS URL; credentials are rejected |
-| \`countryCode\` | string or null | Two-letter code, normalized uppercase |
-| \`locale\` | string | Canonical BCP 47 locale; default \`en\` |
-| \`timeZone\` | string | Valid IANA time zone; default \`UTC\` |
+| Field           | Type           | Rule                                    |
+| --------------- | -------------- | --------------------------------------- |
+| \`description\` | string or null | 1–2000 printable characters             |
+| \`websiteUrl\`  | string or null | HTTPS URL; credentials are rejected     |
+| \`countryCode\` | string or null | Two-letter code, normalized uppercase   |
+| \`locale\`      | string         | Canonical BCP 47 locale; default \`en\` |
+| \`timeZone\`    | string         | Valid IANA time zone; default \`UTC\`   |
 
 An organization with no stored profile receives safe defaults on GET; GET does not create a row.
 

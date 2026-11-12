@@ -31,7 +31,10 @@ import { PostgresInvitationRateLimiter } from "./invitations/postgres-invitation
 import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invitation.repository.js";
 
 @Module({
-  controllers: [OrganizationMembershipController, OrganizationProfileController],
+  controllers: [
+    OrganizationMembershipController,
+    OrganizationProfileController,
+  ],
   providers: [
     IdentityContextGuard,
     WorkOSAccessTokenVerifier,

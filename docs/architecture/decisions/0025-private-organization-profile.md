@@ -13,6 +13,7 @@ The organization row currently contains a legal/workspace name, slug and lifecyc
 ## Decision
 
 Add a private profile keyed by organization ID with:
+
 - optional description (maximum 2,000 printable characters);
 - optional HTTPS website URL (no embedded credentials);
 - optional two-letter country code;

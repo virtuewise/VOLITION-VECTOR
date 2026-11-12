@@ -7,7 +7,8 @@ import {
 } from "./tenant-transaction.js";
 
 export type OrganizationProfileRole = "owner" | "admin" | "member" | "viewer";
-export type OrganizationProfilePermission = "organization:read" | "organization:update";
+export type OrganizationProfilePermission =
+  "organization:read" | "organization:update";
 
 export interface OrganizationProfileAuthorizationInput {
   readonly actorAccountId: string;
@@ -84,7 +85,9 @@ function toRecord(row: ProfileRow): OrganizationProfileRecord {
   const updatedAt =
     row.updated_at instanceof Date ? row.updated_at : new Date(row.updated_at);
   if (Number.isNaN(updatedAt.getTime())) {
-    throw new Error("Organization profile returned an invalid update timestamp.");
+    throw new Error(
+      "Organization profile returned an invalid update timestamp.",
+    );
   }
   return {
     organizationId: row.organization_id,
@@ -117,7 +120,9 @@ function normalizeDescription(value: string | null): string | null {
     normalized.length > 2000 ||
     /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(normalized)
   ) {
-    throw new TypeError("Description must contain 1 to 2000 printable characters.");
+    throw new TypeError(
+      "Description must contain 1 to 2000 printable characters.",
+    );
   }
   return normalized;
 }
@@ -201,7 +206,11 @@ export class PostgresOrganizationProfileRepository {
     const actorAccountId = normalizeAccountId(input.actorAccountId);
 
     return withTenantTransaction(this.pool, organizationId, async (client) => {
-      const access = await this.loadAccess(client, organizationId, actorAccountId);
+      const access = await this.loadAccess(
+        client,
+        organizationId,
+        actorAccountId,
+      );
       if (
         !access ||
         !this.isAllowed(access, actorAccountId, "organization:read")
@@ -233,7 +242,9 @@ export class PostgresOrganizationProfileRepository {
       input.locale === undefined &&
       input.timeZone === undefined
     ) {
-      throw new TypeError("At least one organization profile field is required.");
+      throw new TypeError(
+        "At least one organization profile field is required.",
+      );
     }
 
     const description =
@@ -256,7 +267,11 @@ export class PostgresOrganizationProfileRepository {
         : normalizeTimeZone(input.timeZone);
 
     return withTenantTransaction(this.pool, organizationId, async (client) => {
-      const access = await this.loadAccess(client, organizationId, actorAccountId);
+      const access = await this.loadAccess(
+        client,
+        organizationId,
+        actorAccountId,
+      );
       if (
         !access ||
         !this.isAllowed(access, actorAccountId, "organization:update")
@@ -279,11 +294,15 @@ export class PostgresOrganizationProfileRepository {
       );
       const current = currentRow ? toRecord(currentRow) : null;
       const nextDescription =
-        description === undefined ? (current?.description ?? null) : description;
+        description === undefined
+          ? (current?.description ?? null)
+          : description;
       const nextWebsiteUrl =
         websiteUrl === undefined ? (current?.websiteUrl ?? null) : websiteUrl;
       const nextCountryCode =
-        countryCode === undefined ? (current?.countryCode ?? null) : countryCode;
+        countryCode === undefined
+          ? (current?.countryCode ?? null)
+          : countryCode;
       const nextLocale = locale ?? current?.locale ?? "en";
       const nextTimeZone = timeZone ?? current?.timeZone ?? "UTC";
 
@@ -340,7 +359,9 @@ export class PostgresOrganizationProfileRepository {
         [
           organizationId,
           actorAccountId,
-          current ? "organization.profile.updated" : "organization.profile.created",
+          current
+            ? "organization.profile.updated"
+            : "organization.profile.created",
           JSON.stringify({ changedFields }),
         ],
       );

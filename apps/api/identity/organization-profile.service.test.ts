@@ -80,11 +80,7 @@ describe("OrganizationProfileApplicationService", () => {
     const service = new OrganizationProfileApplicationService(repository);
 
     await expect(
-      service.update(
-        { accountId: actorAccountId },
-        organizationId,
-        {},
-      ),
+      service.update({ accountId: actorAccountId }, organizationId, {}),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.updateForOrganization).not.toHaveBeenCalled();
   });
@@ -92,16 +88,16 @@ describe("OrganizationProfileApplicationService", () => {
   it("maps invalid profile values to a client error", async () => {
     const repository: OrganizationProfileRepository = {
       getForOrganization: vi.fn(),
-      updateForOrganization: vi.fn().mockRejectedValue(new TypeError("invalid")),
+      updateForOrganization: vi
+        .fn()
+        .mockRejectedValue(new TypeError("invalid")),
     };
     const service = new OrganizationProfileApplicationService(repository);
 
     await expect(
-      service.update(
-        { accountId: actorAccountId },
-        organizationId,
-        { websiteUrl: "http://example.test" },
-      ),
+      service.update({ accountId: actorAccountId }, organizationId, {
+        websiteUrl: "http://example.test",
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 

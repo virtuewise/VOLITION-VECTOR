@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Req, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import { WorkOSAuthenticationGuard } from "./workos-authentication.guard.js";
 import {
   IdentityContextGuard,
@@ -11,7 +19,9 @@ import { OrganizationProfileApplicationService } from "./organization-profile.se
 @Controller("organizations/:organizationId/profile")
 @UseGuards(WorkOSAuthenticationGuard, IdentityContextGuard)
 export class OrganizationProfileController {
-  constructor(private readonly profiles: OrganizationProfileApplicationService) {}
+  constructor(
+    private readonly profiles: OrganizationProfileApplicationService,
+  ) {}
 
   @Get()
   get(

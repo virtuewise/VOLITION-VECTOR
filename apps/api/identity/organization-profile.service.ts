@@ -100,7 +100,9 @@ export class OrganizationProfileApplicationService {
       return profile;
     } catch (error) {
       if (error instanceof TypeError) {
-        throw new BadRequestException("Organization profile fields are invalid.");
+        throw new BadRequestException(
+          "Organization profile fields are invalid.",
+        );
       }
       throw error;
     }
@@ -108,7 +110,9 @@ export class OrganizationProfileApplicationService {
 
   private requireAccountId(principal: AuthenticatedPrincipal): string {
     if (!isUUID(principal.accountId)) {
-      throw new UnauthorizedException("A verified identity context is required.");
+      throw new UnauthorizedException(
+        "A verified identity context is required.",
+      );
     }
     return principal.accountId.toLowerCase();
   }
