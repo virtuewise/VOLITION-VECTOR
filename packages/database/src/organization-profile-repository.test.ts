@@ -80,7 +80,7 @@ describe("PostgresOrganizationProfileRepository", () => {
       countryCode: "ZA",
     });
     expect(calls.some((call) => call.sql.includes("set_config('app.tenant_id'"))).toBe(true);
-    expect(calls.some((call) => call.sql.includes("FOR SHARE OF organization, membership, account"))).toBe(true);
+    expect(calls.some((call) => call.sql.includes("FOR SHARE OF organization, membership"))).toBe(true);
   });
 
   it("returns a safe default profile when an authorized organization has no profile row", async () => {

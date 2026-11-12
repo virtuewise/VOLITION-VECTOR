@@ -11,7 +11,7 @@ Both routes require the WorkOS access-token guard and the internal identity-cont
 - Active organization members with the shared \`organization:read\` permission may read.
 - Active organization owners and administrators with \`organization:update\` may update.
 - Suspended accounts, suspended organizations, inactive memberships, cross-tenant requests and unknown states fail closed.
-- Organization, membership and account state are loaded and locked in the same transaction as the profile operation. PostgreSQL tenant RLS is set transaction-locally.
+- Organization and membership rows are locked in the same transaction as the profile operation; the current account status is rechecked there without requiring UPDATE privileges on the global accounts table. PostgreSQL tenant RLS is set transaction-locally.
 
 ## Routes
 

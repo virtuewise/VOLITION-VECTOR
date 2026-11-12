@@ -366,7 +366,7 @@ export class PostgresOrganizationProfileRepository {
           "AND membership.account_id = $2 " +
           "JOIN accounts AS account ON account.id = membership.account_id " +
           "WHERE organization.id = $1 " +
-          "FOR SHARE OF organization, membership, account",
+          "FOR SHARE OF organization, membership",
         [organizationId, actorAccountId],
       ),
     );

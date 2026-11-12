@@ -26,7 +26,7 @@ The initial fields are operational workspace metadata, not verified legal-entity
 - Resolve the actor only from the verified internal principal.
 - Require an active account, active organization and active membership.
 - Use the shared \`canAccessOrganization\` policy with \`organization:read\` for GET and \`organization:update\` for PATCH.
-- Load and lock organization, membership and account state inside the same transaction that reads or writes the profile.
+- Lock organization and membership rows inside the same transaction that reads or writes the profile, and recheck current account status there without granting the runtime role UPDATE privileges on the global accounts table.
 - Set PostgreSQL \`app.tenant_id\` transaction-locally and rely on ENABLE plus FORCE RLS.
 - Unknown, missing, inactive and cross-tenant state fails closed without disclosing organization existence.
 
