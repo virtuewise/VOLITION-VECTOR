@@ -4,6 +4,16 @@ export type DatabaseHealth = "unknown" | "healthy" | "unhealthy";
 export { normalizeTenantId } from "./tenant-context.js";
 export { withTenantTransaction } from "./tenant-transaction.js";
 export { PostgresMembershipRepository } from "./membership-repository.js";
+export { PostgresOrganizationProfileRepository } from "./organization-profile-repository.js";
+export type {
+  OrganizationProfileAuthorizationInput,
+  OrganizationProfileAuthorizer,
+  OrganizationProfileInput,
+  OrganizationProfilePermission,
+  OrganizationProfileRecord,
+  OrganizationProfileRole,
+  UpdateOrganizationProfileInput,
+} from "./organization-profile-repository.js";
 export { PostgresInvitationRepository } from "./invitation-repository.js";
 export type {
   AcceptInvitationRecord,

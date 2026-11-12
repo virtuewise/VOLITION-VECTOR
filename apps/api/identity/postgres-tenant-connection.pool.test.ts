@@ -54,6 +54,7 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         can_read_external_identities: true,
         can_read_accounts: true,
+        can_manage_organization_profiles: true,
         can_read_private_identity_email: false,
       },
     ]);
@@ -82,6 +83,31 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("messages");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("service_listings");
     expect(query.mock.calls[0]?.[1]?.[0]).toContain("outbox_events");
+    expect(query.mock.calls[0]?.[1]?.[0]).toContain("organization_profiles");
+    expect(query.mock.calls[0]?.[0]).toContain("has_table_privilege");
+  });
+
+  it("rejects a runtime role without least-privilege organization profile grants", async () => {
+    const { pool } = makePool([
+      {
+        is_superuser: false,
+        bypasses_rls: false,
+        is_replication_role: false,
+        owns_tenant_tables: false,
+        member_of_tenant_owner_role: false,
+        member_of_privileged_role: false,
+        all_tenant_tables_force_rls: true,
+        can_read_external_identities: true,
+        can_read_accounts: true,
+        can_manage_organization_profiles: false,
+        can_read_private_identity_email: false,
+      },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /least-privilege organization profile grants/,
+    );
   });
 
   it("rejects a runtime role without external identity lookup grants", async () => {
@@ -96,6 +122,7 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         can_read_external_identities: false,
         can_read_accounts: true,
+        can_manage_organization_profiles: true,
         can_read_private_identity_email: false,
       },
     ]);
@@ -118,6 +145,7 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         can_read_external_identities: true,
         can_read_accounts: false,
+        can_manage_organization_profiles: true,
         can_read_private_identity_email: false,
       },
     ]);
@@ -140,6 +168,7 @@ describe("PostgresTenantConnectionPool", () => {
         all_tenant_tables_force_rls: true,
         can_read_external_identities: true,
         can_read_accounts: true,
+        can_manage_organization_profiles: true,
         can_read_private_identity_email: true,
       },
     ]);
