@@ -35,7 +35,7 @@ function makePool(options?: {
   const calls: Array<{ sql: string; parameters?: readonly unknown[] }> = [];
   const client: TenantConnection = {
     query: async (sql, parameters): Promise<TenantQueryResult> => {
-      calls.push({ sql, parameters });
+      calls.push(parameters === undefined ? { sql } : { sql, parameters });
       if (sql.includes("FROM organizations AS organization")) {
         return {
           rows: options?.access === null ? [] : [options?.access ?? accessRow],
