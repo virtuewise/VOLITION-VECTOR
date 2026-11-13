@@ -2,7 +2,6 @@ import { normalizeAccountId } from "./account-context.js";
 import { withAccountTransaction } from "./account-transaction.js";
 import type {
   TenantConnectionPool,
-  TenantQueryResult,
 } from "./tenant-transaction.js";
 
 export type AccountOrganizationRole = "owner" | "admin" | "member" | "viewer";
