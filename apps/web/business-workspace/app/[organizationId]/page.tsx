@@ -15,7 +15,9 @@ function formatDate(value: string | null): string {
   if (!value) return "Not updated yet";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Not available";
-  return new Intl.DateTimeFormat("en-ZA", { dateStyle: "medium" }).format(date);
+  return new Intl.DateTimeFormat("en-ZA", {
+    dateStyle: "medium",
+  }).format(date);
 }
 
 export default async function OrganizationPage({
@@ -92,9 +94,16 @@ export default async function OrganizationPage({
             <div className="profile-grid">
               <article className="profile-card profile-description">
                 <p className="eyebrow">ABOUT THE ORGANIZATION</p>
-                <p>{profile.value.description ?? "No organization description has been added yet."}</p>
+                <p>
+                  {profile.value.description ??
+                    "No organization description has been added yet."}
+                </p>
                 {profile.value.websiteUrl ? (
-                  <a href={profile.value.websiteUrl} target="_blank" rel="noreferrer">
+                  <a
+                    href={profile.value.websiteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     Visit organization website <span aria-hidden="true">↗</span>
                   </a>
                 ) : null}
