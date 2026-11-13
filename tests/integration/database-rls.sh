@@ -123,6 +123,15 @@ INSERT INTO organizations (id, name, slug, created_by_account_id) VALUES
     '22222222-2222-4222-8222-222222222222'
   );
 
+INSERT INTO organizations (id, name, slug, status, created_by_account_id)
+VALUES (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  'Suspended Organization',
+  'suspended-organization',
+  'suspended',
+  '11111111-1111-4111-8111-111111111111'
+);
+
 INSERT INTO organization_memberships
   (id, organization_id, account_id, role) VALUES
   (
@@ -142,6 +151,30 @@ INSERT INTO organization_memberships
     'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     '11111111-1111-4111-8111-111111111111',
     'viewer'
+  );
+
+INSERT INTO organization_memberships
+  (id, organization_id, account_id, role, status) VALUES
+  (
+    '66666666-aaaa-4666-8666-666666666666',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '22222222-2222-4222-8222-222222222222',
+    'viewer',
+    'suspended'
+  ),
+  (
+    '77777777-aaaa-4777-8777-777777777777',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    '66666666-6666-4666-8666-666666666666',
+    'viewer',
+    'active'
+  ),
+  (
+    '88888888-aaaa-4888-8888-888888888888',
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    '11111111-1111-4111-8111-111111111111',
+    'viewer',
+    'active'
   );
 
 INSERT INTO organization_invitations
@@ -1154,12 +1187,12 @@ mixed_context_membership_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organization_memberships;"
 )"
-if [[ "$account_one_membership_count" != "2" ||
+if [[ "$account_one_membership_count" != "3" ||
       "$account_one_organization_count" != "2" ||
       "$account_two_membership_count" != "1" ||
       "$account_one_cross_membership_count" != "0" ||
       "$no_account_membership_count" != "0" ||
-      "$mixed_context_membership_count" != "1" ]]; then
+      "$mixed_context_membership_count" != "2" ]]; then
   echo "Account-scoped organization discovery did not preserve membership isolation." >&2
   exit 1
 fi
