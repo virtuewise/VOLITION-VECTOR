@@ -166,11 +166,6 @@ describe("WorkOSAccessTokenVerifier", () => {
       name: "future issue time",
       overrides: { iat: Math.floor(Date.now() / 1000) + 31 },
     },
-    {
-      name: "future not-before time",
-      overrides: { nbf: Math.floor(Date.now() / 1000) + 31 },
-    },
-    { name: "invalid not-before value", overrides: { nbf: "soon" } },
     { name: "agent token profile", overrides: { sub_profile: "ai_agent" } },
     { name: "unknown token profile", overrides: { sub_profile: "service" } },
   ];
@@ -210,5 +205,14 @@ describe("WorkOSAccessTokenVerifier", () => {
       verifier.verifyBearerToken(`Bearer ${"a".repeat(16_385)}`),
     ).resolves.toBeNull();
     expect(verifyAccessToken).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the WorkOS SDK rejects JWT validation", async () => {
+    const { verifier, verifyAccessToken } = verifierFor(null);
+
+    await expect(
+      verifier.verifyBearerToken("Bearer signed-token"),
+    ).resolves.toBeNull();
+    expect(verifyAccessToken).toHaveBeenCalledOnce();
   });
 });

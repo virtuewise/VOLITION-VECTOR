@@ -7,7 +7,6 @@ interface WorkOSAccessTokenClaims extends Record<string, unknown> {
   readonly jti?: unknown;
   readonly exp?: unknown;
   readonly iat?: unknown;
-  readonly nbf?: unknown;
   readonly sub_profile?: unknown;
 }
 
@@ -69,14 +68,7 @@ function hasValidUserSessionClaims(
     return false;
   }
 
-  if (
-    claims.nbf !== undefined &&
-    (!isNumericDate(claims.nbf) || claims.nbf > nowSeconds + CLOCK_SKEW_SECONDS)
-  ) {
-    return false;
-  }
-
-  return claims.sub_profile === undefined || claims.sub_profile === "user";
+nbf application check  return claims.sub_profile === undefined || claims.sub_profile === "user";
 }
 
 /**
@@ -183,6 +175,8 @@ export class WorkOSAccessTokenVerifier {
       return null;
     }
 
+    // The pinned WorkOS SDK validates nbf inside jose.jwtVerify without
+    // exposing clockTolerance; the application skew below applies to iat only.
     const claims = await this.client.userManagement.verifyAccessToken(token);
     const nowSeconds = Math.floor(Date.now() / 1000);
     if (

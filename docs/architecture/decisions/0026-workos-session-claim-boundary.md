@@ -16,7 +16,7 @@ WorkOS documents `sid`, `jti`, `exp` and `iat` on AuthKit access tokens. Agent t
 
 1. Continue using the WorkOS Node SDK's `verifyAccessToken` as the cryptographic verifier. Do not decode an unverified JWT to establish identity.
 2. Require non-empty `sid` and `jti` values (maximum 256 characters) on every protected human-user API request.
-3. Require finite positive NumericDate `exp` and `iat` values, require `exp > iat`, and reject expired tokens. Allow at most 30 seconds of clock skew for future `iat` and optional `nbf` checks.
+3. Require finite positive NumericDate `exp` and `iat` values, require `exp > iat`, and reject expired tokens. Allow at most 30 seconds of clock skew for future `iat`; rely on the pinned WorkOS SDK's `jose.jwtVerify` defaults for `exp` and `nbf` validation because its `verifyAccessToken` API exposes no clock-tolerance option.
 4. Accept only an absent `sub_profile` or the explicit `user` profile. Reject agent and unknown token profiles on human-user routes.
 5. Preserve the verified session ID and token ID from the verifier through `WorkOSAuthenticationGuard` and `IdentityContextGuard`. Never accept either identifier from request body, query or path parameters.
 6. Keep account and organization authorization based on internal VOLITION VECTOR records and policies. Session metadata is not a role, permission or tenant selector.
@@ -42,5 +42,6 @@ Before session revocation is enabled, a separate reviewed implementation must se
 - WorkOS AuthKit sessions: https://workos.com/docs/authkit/sessions
 - WorkOS session-token claims: https://workos.com/docs/reference/authkit/session-tokens
 - WorkOS Node SDK token verification: https://workos.com/docs/sdks/node
+- Pinned WorkOS Node 12.2.0 JWT verifier implementation: https://github.com/workos/workos-node/blob/v12.2.0/src/user-management/user-management.ts#L817-L829
 - ADR 0007: WorkOS AuthKit identity boundary
 - Human decision on account lifecycle authority and session revocation: issue #64
