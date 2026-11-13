@@ -51,7 +51,10 @@ function isNumericDate(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
-/** Validate the documented AuthKit user-session claim profile after signature verification. */
+/**
+ * Validate the documented AuthKit user-session claim profile after signature
+ * verification.
+ */
 function hasValidUserSessionClaims(
   claims: WorkOSAccessTokenClaims,
   nowSeconds: number,
@@ -70,7 +73,8 @@ function hasValidUserSessionClaims(
 
   if (
     claims.nbf !== undefined &&
-    (!isNumericDate(claims.nbf) || claims.nbf > nowSeconds + CLOCK_SKEW_SECONDS)
+    (!isNumericDate(claims.nbf) ||
+      claims.nbf > nowSeconds + CLOCK_SKEW_SECONDS)
   ) {
     return false;
   }
