@@ -157,7 +157,10 @@ describe("WorkOSAccessTokenVerifier", () => {
     },
     {
       name: "expiry before issue time",
-      overrides: { exp: Math.floor(Date.now() / 1000) - 60 },
+      overrides: {
+        exp: Math.floor(Date.now() / 1000) + 10,
+        iat: Math.floor(Date.now() / 1000) + 20,
+      },
     },
     {
       name: "future issue time",
@@ -167,6 +170,7 @@ describe("WorkOSAccessTokenVerifier", () => {
       name: "future not-before time",
       overrides: { nbf: Math.floor(Date.now() / 1000) + 31 },
     },
+    { name: "invalid not-before value", overrides: { nbf: "soon" } },
     { name: "agent token profile", overrides: { sub_profile: "ai_agent" } },
     { name: "unknown token profile", overrides: { sub_profile: "service" } },
   ];
