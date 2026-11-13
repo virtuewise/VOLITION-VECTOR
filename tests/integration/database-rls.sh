@@ -1175,6 +1175,10 @@ account_two_membership_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.account_id = '$ACCOUNT_TWO'; SELECT count(*) FROM organization_memberships;"
 )"
+suspended_account_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$SUSPENDED_ACCOUNT_ID'; SELECT count(*) FROM organization_memberships;"
+)"
 account_one_cross_membership_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organization_memberships WHERE account_id = '$ACCOUNT_TWO';"
@@ -1190,6 +1194,7 @@ mixed_context_membership_count="$(
 if [[ "$account_one_membership_count" != "3" ||
       "$account_one_organization_count" != "2" ||
       "$account_two_membership_count" != "1" ||
+      "$suspended_account_membership_count" != "0" ||
       "$account_one_cross_membership_count" != "0" ||
       "$no_account_membership_count" != "0" ||
       "$mixed_context_membership_count" != "2" ]]; then
