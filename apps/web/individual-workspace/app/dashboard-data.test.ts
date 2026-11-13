@@ -8,9 +8,18 @@ import {
   statusClass,
 } from "./dashboard-data.js";
 
+const application = {
+  id: "11111111-1111-4111-8111-111111111111",
+  opportunityTitle: "Research partnership",
+  opportunityType: "project",
+  status: "submitted",
+  submittedAt: "2026-11-13T08:00:00.000Z",
+  updatedAt: "2026-11-13T08:00:00.000Z",
+};
+
 describe("individual workspace API response contracts", () => {
   it("allows HTTPS and local-only HTTP API origins", () => {
-    expect(normalizeApiOrigin("https://api.example.test/v1")).toBe(
+    expect(normalizeApiOrigin("https://api.example.test")).toBe(
       "https://api.example.test",
     );
     expect(normalizeApiOrigin("http://localhost:4000")).toBe(
@@ -21,10 +30,14 @@ describe("individual workspace API response contracts", () => {
     );
   });
 
-  it("rejects remote HTTP, invalid protocols and embedded credentials", () => {
+  it("rejects remote HTTP, invalid protocols, credentials and non-origin URLs", () => {
     expect(normalizeApiOrigin("http://api.example.test")).toBeNull();
     expect(normalizeApiOrigin("javascript:alert(1)")).toBeNull();
     expect(normalizeApiOrigin("https://user:pass@api.example.test")).toBeNull();
+    expect(normalizeApiOrigin("https://api.example.test/v1")).toBeNull();
+    expect(normalizeApiOrigin("https://api.example.test?token=x")).toBeNull();
+    expect(normalizeApiOrigin("https://api.example.test#fragment")).toBeNull();
+    expect(normalizeApiOrigin(" https://api.example.test")).toBeNull();
     expect(normalizeApiOrigin(undefined)).toBeNull();
   });
 
@@ -37,9 +50,17 @@ describe("individual workspace API response contracts", () => {
         updatedAt: "2026-11-13T08:00:00.000Z",
       }),
     ).toBe(true);
+    expect(
+      isAccountProfile({
+        displayName: null,
+        locale: "en",
+        timeZone: "UTC",
+        updatedAt: null,
+      }),
+    ).toBe(true);
   });
 
-  it("rejects malformed profile payloads", () => {
+  it("rejects malformed or unbounded profile payloads", () => {
     expect(isAccountProfile(null)).toBe(false);
     expect(
       isAccountProfile({
@@ -49,36 +70,58 @@ describe("individual workspace API response contracts", () => {
         updatedAt: null,
       }),
     ).toBe(false);
-  });
-
-  it("accepts the applicant's own application list shape", () => {
     expect(
-      isApplicationList([
-        {
-          id: "application-1",
-          opportunityTitle: "Research partnership",
-          opportunityType: "project",
-          status: "submitted",
-          submittedAt: "2026-11-13T08:00:00.000Z",
-          updatedAt: "2026-11-13T08:00:00.000Z",
-        },
-      ]),
-    ).toBe(true);
+      isAccountProfile({
+        displayName: "Avery",
+        locale: "en-ZA",
+        timeZone: "Africa/Johannesburg",
+        updatedAt: "not-a-date",
+      }),
+    ).toBe(false);
+    expect(
+      isAccountProfile({
+        displayName: "x".repeat(121),
+        locale: "en",
+        timeZone: "UTC",
+        updatedAt: null,
+      }),
+    ).toBe(false);
   });
 
-  it("rejects malformed application lists and entries", () => {
+  it("accepts the applicant's own bounded application list", () => {
+    expect(isApplicationList([application])).toBe(true);
+    expect(isApplicationList([])).toBe(true);
+  });
+
+  it("rejects malformed, unknown-status and oversized application lists", () => {
     expect(isApplicationList({})).toBe(false);
     expect(
       isApplicationList([
         {
-          id: "application-1",
-          opportunityTitle: "Research partnership",
-          opportunityType: "project",
-          status: "submitted",
-          submittedAt: "2026-11-13T08:00:00.000Z",
+          ...application,
+          status: "administrator",
         },
       ]),
     ).toBe(false);
+    expect(
+      isApplicationList([
+        {
+          ...application,
+          id: "application-1",
+        },
+      ]),
+    ).toBe(false);
+    expect(
+      isApplicationList([
+        {
+          ...application,
+          submittedAt: "not-a-date",
+        },
+      ]),
+    ).toBe(false);
+    expect(isApplicationList(Array.from({ length: 11 }, () => application))).toBe(
+      false,
+    );
   });
 });
 
