@@ -35,6 +35,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261107120000_transactional_outbox/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261110100000_account_profiles/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261113123000_account_organization_discovery/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -134,6 +136,12 @@ INSERT INTO organization_memberships
     'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     '22222222-2222-4222-8222-222222222222',
     'owner'
+  ),
+  (
+    '55555555-aaaa-4555-8555-555555555555',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    '11111111-1111-4111-8111-111111111111',
+    'viewer'
   );
 
 INSERT INTO organization_invitations
@@ -1119,6 +1127,42 @@ expect_admin_failure "outbox UPDATE" \
 expect_admin_failure "outbox DELETE" \
   "SET app.tenant_id = '$TENANT_ONE'; DELETE FROM outbox_events WHERE id = '99999999-9999-4999-8999-999999999991';"
 expect_admin_failure "outbox TRUNCATE" "TRUNCATE outbox_events;"
+
+# Account-scoped organization discovery must reveal only the caller's own
+# active memberships, even when those memberships span multiple tenants.
+account_one_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organization_memberships;"
+)"
+account_one_organization_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organizations;"
+)"
+account_two_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_TWO'; SELECT count(*) FROM organization_memberships;"
+)"
+account_one_cross_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organization_memberships WHERE account_id = '$ACCOUNT_TWO';"
+)"
+no_account_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM organization_memberships;"
+)"
+mixed_context_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organization_memberships;"
+)"
+if [[ "$account_one_membership_count" != "2" ||
+      "$account_one_organization_count" != "2" ||
+      "$account_two_membership_count" != "1" ||
+      "$account_one_cross_membership_count" != "0" ||
+      "$no_account_membership_count" != "0" ||
+      "$mixed_context_membership_count" != "1" ]]; then
+  echo "Account-scoped organization discovery did not preserve membership isolation." >&2
+  exit 1
+fi
 
 # Account profile rows are visible only within the authenticated account context.
 profile_one_count="$(
