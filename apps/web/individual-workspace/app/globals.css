@@ -241,7 +241,7 @@ a {
 
 .panel-footnote {
   margin: 1.3rem 0 0;
-  color: #7a8271;
+  color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.5;
 }
