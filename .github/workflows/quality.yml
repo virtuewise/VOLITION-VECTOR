@@ -93,10 +93,6 @@ jobs:
         run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Temporary formatter output capture
-        run: |
-          pnpm exec prettier --write apps/web/individual-workspace/app/page.tsx apps/web/individual-workspace/app/globals.css
-          git diff -- apps/web/individual-workspace/app/page.tsx apps/web/individual-workspace/app/globals.css
       - name: Security audit
         run: pnpm audit --audit-level=moderate
       - name: Formatting
