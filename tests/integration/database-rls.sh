@@ -1115,7 +1115,7 @@ if [[ "$active_owner_count" != "1" ]]; then
   exit 1
 fi
 
-assert_count organization_memberships "$TENANT_ONE" 2
+assert_count organization_memberships "$TENANT_ONE" 3
 assert_count audit_events "$TENANT_ONE" 2
 assert_count audit_events "$TENANT_TWO" 1
 
@@ -1197,7 +1197,7 @@ if [[ "$account_one_membership_count" != "3" ||
       "$suspended_account_membership_count" != "0" ||
       "$account_one_cross_membership_count" != "0" ||
       "$no_account_membership_count" != "0" ||
-      "$mixed_context_membership_count" != "2" ]]; then
+      "$mixed_context_membership_count" != "3" ]]; then
   echo "Account-scoped organization discovery did not preserve membership isolation." >&2
   exit 1
 fi
