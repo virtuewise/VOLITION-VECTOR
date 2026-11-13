@@ -26,6 +26,8 @@ describe("WorkOSAuthenticationGuard", () => {
       verifyBearerToken: vi.fn().mockResolvedValue({
         subject: "user_123",
         issuer: "https://issuer.example/user_management/client",
+        sessionId: "session_123",
+        tokenId: "token_123",
         claims: {},
       }),
     } as unknown as WorkOSAccessTokenVerifier;
@@ -42,6 +44,8 @@ describe("WorkOSAuthenticationGuard", () => {
     await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
     expect(request.user).toEqual({
       accountId: "7f9a6b2c-1111-4111-8111-111111111111",
+      sessionId: "session_123",
+      tokenId: "token_123",
     });
     expect(identities.resolveActiveAccountId).toHaveBeenCalledWith(
       "https://issuer.example/user_management/client",
@@ -100,6 +104,8 @@ describe("WorkOSAuthenticationGuard", () => {
       verifyBearerToken: vi.fn().mockResolvedValue({
         subject: "user_123",
         issuer: "https://issuer.example/user_management/client",
+        sessionId: "session_123",
+        tokenId: "token_123",
         claims: {},
       }),
     } as unknown as WorkOSAccessTokenVerifier;

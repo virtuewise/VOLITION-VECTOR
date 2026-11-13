@@ -32,13 +32,41 @@ describe("IdentityContextGuard", () => {
     );
   });
 
-  it("copies and canonicalizes the account ID from trusted request.user", () => {
+  it("rejects identity context without verified session metadata", () => {
+    const guard = new IdentityContextGuard();
+    const request: IdentityRequest = { user: { accountId } };
+
+    expect(() => guard.canActivate(contextFor(request))).toThrow(
+      UnauthorizedException,
+    );
+  });
+
+  it("copies account and session identifiers from trusted request.user", () => {
     const guard = new IdentityContextGuard();
     const request: IdentityRequest = {
-      user: { accountId: accountId.toUpperCase() },
+      user: {
+        accountId: accountId.toUpperCase(),
+        sessionId: "session_123",
+        tokenId: "token_123",
+      },
     };
 
     expect(guard.canActivate(contextFor(request))).toBe(true);
-    expect(request.identity).toEqual({ accountId });
+    expect(request.identity).toEqual({
+      accountId,
+      sessionId: "session_123",
+      tokenId: "token_123",
+    });
+  });
+
+  it("rejects malformed session identifiers", () => {
+    const guard = new IdentityContextGuard();
+    const request: IdentityRequest = {
+      user: { accountId, sessionId: " ", tokenId: "token_123" },
+    };
+
+    expect(() => guard.canActivate(contextFor(request))).toThrow(
+      UnauthorizedException,
+    );
   });
 });

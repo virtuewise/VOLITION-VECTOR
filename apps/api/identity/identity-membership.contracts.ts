@@ -6,6 +6,10 @@ export type MembershipMutationAction =
 
 export interface AuthenticatedPrincipal {
   readonly accountId: string;
+  /** Verified AuthKit session identifier; absent only in non-HTTP internal calls. */
+  readonly sessionId?: string;
+  /** Verified access-token identifier for correlation and revocation boundaries. */
+  readonly tokenId?: string;
 }
 
 export interface MembershipMutationInput {
