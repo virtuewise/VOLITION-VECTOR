@@ -150,7 +150,6 @@ export default async function HomePage() {
         </a>
         <nav aria-label="Workspace navigation">
           <a href="/marketplace/">Discover opportunities</a>
-          <a href="/business/">Business workspace</a>
           <form action={signOutAction}>
             <button className="sign-out" type="submit">Sign out</button>
           </form>
