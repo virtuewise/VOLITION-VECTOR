@@ -1,0 +1,36 @@
+name: Temporary business workspace formatter output
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  formatter-output:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - name: Install pinned pnpm
+        run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format business workspace files in the ephemeral runner
+        run: |
+          pnpm exec prettier --write \
+            'apps/web/business-workspace/app/[organizationId]/page.tsx' \
+            apps/web/business-workspace/app/globals.css \
+            apps/web/business-workspace/app/page.tsx \
+            apps/web/business-workspace/app/workspace-data.ts
+          for file in \
+            'apps/web/business-workspace/app/[organizationId]/page.tsx' \
+            apps/web/business-workspace/app/globals.css \
+            apps/web/business-workspace/app/page.tsx \
+            apps/web/business-workspace/app/workspace-data.ts; do
+            echo "===== $file ====="
+            cat "$file"
+          done
