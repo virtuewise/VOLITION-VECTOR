@@ -77,9 +77,9 @@ export default async function HomePage() {
           <div className="state-panel" role="status">
             <h3>Organization access is not available yet.</h3>
             <p>
-              The organization discovery service could not be reached or did
-              not return a valid response. Your sign-in is intact. No tenant
-              has been selected and no organization data has been fabricated.
+              The organization discovery service could not be reached or did not
+              return a valid response. Your sign-in is intact. No tenant has
+              been selected and no organization data has been fabricated.
             </p>
             <a className="text-link" href="/business/">
               Try again
