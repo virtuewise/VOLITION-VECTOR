@@ -30,6 +30,8 @@ async function loadPrivateResource<T>(
   try {
     const response = await fetch(origin + path, {
       cache: "no-store",
+      credentials: "omit",
+      redirect: "error",
       headers: {
         accept: "application/json",
         authorization: "Bearer " + accessToken,
