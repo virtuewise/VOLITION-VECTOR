@@ -93,6 +93,10 @@ jobs:
         run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: TEMPORARY formatting diagnostic
+        run: |
+          pnpm exec prettier --write apps/web/individual-workspace/app/dashboard-data.ts apps/web/individual-workspace/app/dashboard-data.test.ts
+          git diff -- apps/web/individual-workspace/app/dashboard-data.ts apps/web/individual-workspace/app/dashboard-data.test.ts
       - name: Security audit
         run: pnpm audit --audit-level=moderate
       - name: Formatting
