@@ -1,6 +1,6 @@
 # ADR 0026: Preserve verified AuthKit session identity at the API boundary
 
-- Status: Accepted for implementation; revocation rollout remains gated
+- Status: Proposed; session revocation rollout remains gated
 - Date: 2026-11-13
 - Decision owners: Volition Vector identity and API domains
 
@@ -43,3 +43,4 @@ Before session revocation is enabled, a separate reviewed implementation must se
 - WorkOS session-token claims: https://workos.com/docs/reference/authkit/session-tokens
 - WorkOS Node SDK token verification: https://workos.com/docs/sdks/node
 - ADR 0007: WorkOS AuthKit identity boundary
+- Human decision on account lifecycle authority and session revocation: issue #64
