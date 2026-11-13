@@ -143,25 +143,45 @@ describe("WorkOSAccessTokenVerifier", () => {
     },
   );
 
-  it.each([
-    ["missing session ID", { sid: undefined }],
-    ["empty session ID", { sid: " " }],
-    ["missing token ID", { jti: undefined }],
-    ["missing expiry", { exp: undefined }],
-    ["missing issue time", { iat: undefined }],
-    ["expired token", { exp: Math.floor(Date.now() / 1000) - 1 }],
-    ["expiry before issue time", { exp: Math.floor(Date.now() / 1000) - 60 }],
-    ["future issue time", { iat: Math.floor(Date.now() / 1000) + 31 }],
-    ["future not-before time", { nbf: Math.floor(Date.now() / 1000) + 31 }],
-    ["agent token profile", { sub_profile: "ai_agent" }],
-    ["unknown token profile", { sub_profile: "service" }],
-  ])("rejects invalid user-session metadata: %s", async (_name, overrides) => {
-    const { verifier } = verifierFor(validUserClaims(overrides));
+  const invalidUserSessionCases: Array<{
+    name: string;
+    overrides: Record<string, unknown>;
+  }> = [
+    { name: "missing session ID", overrides: { sid: undefined } },
+    { name: "empty session ID", overrides: { sid: " " } },
+    { name: "missing token ID", overrides: { jti: undefined } },
+    { name: "missing expiry", overrides: { exp: undefined } },
+    { name: "missing issue time", overrides: { iat: undefined } },
+    {
+      name: "expired token",
+      overrides: { exp: Math.floor(Date.now() / 1000) - 1 },
+    },
+    {
+      name: "expiry before issue time",
+      overrides: { exp: Math.floor(Date.now() / 1000) - 60 },
+    },
+    {
+      name: "future issue time",
+      overrides: { iat: Math.floor(Date.now() / 1000) + 31 },
+    },
+    {
+      name: "future not-before time",
+      overrides: { nbf: Math.floor(Date.now() / 1000) + 31 },
+    },
+    { name: "agent token profile", overrides: { sub_profile: "ai_agent" } },
+    { name: "unknown token profile", overrides: { sub_profile: "service" } },
+  ];
 
-    await expect(
-      verifier.verifyBearerToken("Bearer signed-token"),
-    ).resolves.toBeNull();
-  });
+  it.each(invalidUserSessionCases)(
+    "rejects invalid user-session metadata: $name",
+    async ({ overrides }) => {
+      const { verifier } = verifierFor(validUserClaims(overrides));
+
+      await expect(
+        verifier.verifyBearerToken("Bearer signed-token"),
+      ).resolves.toBeNull();
+    },
+  );
 
   it("accepts the documented explicit user token profile", async () => {
     const { verifier } = verifierFor(validUserClaims({ sub_profile: "user" }));
