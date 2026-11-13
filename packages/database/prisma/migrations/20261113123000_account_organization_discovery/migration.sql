@@ -8,6 +8,13 @@ CREATE POLICY organization_memberships_account_discovery
   USING (
     nullif(current_setting('app.tenant_id', true), '') IS NULL
     AND account_id = nullif(current_setting('app.account_id', true), '')::uuid
+    AND status = 'active'
+    AND EXISTS (
+      SELECT 1
+      FROM public.accounts AS account
+      WHERE account.id = organization_memberships.account_id
+        AND account.status = 'active'
+    )
   );
 
 CREATE POLICY organizations_account_discovery
@@ -15,6 +22,7 @@ CREATE POLICY organizations_account_discovery
   FOR SELECT
   USING (
     nullif(current_setting('app.tenant_id', true), '') IS NULL
+    AND organizations.status = 'active'
     AND EXISTS (
       SELECT 1
       FROM public.organization_memberships AS membership
@@ -22,6 +30,12 @@ CREATE POLICY organizations_account_discovery
         AND membership.account_id =
           nullif(current_setting('app.account_id', true), '')::uuid
         AND membership.status = 'active'
+        AND EXISTS (
+          SELECT 1
+          FROM public.accounts AS account
+          WHERE account.id = membership.account_id
+            AND account.status = 'active'
+        )
     )
   );
 
