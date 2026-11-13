@@ -708,7 +708,7 @@ suspended_identity_result="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT a.id::text || '|' || a.status FROM external_identities AS ei JOIN accounts AS a ON a.id = ei.account_id WHERE ei.issuer = '$IDENTITY_ISSUER' AND ei.subject = 'suspended-subject' LIMIT 2;"
 )"
-if [[ "$suspended_identity_result" != "$SUSPENDED_ACCOUNT_ID|suspended" ]]; then
+if [[ "$suspended_identity_result" != "66666666-6666-4666-8666-666666666666|suspended" ]]; then
   echo "Suspended external identity fixture did not retain its account status." >&2
   exit 1
 fi
