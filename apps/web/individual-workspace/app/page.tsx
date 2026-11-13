@@ -74,8 +74,7 @@ function isAccountProfile(value: unknown): value is AccountProfile {
       profile["displayName"] === null) &&
     typeof profile["locale"] === "string" &&
     typeof profile["timeZone"] === "string" &&
-    (typeof profile["updatedAt"] === "string" ||
-      profile["updatedAt"] === null)
+    (typeof profile["updatedAt"] === "string" || profile["updatedAt"] === null)
   );
 }
 
@@ -102,13 +101,15 @@ function isApplicationList(
 function formatDate(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "Date unavailable";
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+    date,
+  );
 }
 
 function humanize(value: string): string {
-  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) =>
-    letter.toUpperCase(),
-  );
+  return value
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function statusClass(value: string): string {
@@ -140,7 +141,7 @@ export default async function HomePage() {
   const displayName =
     profile.status === "ready" && profile.value.displayName
       ? profile.value.displayName
-      : user.firstName ?? "Your workspace";
+      : (user.firstName ?? "Your workspace");
 
   return (
     <main className="workspace">
@@ -151,7 +152,9 @@ export default async function HomePage() {
         <nav aria-label="Workspace navigation">
           <a href="/marketplace/">Discover opportunities</a>
           <form action={signOutAction}>
-            <button className="sign-out" type="submit">Sign out</button>
+            <button className="sign-out" type="submit">
+              Sign out
+            </button>
           </form>
         </nav>
       </header>
@@ -181,7 +184,9 @@ export default async function HomePage() {
               <p className="eyebrow">YOUR FOUNDATION</p>
               <h2>Personal profile</h2>
             </div>
-            <span className="panel-icon" aria-hidden="true">01</span>
+            <span className="panel-icon" aria-hidden="true">
+              01
+            </span>
           </div>
           {profile.status === "ready" ? (
             <dl className="profile-fields">
@@ -201,7 +206,8 @@ export default async function HomePage() {
           ) : (
             <p className="panel-message">
               Your private profile service is not available in this environment
-              yet. Your account remains signed in; no profile data is fabricated.
+              yet. Your account remains signed in; no profile data is
+              fabricated.
             </p>
           )}
           <p className="panel-footnote">
@@ -216,7 +222,9 @@ export default async function HomePage() {
               <p className="eyebrow">YOUR PROGRESS</p>
               <h2>Opportunity applications</h2>
             </div>
-            <span className="panel-icon" aria-hidden="true">02</span>
+            <span className="panel-icon" aria-hidden="true">
+              02
+            </span>
           </div>
           {applications.status === "ready" ? (
             applications.value.length ? (
@@ -225,7 +233,10 @@ export default async function HomePage() {
                   <li key={application.id}>
                     <div>
                       <strong>{application.opportunityTitle}</strong>
-                      <span>{humanize(application.opportunityType)} · Submitted {formatDate(application.submittedAt)}</span>
+                      <span>
+                        {humanize(application.opportunityType)} · Submitted{" "}
+                        {formatDate(application.submittedAt)}
+                      </span>
                     </div>
                     <span className={statusClass(application.status)}>
                       {humanize(application.status)}
@@ -242,8 +253,8 @@ export default async function HomePage() {
           ) : (
             <p className="panel-message">
               Your application history is not available in this environment yet.
-              When the application service is connected, your private submissions
-              will appear here.
+              When the application service is connected, your private
+              submissions will appear here.
             </p>
           )}
           <a className="text-link" href="/marketplace/">
