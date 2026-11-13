@@ -69,11 +69,14 @@ REVOKE ALL PRIVILEGES
 
 DO $grant_runtime$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vv_runtime') THEN
-    GRANT EXECUTE
-      ON FUNCTION public.is_invitation_acceptance_eligible(uuid, bytea, uuid, text)
-      TO vv_runtime;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vv_runtime') THEN
+    RAISE EXCEPTION
+      'Role vv_runtime must be provisioned before applying the invitation eligibility migration.';
   END IF;
+
+  GRANT EXECUTE
+    ON FUNCTION public.is_invitation_acceptance_eligible(uuid, bytea, uuid, text)
+    TO vv_runtime;
 END;
 $grant_runtime$;
 
