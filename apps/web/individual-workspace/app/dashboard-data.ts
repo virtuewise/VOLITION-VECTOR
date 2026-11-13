@@ -23,8 +23,7 @@ const APPLICATION_STATUSES = new Set([
 ]);
 
 const UUID_V4_PATTERN = new RegExp(
-  "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-" +
-    "[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+  "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-" + "[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
   "i",
 );
 
@@ -41,10 +40,7 @@ function isDateTime(value: unknown): value is string {
   );
 }
 
-function isBoundedText(
-  value: unknown,
-  maximumLength: number,
-): value is string {
+function isBoundedText(value: unknown, maximumLength: number): value is string {
   return (
     typeof value === "string" &&
     value.trim().length > 0 &&
@@ -64,16 +60,9 @@ export function normalizeApiOrigin(
       url.protocol === "http:" &&
       (url.hostname === "localhost" || url.hostname === "127.0.0.1");
     const originOnly =
-      url.pathname === "/" &&
-      url.search.length === 0 &&
-      url.hash.length === 0;
+      url.pathname === "/" && url.search.length === 0 && url.hash.length === 0;
 
-    if (
-      (!secure && !local) ||
-      url.username ||
-      url.password ||
-      !originOnly
-    ) {
+    if ((!secure && !local) || url.username || url.password || !originOnly) {
       return null;
     }
     return url.origin;
@@ -103,11 +92,7 @@ export function isApplicationList(
     Array.isArray(value) &&
     value.length <= 10 &&
     value.every((entry: unknown) => {
-      if (
-        typeof entry !== "object" ||
-        entry === null ||
-        Array.isArray(entry)
-      ) {
+      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
         return false;
       }
       const application = entry as Record<string, unknown>;
