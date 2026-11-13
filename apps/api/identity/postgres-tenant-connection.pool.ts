@@ -252,8 +252,9 @@ export class PostgresTenantConnectionPool
     ) {
       throw new Error(
         "DATABASE_URL role must be non-privileged and non-owner, use minimal " +
-          "identity-column SELECT grants, private account-profile RLS, " +
-          "append-only account audit access, and exclude private identity email fields.",
+          "account-scoped organization-discovery RLS, minimal identity-column " +
+          "SELECT grants, private account-profile RLS, append-only account " +
+          "audit access, and no private identity email access.",
       );
     }
   }
