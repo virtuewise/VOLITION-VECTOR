@@ -1,0 +1,23 @@
+name: Temporary formatting diagnostic
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  format-diagnostic:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - name: Install pinned pnpm
+        run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Print formatted dashboard contract module without modifying the checkout
+        run: pnpm exec prettier apps/web/individual-workspace/app/dashboard-data.ts
