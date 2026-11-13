@@ -26,6 +26,12 @@ a {
   color: inherit;
 }
 
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--olive);
+  outline-offset: 3px;
+}
+
 .workspace {
   min-height: 100svh;
 }
