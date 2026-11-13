@@ -30,7 +30,7 @@ describe("individual workspace API response contracts", () => {
     );
   });
 
-  it("rejects remote HTTP, invalid protocols, credentials and non-origin URLs", () => {
+  it("rejects insecure, credentialed and non-origin API URLs", () => {
     expect(normalizeApiOrigin("http://api.example.test")).toBeNull();
     expect(normalizeApiOrigin("javascript:alert(1)")).toBeNull();
     expect(normalizeApiOrigin("https://user:pass@api.example.test")).toBeNull();
@@ -93,7 +93,7 @@ describe("individual workspace API response contracts", () => {
     expect(isApplicationList([])).toBe(true);
   });
 
-  it("rejects malformed, unknown-status and oversized application lists", () => {
+  it("rejects malformed or oversized application lists", () => {
     expect(isApplicationList({})).toBe(false);
     expect(
       isApplicationList([
@@ -119,9 +119,9 @@ describe("individual workspace API response contracts", () => {
         },
       ]),
     ).toBe(false);
-    expect(isApplicationList(Array.from({ length: 11 }, () => application))).toBe(
-      false,
-    );
+    expect(
+      isApplicationList(Array.from({ length: 11 }, () => application)),
+    ).toBe(false);
   });
 });
 
