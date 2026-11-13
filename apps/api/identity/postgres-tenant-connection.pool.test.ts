@@ -9,6 +9,10 @@ const SAFE_ACCOUNT_ROLE_DEFAULTS = {
   owns_account_tables: false,
   member_of_account_owner_role: false,
   all_account_tables_force_rls: true,
+  has_account_membership_discovery_policy: true,
+  has_account_organization_discovery_policy: true,
+  can_read_organizations: true,
+  can_read_organization_memberships: true,
   can_read_account_profiles: true,
   can_write_account_profiles: true,
   can_mutate_account_profiles: false,
@@ -101,7 +105,35 @@ describe("PostgresTenantConnectionPool", () => {
     expect(query.mock.calls[0]?.[1]?.[1]).toContain("account_audit_events");
     expect(query.mock.calls[0]?.[0]).toContain("all_account_tables_force_rls");
     expect(query.mock.calls[0]?.[0]).toContain(
+      "organization_memberships_account_discovery",
+    );
+    expect(query.mock.calls[0]?.[0]).toContain(
+      "organizations_account_discovery",
+    );
+    expect(query.mock.calls[0]?.[0]).toContain(
       "can_insert_account_audit_events",
+    );
+  });
+
+  it("rejects missing account-scoped organization discovery policies", async () => {
+    const { pool } = makePool([
+      { has_account_membership_discovery_policy: false },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /account-scoped organization-discovery RLS/,
+    );
+  });
+
+  it("rejects missing organization discovery SELECT privileges", async () => {
+    const { pool } = makePool([
+      { can_read_organizations: false },
+    ]);
+    const adapter = new PostgresTenantConnectionPool(pool);
+
+    await expect(adapter.onModuleInit()).rejects.toThrow(
+      /account-scoped organization-discovery RLS/,
     );
   });
 
