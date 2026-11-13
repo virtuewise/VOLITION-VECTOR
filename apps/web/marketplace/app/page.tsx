@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatMoney } from "./format-money.js";
+import { formatMoney } from "./format-money";
 
 type SearchParams = Promise<{
   q?: string | string[];
