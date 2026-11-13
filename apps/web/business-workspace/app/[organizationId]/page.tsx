@@ -74,7 +74,9 @@ export default async function OrganizationPage({
             </span>
             <span>
               <strong>{user.email ?? "Signed-in account"}</strong>
-              <small>{organization.role} access · {organization.slug}</small>
+              <small>
+                {organization.role} access · {organization.slug}
+              </small>
             </span>
           </div>
         </section>
