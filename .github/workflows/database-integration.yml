@@ -45,3 +45,5 @@ jobs:
           sudo apt-get install --yes postgresql-client
       - name: Verify tenant isolation and append-only audit events
         run: bash tests/integration/database-rls.sh
+      - name: Verify invitation acceptance without exposing identity email
+        run: bash tests/integration/verified-invitation-eligibility.sh

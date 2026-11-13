@@ -202,7 +202,7 @@ describe("PostgresInvitationRepository", () => {
           not_expired: true,
         },
       ],
-      [{ id: accountId }],
+      [{ eligible: true }],
       [{ id: "membership-1" }],
       [{ id: "invitation-1" }],
       [],
@@ -223,12 +223,58 @@ describe("PostgresInvitationRepository", () => {
       expect.stringContaining("SELECT organization_id"),
       "SELECT set_config('app.tenant_id', $1, true)",
       expect.stringContaining("FOR UPDATE"),
-      expect.stringContaining("FROM accounts"),
+      expect.stringContaining("is_invitation_acceptance_eligible"),
       expect.stringContaining("INSERT INTO organization_memberships"),
       expect.stringContaining("UPDATE organization_invitations"),
       expect.stringContaining("INSERT INTO audit_events"),
       "COMMIT",
     ]);
+    expect(query.mock.calls[5]?.[1]).toEqual([
+      "invitation-1",
+      tokenHash,
+      accountId,
+      invitedEmail,
+    ]);
+    expect(release).toHaveBeenCalledWith(undefined);
+  });
+
+  it("fails closed when the private eligibility predicate rejects the recipient", async () => {
+    const { pool, query, release } = createPool([
+      [],
+      [],
+      [{ organization_id: organizationId }],
+      [],
+      [
+        {
+          id: "invitation-1",
+          invited_email: invitedEmail,
+          role: "member",
+          accepted_at: null,
+          revoked_at: null,
+          not_expired: true,
+        },
+      ],
+      [{ eligible: false }],
+    ]);
+    const repository = new PostgresInvitationRepository(pool);
+
+    await expect(
+      repository.acceptPendingInvitationAtomically({
+        tokenHash,
+        accountId,
+        verifiedEmail: invitedEmail,
+      }),
+    ).resolves.toBe(false);
+
+    expect(query.mock.calls[5]?.[0]).toContain(
+      "is_invitation_acceptance_eligible",
+    );
+    expect(
+      query.mock.calls.some(([sql]) =>
+        sql.startsWith("INSERT INTO organization_memberships"),
+      ),
+    ).toBe(false);
+    expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
     expect(release).toHaveBeenCalledWith(undefined);
   });
 

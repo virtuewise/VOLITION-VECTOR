@@ -71,6 +71,10 @@ interface IdRow {
   readonly id: string;
 }
 
+interface EligibilityRow {
+  readonly eligible: boolean;
+}
+
 function firstRow<T>(result: TenantQueryResult): T | undefined {
   return result.rows[0] as T | undefined;
 }
@@ -280,16 +284,18 @@ export class PostgresInvitationRepository {
         return false;
       }
 
-      const eligible = firstRow<IdRow>(
+      const eligible = firstRow<EligibilityRow>(
         await client.query(
-          "SELECT a.id::text AS id FROM accounts a " +
-            "WHERE a.id = $1 AND a.status = 'active' AND EXISTS (" +
-            "SELECT 1 FROM external_identities ei WHERE ei.account_id = a.id " +
-            "AND ei.email_verified = true AND lower(trim(ei.email)) = $2)",
-          [input.accountId, input.verifiedEmail],
+          "SELECT public.is_invitation_acceptance_eligible($1, $2, $3, $4) AS eligible",
+          [
+            invitation.id,
+            input.tokenHash,
+            input.accountId,
+            input.verifiedEmail,
+          ],
         ),
       );
-      if (!eligible) {
+      if (eligible?.eligible !== true) {
         await client.query("ROLLBACK");
         transactionStarted = false;
         return false;

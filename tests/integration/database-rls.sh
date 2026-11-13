@@ -7,6 +7,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MIGRATIONS_DIR="$ROOT_DIR/packages/database/prisma/migrations"
 
+# Provision the restricted runtime role before applying migrations that grant
+# narrowly scoped EXECUTE privileges to it.
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+CREATE ROLE vv_runtime
+  NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+SQL
+
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261105133000_identity_tenancy/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
@@ -35,8 +42,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261107120000_transactional_outbox/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
-CREATE ROLE vv_runtime
-  LOGIN PASSWORD 'runtime-test'
+ALTER ROLE vv_runtime
+  WITH LOGIN PASSWORD 'runtime-test'
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
 
 GRANT CONNECT ON DATABASE volition_vector TO vv_runtime;
