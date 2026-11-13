@@ -14,7 +14,9 @@ export interface OpportunityApplication {
   readonly updatedAt: string;
 }
 
-export function normalizeApiOrigin(configured: string | undefined): string | null {
+export function normalizeApiOrigin(
+  configured: string | undefined,
+): string | null {
   if (!configured) return null;
 
   try {

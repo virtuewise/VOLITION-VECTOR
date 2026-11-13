@@ -92,6 +92,8 @@ describe("individual workspace display helpers", () => {
   });
 
   it("sanitizes status-derived CSS class names", () => {
-    expect(statusClass("accepted<script>")).toBe("status status-acceptedscript");
+    expect(statusClass("accepted<script>")).toBe(
+      "status status-acceptedscript",
+    );
   });
 });
