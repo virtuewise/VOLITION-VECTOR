@@ -5,13 +5,13 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { isUUID } from "class-validator";
-import type {
-  AccountOrganizationSummary,
-} from "@volition/database";
+import type { AccountOrganizationSummary } from "@volition/database";
 import type { AuthenticatedPrincipal } from "./identity-membership.contracts.js";
 
 export interface AccountOrganizationRepository {
-  listForAccount(accountId: string): Promise<readonly AccountOrganizationSummary[]>;
+  listForAccount(
+    accountId: string,
+  ): Promise<readonly AccountOrganizationSummary[]>;
 }
 
 export const ACCOUNT_ORGANIZATION_REPOSITORY = Symbol(
