@@ -256,7 +256,7 @@ describe("PostgresOrganizationProfileRepository", () => {
   });
 
   it("audits only non-default fields on the first profile patch", async () => {
-    const saved = {
+    const saved: TestProfileRow = {
       ...profileRow,
       description: null,
       website_url: null,
