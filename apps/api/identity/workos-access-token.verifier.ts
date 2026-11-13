@@ -41,9 +41,7 @@ interface VerifiedUserSessionClaims extends WorkOSAccessTokenClaims {
 
 function isNonEmptyTokenIdentifier(value: unknown): value is string {
   return (
-    typeof value === "string" &&
-    value.trim().length > 0 &&
-    value.length <= 256
+    typeof value === "string" && value.trim().length > 0 && value.length <= 256
   );
 }
 
@@ -73,8 +71,7 @@ function hasValidUserSessionClaims(
 
   if (
     claims.nbf !== undefined &&
-    (!isNumericDate(claims.nbf) ||
-      claims.nbf > nowSeconds + CLOCK_SKEW_SECONDS)
+    (!isNumericDate(claims.nbf) || claims.nbf > nowSeconds + CLOCK_SKEW_SECONDS)
   ) {
     return false;
   }

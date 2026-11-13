@@ -96,9 +96,8 @@ describe("WorkOSAccessTokenVerifier", () => {
   });
 
   it("verifies the token before accepting an exact API audience", async () => {
-    const { verifier, createClient, verifyAccessToken } = verifierFor(
-      validUserClaims(),
-    );
+    const { verifier, createClient, verifyAccessToken } =
+      verifierFor(validUserClaims());
 
     await expect(
       verifier.verifyBearerToken("Bearer signed-token"),
