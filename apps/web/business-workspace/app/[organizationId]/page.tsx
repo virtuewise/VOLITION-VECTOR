@@ -54,8 +54,7 @@ export default async function OrganizationPage({
           <nav aria-label="Workspace navigation">
             <Link href="/">All organizations</Link>
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href="/app/">Individual Workspace</a>
+            <a href="/app/">Individual Workspace</a>
             <form action={signOutAction}>
               <button className="sign-out" type="submit">
                 Sign out
@@ -110,7 +109,7 @@ export default async function OrganizationPage({
                     rel="noreferrer"
                   >
                     Visit organization website <span aria-hidden="true">↗</span>
-                  </Link>
+                  </a>
                 ) : null}
               </article>
               <article className="profile-card">
@@ -168,10 +167,11 @@ export default async function OrganizationPage({
   return (
     <main className="workspace">
       <header className="topbar">
-        <a className="wordmark" href="/business/">
+        <Link className="wordmark" href="/">
           VOLITION <span>VECTOR</span>
-        </a>
+        </Link>
         <nav aria-label="Workspace navigation">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/app/">Individual Workspace</a>
           <form action={signOutAction}>
             <button className="sign-out" type="submit">
@@ -188,7 +188,7 @@ export default async function OrganizationPage({
         </p>
         <Link className="text-link" href="/">
           Return to organization selection
-        </a>
+        </Link>
       </div>
     </main>
   );
