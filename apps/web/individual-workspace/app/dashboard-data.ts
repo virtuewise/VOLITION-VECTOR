@@ -89,8 +89,7 @@ export function isAccountProfile(value: unknown): value is AccountProfile {
   const profile = value as Record<string, unknown>;
   const displayName = profile["displayName"];
   return (
-    (displayName === null ||
-      isBoundedText(displayName, 120)) &&
+    (displayName === null || isBoundedText(displayName, 120)) &&
     isBoundedText(profile["locale"], 35) &&
     isBoundedText(profile["timeZone"], 64) &&
     (profile["updatedAt"] === null || isDateTime(profile["updatedAt"]))
