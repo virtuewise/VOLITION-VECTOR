@@ -63,7 +63,9 @@ export function normalizeApiOrigin(
       url.protocol === "http:" &&
       (url.hostname === "localhost" || url.hostname === "127.0.0.1");
     const originOnly =
-      url.pathname === "/" && url.search.length === 0 && url.hash.length === 0;
+      url.pathname === "/" &&
+      url.search.length === 0 &&
+      url.hash.length === 0;
 
     if (
       (!secure && !local) ||
