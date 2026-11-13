@@ -3,6 +3,12 @@ import { WorkOS } from "@workos-inc/node";
 interface WorkOSAccessTokenClaims extends Record<string, unknown> {
   readonly sub: string;
   readonly iss: string;
+  readonly sid?: unknown;
+  readonly jti?: unknown;
+  readonly exp?: unknown;
+  readonly iat?: unknown;
+  readonly nbf?: unknown;
+  readonly sub_profile?: unknown;
 }
 
 interface WorkOSVerificationClient {
@@ -19,7 +25,53 @@ type WorkOSClientFactory = (options: {
 export interface VerifiedWorkOSIdentity {
   subject: string;
   issuer: string;
+  sessionId: string;
+  tokenId: string;
   claims: Record<string, unknown>;
+}
+
+const CLOCK_SKEW_SECONDS = 30;
+
+interface VerifiedUserSessionClaims extends WorkOSAccessTokenClaims {
+  readonly sid: string;
+  readonly jti: string;
+  readonly exp: number;
+  readonly iat: number;
+}
+
+function isNonEmptyTokenIdentifier(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value.length <= 256;
+}
+
+function isNumericDate(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+/** Validate the documented AuthKit user-session claim profile after signature verification. */
+function hasValidUserSessionClaims(
+  claims: WorkOSAccessTokenClaims,
+  nowSeconds: number,
+): claims is VerifiedUserSessionClaims {
+  if (
+    !isNonEmptyTokenIdentifier(claims.sid) ||
+    !isNonEmptyTokenIdentifier(claims.jti) ||
+    !isNumericDate(claims.exp) ||
+    !isNumericDate(claims.iat) ||
+    claims.exp <= nowSeconds ||
+    claims.exp <= claims.iat ||
+    claims.iat > nowSeconds + CLOCK_SKEW_SECONDS
+  ) {
+    return false;
+  }
+
+  if (
+    claims.nbf !== undefined &&
+    (!isNumericDate(claims.nbf) || claims.nbf > nowSeconds + CLOCK_SKEW_SECONDS)
+  ) {
+    return false;
+  }
+
+  return claims.sub_profile === undefined || claims.sub_profile === "user";
 }
 
 /**
@@ -127,11 +179,13 @@ export class WorkOSAccessTokenVerifier {
     }
 
     const claims = await this.client.userManagement.verifyAccessToken(token);
+    const nowSeconds = Math.floor(Date.now() / 1000);
     if (
       !claims ||
-      typeof claims.sub !== "string" ||
+      !isNonEmptyTokenIdentifier(claims.sub) ||
       claims.iss !== this.expectedIssuer ||
-      !hasExpectedWorkOSAudience(claims, this.expectedAudience)
+      !hasExpectedWorkOSAudience(claims, this.expectedAudience) ||
+      !hasValidUserSessionClaims(claims, nowSeconds)
     ) {
       return null;
     }
@@ -139,6 +193,8 @@ export class WorkOSAccessTokenVerifier {
     return {
       subject: claims.sub,
       issuer: claims.iss,
+      sessionId: claims.sid,
+      tokenId: claims.jti,
       claims: claims as unknown as Record<string, unknown>,
     };
   }

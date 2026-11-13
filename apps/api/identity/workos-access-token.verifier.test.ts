@@ -16,6 +16,22 @@ function environment(
   } as NodeJS.ProcessEnv;
 }
 
+function validUserClaims(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const now = Math.floor(Date.now() / 1000);
+  return {
+    sub: "user_123",
+    iss: ISSUER,
+    aud: AUDIENCE,
+    sid: "session_123",
+    jti: "token_123",
+    exp: now + 300,
+    iat: now - 30,
+    ...overrides,
+  };
+}
+
 function verifierFor(
   claims: Record<string, unknown> | null,
   env = environment(),
@@ -80,17 +96,17 @@ describe("WorkOSAccessTokenVerifier", () => {
   });
 
   it("verifies the token before accepting an exact API audience", async () => {
-    const { verifier, createClient, verifyAccessToken } = verifierFor({
-      sub: "user_123",
-      iss: ISSUER,
-      aud: AUDIENCE,
-    });
+    const { verifier, createClient, verifyAccessToken } = verifierFor(
+      validUserClaims(),
+    );
 
     await expect(
       verifier.verifyBearerToken("Bearer signed-token"),
     ).resolves.toMatchObject({
       subject: "user_123",
       issuer: ISSUER,
+      sessionId: "session_123",
+      tokenId: "token_123",
     });
     expect(createClient).toHaveBeenCalledWith({
       clientId: CLIENT_ID,
@@ -100,11 +116,11 @@ describe("WorkOSAccessTokenVerifier", () => {
   });
 
   it("accepts a standards-compliant audience array containing the API", async () => {
-    const { verifier } = verifierFor({
-      sub: "user_123",
-      iss: ISSUER,
-      aud: ["https://another-api.example", AUDIENCE],
-    });
+    const { verifier } = verifierFor(
+      validUserClaims({
+        aud: ["https://another-api.example", AUDIENCE],
+      }),
+    );
 
     await expect(
       verifier.verifyBearerToken("Bearer signed-token"),
@@ -112,10 +128,10 @@ describe("WorkOSAccessTokenVerifier", () => {
   });
 
   it.each([
-    { sub: "user_123", iss: ISSUER },
-    { sub: "user_123", iss: ISSUER, aud: "https://other-api.example" },
-    { sub: "user_123", iss: "https://other-issuer.example", aud: AUDIENCE },
-    { iss: ISSUER, aud: AUDIENCE },
+    validUserClaims({ sub: "" }),
+    validUserClaims({ iss: "https://other-issuer.example" }),
+    validUserClaims({ aud: "https://other-api.example" }),
+    validUserClaims({ sub: undefined }),
   ])(
     "rejects a token without the required user, issuer or audience claims",
     async (claims) => {
@@ -126,6 +142,34 @@ describe("WorkOSAccessTokenVerifier", () => {
       ).resolves.toBeNull();
     },
   );
+
+  it.each([
+    ["missing session ID", { sid: undefined }],
+    ["empty session ID", { sid: " " }],
+    ["missing token ID", { jti: undefined }],
+    ["missing expiry", { exp: undefined }],
+    ["missing issue time", { iat: undefined }],
+    ["expired token", { exp: Math.floor(Date.now() / 1000) - 1 }],
+    ["expiry before issue time", { exp: Math.floor(Date.now() / 1000) - 60 }],
+    ["future issue time", { iat: Math.floor(Date.now() / 1000) + 31 }],
+    ["future not-before time", { nbf: Math.floor(Date.now() / 1000) + 31 }],
+    ["agent token profile", { sub_profile: "ai_agent" }],
+    ["unknown token profile", { sub_profile: "service" }],
+  ])("rejects invalid user-session metadata: %s", async (_name, overrides) => {
+    const { verifier } = verifierFor(validUserClaims(overrides));
+
+    await expect(
+      verifier.verifyBearerToken("Bearer signed-token"),
+    ).resolves.toBeNull();
+  });
+
+  it("accepts the documented explicit user token profile", async () => {
+    const { verifier } = verifierFor(validUserClaims({ sub_profile: "user" }));
+
+    await expect(
+      verifier.verifyBearerToken("Bearer signed-token"),
+    ).resolves.toMatchObject({ subject: "user_123" });
+  });
 
   it("does not treat missing or non-bearer credentials as an identity", async () => {
     const { verifier, verifyAccessToken } = verifierFor(null);

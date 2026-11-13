@@ -13,6 +13,10 @@ export interface IdentityRequest {
   identity?: AuthenticatedPrincipal;
 }
 
+function isSessionIdentifier(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value.length <= 256;
+}
+
 @Injectable()
 export class IdentityContextGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
@@ -25,14 +29,26 @@ export class IdentityContextGuard implements CanActivate {
       );
     }
 
-    const accountId = (user as Record<string, unknown>)["accountId"];
-    if (typeof accountId !== "string" || !isUUID(accountId)) {
+    const trustedUser = user as Record<string, unknown>;
+    const accountId = trustedUser["accountId"];
+    const sessionId = trustedUser["sessionId"];
+    const tokenId = trustedUser["tokenId"];
+    if (
+      typeof accountId !== "string" ||
+      !isUUID(accountId) ||
+      !isSessionIdentifier(sessionId) ||
+      !isSessionIdentifier(tokenId)
+    ) {
       throw new UnauthorizedException(
         "A verified identity context is required.",
       );
     }
 
-    request.identity = { accountId: accountId.toLowerCase() };
+    request.identity = {
+      accountId: accountId.toLowerCase(),
+      sessionId,
+      tokenId,
+    };
     return true;
   }
 }

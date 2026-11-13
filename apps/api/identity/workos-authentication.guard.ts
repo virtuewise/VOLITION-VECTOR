@@ -76,7 +76,11 @@ export class WorkOSAuthenticationGuard implements CanActivate {
       );
     }
 
-    request.user = { accountId };
+    request.user = {
+      accountId,
+      sessionId: verified.sessionId,
+      tokenId: verified.tokenId,
+    };
     return true;
   }
 }
