@@ -1,4 +1,5 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { signOutAction } from "../sign-out/action";
 import {
@@ -47,12 +48,14 @@ export default async function OrganizationPage({
     return (
       <main className="workspace">
         <header className="topbar">
-          <a className="wordmark" href="/business/">
+          <Link className="wordmark" href="/">
             VOLITION <span>VECTOR</span>
-          </a>
+          </Link>
           <nav aria-label="Workspace navigation">
-            <a href="/business/">All organizations</a>
-            <a href="/app/">Individual Workspace</a>
+            <Link href="/">All organizations</Link>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/app/">Individual Workspace</a>
             <form action={signOutAction}>
               <button className="sign-out" type="submit">
                 Sign out
@@ -87,9 +90,9 @@ export default async function OrganizationPage({
               <p className="eyebrow">ORGANIZATION FOUNDATION</p>
               <h2 id="profile-heading">Business profile</h2>
             </div>
-            <a className="text-link" href="/business/">
+            <Link className="text-link" href="/">
               Change organization
-            </a>
+            </Link>
           </div>
 
           {profile.status === "ready" ? (
@@ -107,7 +110,7 @@ export default async function OrganizationPage({
                     rel="noreferrer"
                   >
                     Visit organization website <span aria-hidden="true">↗</span>
-                  </a>
+                  </Link>
                 ) : null}
               </article>
               <article className="profile-card">
@@ -183,7 +186,7 @@ export default async function OrganizationPage({
           The account organization service could not be reached. No tenant has
           been selected. Please retry after the service is restored.
         </p>
-        <a className="text-link" href="/business/">
+        <Link className="text-link" href="/">
           Return to organization selection
         </a>
       </div>
