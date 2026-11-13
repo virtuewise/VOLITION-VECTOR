@@ -1,4 +1,5 @@
 import { withAuth } from "@workos-inc/authkit-nextjs";
+import Link from "next/link";
 import { signOutAction } from "./sign-out/action";
 import { getApiOrigin, loadOrganizations } from "./workspace-api";
 
@@ -18,14 +19,15 @@ export default async function HomePage() {
   return (
     <main className="workspace">
       <header className="topbar">
-        <a
+        <Link
           className="wordmark"
-          href="/business/"
+          href="/"
           aria-label="Volition Vector Business Workspace"
         >
           VOLITION <span>VECTOR</span>
-        </a>
+        </Link>
         <nav aria-label="Workspace navigation">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a href="/app/">Individual Workspace</a>
           <form action={signOutAction}>
             <button className="sign-out" type="submit">
@@ -81,9 +83,9 @@ export default async function HomePage() {
               return a valid response. Your sign-in is intact. No tenant has
               been selected and no organization data has been fabricated.
             </p>
-            <a className="text-link" href="/business/">
+            <Link className="text-link" href="/">
               Try again
-            </a>
+            </Link>
           </div>
         ) : organizations.value.length === 0 ? (
           <div className="state-panel">
@@ -93,6 +95,7 @@ export default async function HomePage() {
               organization. An organization owner or administrator must
               establish membership before business data can be accessed.
             </p>
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a className="text-link" href="/app/">
               Return to your Individual Workspace
             </a>
@@ -113,16 +116,13 @@ export default async function HomePage() {
                   <p className="slug">{organization.slug}</p>
                   <span className="role">{roleLabel(organization.role)}</span>
                 </div>
-                <a
+                <Link
                   className="open-link"
-                  href={
-                    "/business/" +
-                    encodeURIComponent(organization.organizationId)
-                  }
+                  href={"/" + encodeURIComponent(organization.organizationId)}
                   aria-label={"Open " + organization.name + " workspace"}
                 >
                   Open workspace <span aria-hidden="true">↗</span>
-                </a>
+                </Link>
               </article>
             ))}
           </div>
