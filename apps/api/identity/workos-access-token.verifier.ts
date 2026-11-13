@@ -168,7 +168,7 @@ export class WorkOSAccessTokenVerifier {
       return null;
     }
 
-    const match = /^Bearer\\s+(\\S+)$/i.exec(authorization ?? "");
+    const match = /^Bearer\s+(\S+)$/i.exec(authorization ?? "");
     const token = match?.[1];
 
     if (!token || token.length > 16_384) {
