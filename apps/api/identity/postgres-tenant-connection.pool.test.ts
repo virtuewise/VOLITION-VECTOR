@@ -127,9 +127,7 @@ describe("PostgresTenantConnectionPool", () => {
   });
 
   it("rejects missing organization discovery SELECT privileges", async () => {
-    const { pool } = makePool([
-      { can_read_organizations: false },
-    ]);
+    const { pool } = makePool([{ can_read_organizations: false }]);
     const adapter = new PostgresTenantConnectionPool(pool);
 
     await expect(adapter.onModuleInit()).rejects.toThrow(
