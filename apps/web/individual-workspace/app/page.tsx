@@ -5,6 +5,7 @@ import {
   humanize,
   isAccountProfile,
   isApplicationList,
+  normalizeApiOrigin,
   statusClass,
 } from "./dashboard-data";
 
@@ -13,20 +14,9 @@ type LoadResult<T> =
   | { readonly status: "unavailable" };
 
 function getApiOrigin(): string | null {
-  const configured =
-    process.env["VOLITION_API_URL"] ?? process.env["WEB_ORIGIN"];
-  if (!configured) return null;
-
-  try {
-    const url = new URL(configured);
-    const secure = url.protocol === "https:";
-    const local =
-      url.protocol === "http:" &&
-      (url.hostname === "localhost" || url.hostname === "127.0.0.1");
-    return secure || local ? url.origin : null;
-  } catch {
-    return null;
-  }
+  return normalizeApiOrigin(
+    process.env["VOLITION_API_URL"] ?? process.env["WEB_ORIGIN"],
+  );
 }
 
 async function loadPrivateResource<T>(

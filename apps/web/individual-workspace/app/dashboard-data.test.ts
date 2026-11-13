@@ -4,10 +4,30 @@ import {
   humanize,
   isAccountProfile,
   isApplicationList,
+  normalizeApiOrigin,
   statusClass,
 } from "./dashboard-data.js";
 
 describe("individual workspace API response contracts", () => {
+  it("allows HTTPS and local-only HTTP API origins", () => {
+    expect(normalizeApiOrigin("https://api.example.test/v1")).toBe(
+      "https://api.example.test",
+    );
+    expect(normalizeApiOrigin("http://localhost:4000")).toBe(
+      "http://localhost:4000",
+    );
+    expect(normalizeApiOrigin("http://127.0.0.1:4000")).toBe(
+      "http://127.0.0.1:4000",
+    );
+  });
+
+  it("rejects remote HTTP, invalid protocols and embedded credentials", () => {
+    expect(normalizeApiOrigin("http://api.example.test")).toBeNull();
+    expect(normalizeApiOrigin("javascript:alert(1)")).toBeNull();
+    expect(normalizeApiOrigin("https://user:pass@api.example.test")).toBeNull();
+    expect(normalizeApiOrigin(undefined)).toBeNull();
+  });
+
   it("accepts the private account profile view", () => {
     expect(
       isAccountProfile({

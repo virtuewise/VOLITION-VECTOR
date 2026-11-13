@@ -14,6 +14,22 @@ export interface OpportunityApplication {
   readonly updatedAt: string;
 }
 
+export function normalizeApiOrigin(configured: string | undefined): string | null {
+  if (!configured) return null;
+
+  try {
+    const url = new URL(configured);
+    const secure = url.protocol === "https:";
+    const local =
+      url.protocol === "http:" &&
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1");
+    if ((!secure && !local) || url.username || url.password) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 export function isAccountProfile(value: unknown): value is AccountProfile {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
