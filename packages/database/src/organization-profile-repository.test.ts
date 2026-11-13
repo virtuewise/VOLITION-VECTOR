@@ -27,10 +27,20 @@ const profileRow = {
   updated_at: new Date("2026-11-12T08:00:00.000Z"),
 };
 
+type TestProfileRow = {
+  readonly organization_id: string;
+  readonly description: string | null;
+  readonly website_url: string | null;
+  readonly country_code: string | null;
+  readonly locale: string;
+  readonly time_zone: string;
+  readonly updated_at: Date | string;
+};
+
 function makePool(options?: {
   access?: typeof accessRow | null;
-  profile?: typeof profileRow | null;
-  saved?: typeof profileRow | null;
+  profile?: TestProfileRow | null;
+  saved?: TestProfileRow | null;
 }) {
   const calls: Array<{ sql: string; parameters?: readonly unknown[] }> = [];
   const client: TenantConnection = {
