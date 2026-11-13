@@ -103,7 +103,11 @@ export function isApplicationList(
     Array.isArray(value) &&
     value.length <= 10 &&
     value.every((entry: unknown) => {
-      if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      if (
+        typeof entry !== "object" ||
+        entry === null ||
+        Array.isArray(entry)
+      ) {
         return false;
       }
       const application = entry as Record<string, unknown>;
