@@ -49,6 +49,10 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly member_of_privileged_role: boolean;
   readonly all_tenant_tables_force_rls: boolean;
   readonly all_account_tables_force_rls: boolean;
+  readonly has_account_membership_discovery_policy: boolean;
+  readonly has_account_organization_discovery_policy: boolean;
+  readonly can_read_organizations: boolean;
+  readonly can_read_organization_memberships: boolean;
   readonly can_read_external_identities: boolean;
   readonly can_read_accounts: boolean;
   readonly can_read_account_profiles: boolean;
@@ -164,6 +168,24 @@ export class PostgresTenantConnectionPool
              AND c.relrowsecurity
              AND c.relforcerowsecurity
          ) AS all_account_tables_force_rls,
+         EXISTS (
+           SELECT 1 FROM pg_policies
+           WHERE schemaname = 'public'
+             AND tablename = 'organization_memberships'
+             AND policyname = 'organization_memberships_account_discovery'
+             AND cmd = 'SELECT'
+         ) AS has_account_membership_discovery_policy,
+         EXISTS (
+           SELECT 1 FROM pg_policies
+           WHERE schemaname = 'public'
+             AND tablename = 'organizations'
+             AND policyname = 'organizations_account_discovery'
+             AND cmd = 'SELECT'
+         ) AS has_account_organization_discovery_policy,
+         has_table_privilege(current_user, 'public.organizations', 'SELECT')
+           AS can_read_organizations,
+         has_table_privilege(current_user, 'public.organization_memberships', 'SELECT')
+           AS can_read_organization_memberships,
          (
            has_column_privilege(current_user, 'public.external_identities', 'account_id', 'SELECT')
            AND has_column_privilege(current_user, 'public.external_identities', 'issuer', 'SELECT')
@@ -214,6 +236,10 @@ export class PostgresTenantConnectionPool
       runtimeRole.member_of_privileged_role ||
       !runtimeRole.all_tenant_tables_force_rls ||
       !runtimeRole.all_account_tables_force_rls ||
+      !runtimeRole.has_account_membership_discovery_policy ||
+      !runtimeRole.has_account_organization_discovery_policy ||
+      !runtimeRole.can_read_organizations ||
+      !runtimeRole.can_read_organization_memberships ||
       !runtimeRole.can_read_external_identities ||
       !runtimeRole.can_read_accounts ||
       !runtimeRole.can_read_account_profiles ||
