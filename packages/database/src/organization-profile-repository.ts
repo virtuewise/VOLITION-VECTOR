@@ -293,36 +293,25 @@ export class PostgresOrganizationProfileRepository {
         ),
       );
       const current = currentRow ? toRecord(currentRow) : null;
+      const baseline = current ?? defaultRecord(organizationId);
       const nextDescription =
-        description === undefined
-          ? (current?.description ?? null)
-          : description;
+        description === undefined ? baseline.description : description;
       const nextWebsiteUrl =
-        websiteUrl === undefined ? (current?.websiteUrl ?? null) : websiteUrl;
+        websiteUrl === undefined ? baseline.websiteUrl : websiteUrl;
       const nextCountryCode =
-        countryCode === undefined
-          ? (current?.countryCode ?? null)
-          : countryCode;
-      const nextLocale = locale ?? current?.locale ?? "en";
-      const nextTimeZone = timeZone ?? current?.timeZone ?? "UTC";
+        countryCode === undefined ? baseline.countryCode : countryCode;
+      const nextLocale = locale ?? baseline.locale;
+      const nextTimeZone = timeZone ?? baseline.timeZone;
 
-      const changedFields = current
-        ? [
-            ...(current.description === nextDescription ? [] : ["description"]),
-            ...(current.websiteUrl === nextWebsiteUrl ? [] : ["websiteUrl"]),
-            ...(current.countryCode === nextCountryCode ? [] : ["countryCode"]),
-            ...(current.locale === nextLocale ? [] : ["locale"]),
-            ...(current.timeZone === nextTimeZone ? [] : ["timeZone"]),
-          ]
-        : [
-            ...(description === undefined ? [] : ["description"]),
-            ...(websiteUrl === undefined ? [] : ["websiteUrl"]),
-            ...(countryCode === undefined ? [] : ["countryCode"]),
-            ...(locale === undefined ? [] : ["locale"]),
-            ...(timeZone === undefined ? [] : ["timeZone"]),
-          ];
+      const changedFields = [
+        ...(baseline.description === nextDescription ? [] : ["description"]),
+        ...(baseline.websiteUrl === nextWebsiteUrl ? [] : ["websiteUrl"]),
+        ...(baseline.countryCode === nextCountryCode ? [] : ["countryCode"]),
+        ...(baseline.locale === nextLocale ? [] : ["locale"]),
+        ...(baseline.timeZone === nextTimeZone ? [] : ["timeZone"]),
+      ];
 
-      if (current && changedFields.length === 0) return current;
+      if (changedFields.length === 0) return baseline;
 
       const savedRow = firstRow<ProfileRow>(
         await client.query(
