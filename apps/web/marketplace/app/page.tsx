@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatMoney } from "./format-money.js";
 
 type SearchParams = Promise<{
   q?: string | string[];
@@ -82,26 +83,6 @@ function humanize(value: string): string {
     .replaceAll("_", " ")
     .replaceAll("-", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-
-function formatMoney(
-  amount: string | null,
-  currency: string | null,
-): string | null {
-  if (amount === null || currency === null) return null;
-
-  const numericAmount = Number(amount);
-  if (!Number.isFinite(numericAmount)) return null;
-
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(numericAmount);
-  } catch {
-    return null;
-  }
 }
 
 function formatCompensation(item: PublicOpportunity): string | null {

@@ -302,7 +302,7 @@ a {
   margin-top: 1rem;
   padding-top: 0.8rem;
   border-top: 1px solid #e8eadc;
-  color: #7a8271;
+  color: var(--muted);
   font-size: 0.7rem;
 }
 
