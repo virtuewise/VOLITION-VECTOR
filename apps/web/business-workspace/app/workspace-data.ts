@@ -25,7 +25,11 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  );
 }
 
 function isRole(value: unknown): value is BusinessOrganizationRole {
@@ -71,7 +75,8 @@ export function isOrganizationProfile(
   }
   if (
     value.description !== null &&
-    (typeof value.description !== "string" || value.description.length > 2000)
+    (typeof value.description !== "string" ||
+      value.description.length > 2000)
   ) {
     return false;
   }
@@ -130,7 +135,8 @@ export function normalizeApiOrigin(input: string | undefined): string | null {
     const isLocalhost =
       url.hostname === "localhost" || url.hostname === "127.0.0.1";
     if (
-      (url.protocol !== "https:" && !(isLocalhost && url.protocol === "http:")) ||
+      (url.protocol !== "https:" &&
+        !(isLocalhost && url.protocol === "http:")) ||
       url.username ||
       url.password ||
       url.pathname !== "/" ||
