@@ -13,9 +13,17 @@ ACCOUNT_VERIFIED="77777777-7777-4777-8777-777777777777"
 ACCOUNT_UNVERIFIED="88888888-8888-4888-8888-888888888888"
 ACCOUNT_SUSPENDED="66666666-6666-4666-8666-666666666666"
 
-# The tracked migration runner may already have applied this migration
-# before the RLS harness creates vv_runtime. Apply only when the function is
-# absent; then grant the test runtime role explicitly after its creation.
+# The RLS harness provisions vv_runtime before applying migrations.
+# The migration itself must grant the private predicate to that role.
+runtime_role_exists="$(
+  psql "$DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vv_runtime');"
+)"
+if [[ "$runtime_role_exists" != "t" ]]; then
+  echo "vv_runtime must be provisioned before the invitation eligibility migration." >&2
+  exit 1
+fi
+
 function_exists="$(
   psql "$DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT to_regprocedure('public.is_invitation_acceptance_eligible(uuid,bytea,uuid,text)') IS NOT NULL;"
@@ -53,9 +61,6 @@ VALUES
     false
   );
 
-GRANT EXECUTE
-  ON FUNCTION public.is_invitation_acceptance_eligible(uuid, bytea, uuid, text)
-  TO vv_runtime;
 SQL
 
 function_privileges="$(psql "$DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<'SQL'
