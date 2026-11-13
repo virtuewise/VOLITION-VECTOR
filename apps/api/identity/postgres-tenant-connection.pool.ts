@@ -9,6 +9,7 @@ import type {
 
 const TENANT_OWNED_TABLES = [
   "organizations",
+  "organization_profiles",
   "organization_memberships",
   "organization_invitations",
   "organization_invitation_rate_limits",
@@ -43,6 +44,7 @@ interface RuntimeRoleRow extends QueryResultRow {
   readonly all_tenant_tables_force_rls: boolean;
   readonly can_read_external_identities: boolean;
   readonly can_read_accounts: boolean;
+  readonly can_manage_organization_profiles: boolean;
   readonly can_read_private_identity_email: boolean;
 }
 
@@ -135,6 +137,13 @@ export class PostgresTenantConnectionPool
            AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
          ) AS can_read_accounts,
          (
+           has_table_privilege(current_user, 'public.organization_profiles', 'SELECT')
+           AND has_table_privilege(current_user, 'public.organization_profiles', 'INSERT')
+           AND has_table_privilege(current_user, 'public.organization_profiles', 'UPDATE')
+           AND NOT has_table_privilege(current_user, 'public.organization_profiles', 'DELETE')
+           AND NOT has_table_privilege(current_user, 'public.organization_profiles', 'TRUNCATE')
+         ) AS can_manage_organization_profiles,
+         (
            has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
            OR has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
          ) AS can_read_private_identity_email
@@ -155,11 +164,13 @@ export class PostgresTenantConnectionPool
       !runtimeRole.all_tenant_tables_force_rls ||
       !runtimeRole.can_read_external_identities ||
       !runtimeRole.can_read_accounts ||
+      !runtimeRole.can_manage_organization_profiles ||
       runtimeRole.can_read_private_identity_email
     ) {
       throw new Error(
         "DATABASE_URL role must be non-privileged and non-owner, use minimal " +
-          "identity-column SELECT grants, exclude private identity email fields, " +
+          "identity-column SELECT grants, least-privilege organization profile grants, " +
+          "exclude private identity email fields, " +
           "and enforce tenant RLS.",
       );
     }

@@ -33,6 +33,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261106210000_trust_evidence_decisions/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261107120000_transactional_outbox/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261112090000_organization_profiles/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -52,6 +54,7 @@ GRANT SELECT, INSERT ON journal_entries, journal_entry_lines TO vv_runtime;
 GRANT SELECT, INSERT ON trust_evidence TO vv_runtime;
 GRANT SELECT ON trust_evidence_decisions TO vv_runtime;
 GRANT SELECT, INSERT ON outbox_events TO vv_runtime;
+GRANT SELECT, INSERT, UPDATE ON organization_profiles TO vv_runtime;
 
 -- Deliberately grant TRUNCATE in this test: the trigger must preserve the
 -- append-only invariant even if a runtime grant is accidentally too broad.
@@ -110,6 +113,26 @@ INSERT INTO organizations (id, name, slug, created_by_account_id) VALUES
     'Tenant Two',
     'tenant-two',
     '22222222-2222-4222-8222-222222222222'
+  );
+
+INSERT INTO organization_profiles
+  (organization_id, description, website_url, country_code, locale, time_zone)
+VALUES
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'Tenant One private workspace profile',
+    'https://tenant-one.example.test/',
+    'ZA',
+    'en-ZA',
+    'Africa/Johannesburg'
+  ),
+  (
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    'Tenant Two private workspace profile',
+    'https://tenant-two.example.test/',
+    'NL',
+    'nl-NL',
+    'Europe/Amsterdam'
   );
 
 INSERT INTO organization_memberships
@@ -538,7 +561,8 @@ SELECT
         'journal_entry_lines',
         'trust_evidence',
         'trust_evidence_decisions',
-        'outbox_events'
+        'outbox_events',
+        'organization_profiles'
       ]::text[])
       AND (
         c.relowner = role.oid OR
@@ -556,7 +580,7 @@ SELECT
       AND pg_has_role(role.oid, privileged.oid, 'MEMBER')
   )
   AND (
-    SELECT count(*) = 18
+    SELECT count(*) = 19
     FROM pg_class AS c
     JOIN pg_namespace AS nsp ON nsp.oid = c.relnamespace
     WHERE nsp.nspname = 'public'
@@ -578,7 +602,8 @@ SELECT
         'journal_entry_lines',
         'trust_evidence',
         'trust_evidence_decisions',
-        'outbox_events'
+        'outbox_events',
+        'organization_profiles'
       ]::text[])
       AND c.relrowsecurity
       AND c.relforcerowsecurity
@@ -590,12 +615,28 @@ SELECT
   AND has_column_privilege(current_user, 'public.accounts', 'status', 'SELECT')
   AND NOT has_column_privilege(current_user, 'public.external_identities', 'email', 'SELECT')
   AND NOT has_column_privilege(current_user, 'public.external_identities', 'email_verified', 'SELECT')
+  AND has_table_privilege(current_user, 'public.organization_profiles', 'SELECT')
+  AND has_table_privilege(current_user, 'public.organization_profiles', 'INSERT')
+  AND has_table_privilege(current_user, 'public.organization_profiles', 'UPDATE')
+  AND NOT has_table_privilege(current_user, 'public.organization_profiles', 'DELETE')
+  AND NOT has_table_privilege(current_user, 'public.organization_profiles', 'TRUNCATE')
 FROM pg_roles AS role
 WHERE role.rolname = current_user;
 SQL
 )"
 if [[ "$runtime_role_safe" != "t" ]]; then
   echo "Runtime PostgreSQL role or tenant RLS configuration failed the startup gate." >&2
+  exit 1
+fi
+
+assert_count organization_profiles "$TENANT_ONE" 1
+assert_count organization_profiles "$TENANT_TWO" 1
+cross_tenant_profile_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_ONE'; SELECT count(*) FROM organization_profiles WHERE organization_id = '$TENANT_TWO';"
+)"
+if [[ "$cross_tenant_profile_count" != "0" ]]; then
+  echo "An organization read another tenant's private profile." >&2
   exit 1
 fi
 
@@ -851,6 +892,14 @@ fi
 
 expect_failure "cross-tenant organization insert" \
   "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO organizations (id, name, slug, created_by_account_id) VALUES ('99999999-9999-4999-8999-999999999999', 'Spoofed', 'spoofed-tenant', '$ACCOUNT_ONE');"
+
+expect_failure "cross-tenant organization profile insert" \
+  "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO organization_profiles (organization_id, description) VALUES ('$TENANT_TWO', 'Cross-tenant profile');"
+
+expect_failure "runtime cannot delete organization profiles" \
+  "SET app.tenant_id = '$TENANT_ONE'; DELETE FROM organization_profiles WHERE organization_id = '$TENANT_ONE';"
+
+expect_failure "runtime cannot truncate organization profiles" "TRUNCATE organization_profiles;"
 
 expect_failure "cross-tenant membership insert" \
   "SET app.tenant_id = '$TENANT_ONE'; INSERT INTO organization_memberships (organization_id, account_id, role) VALUES ('$TENANT_TWO', '$ACCOUNT_ONE', 'member');"
@@ -1136,4 +1185,4 @@ fi
 
 bash "$ROOT_DIR/tests/integration/payments-journal.sh"
 
-echo "PostgreSQL tenant RLS, project workspaces, private conversations, private Trust evidence, immutable journal, append-only audit/outbox and concurrent owner-continuity checks passed."
+echo "PostgreSQL tenant RLS, private organization profiles, project workspaces, private conversations, private Trust evidence, immutable journal, append-only audit/outbox and concurrent owner-continuity checks passed."
