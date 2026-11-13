@@ -19,12 +19,14 @@ const organizations: readonly AccountOrganizationSummary[] = [
 
 describe("AccountOrganizationApplicationService", () => {
   it("lists organizations for the verified account only", async () => {
-    const repository = { listForAccount: vi.fn().mockResolvedValue(organizations) };
+    const repository = {
+      listForAccount: vi.fn().mockResolvedValue(organizations),
+    };
     const service = new AccountOrganizationApplicationService(repository);
 
-    await expect(service.list({ accountId: ACCOUNT_ID.toUpperCase() })).resolves.toEqual(
-      organizations,
-    );
+    await expect(
+      service.list({ accountId: ACCOUNT_ID.toUpperCase() }),
+    ).resolves.toEqual(organizations);
     expect(repository.listForAccount).toHaveBeenCalledWith(ACCOUNT_ID);
   });
 
@@ -32,17 +34,17 @@ describe("AccountOrganizationApplicationService", () => {
     const repository = { listForAccount: vi.fn() };
     const service = new AccountOrganizationApplicationService(repository);
 
-    await expect(service.list({ accountId: "not-a-uuid" })).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(
+      service.list({ accountId: "not-a-uuid" }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(repository.listForAccount).not.toHaveBeenCalled();
   });
 
   it("fails closed when organization discovery is not configured", async () => {
     const service = new AccountOrganizationApplicationService(null);
 
-    await expect(service.list({ accountId: ACCOUNT_ID })).rejects.toBeInstanceOf(
-      ServiceUnavailableException,
-    );
+    await expect(
+      service.list({ accountId: ACCOUNT_ID }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 });
