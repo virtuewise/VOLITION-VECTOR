@@ -22,13 +22,14 @@ const APPLICATION_STATUSES = new Set([
   "accepted",
 ]);
 
+const UUID_V4_PATTERN = new RegExp(
+  "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-" +
+    "[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+  "i",
+);
+
 function isUuidV4(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      value,
-    )
-  );
+  return typeof value === "string" && UUID_V4_PATTERN.test(value);
 }
 
 function isDateTime(value: unknown): value is string {
@@ -89,7 +90,7 @@ export function isAccountProfile(value: unknown): value is AccountProfile {
   const displayName = profile["displayName"];
   return (
     (displayName === null ||
-      (isBoundedText(displayName, 120) && displayName.length >= 1)) &&
+      isBoundedText(displayName, 120)) &&
     isBoundedText(profile["locale"], 35) &&
     isBoundedText(profile["timeZone"], 64) &&
     (profile["updatedAt"] === null || isDateTime(profile["updatedAt"]))
