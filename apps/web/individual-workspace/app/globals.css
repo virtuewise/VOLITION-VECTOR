@@ -91,7 +91,11 @@ a {
 .welcome {
   padding: clamp(3.5rem, 7vw, 6rem) clamp(1.25rem, 8vw, 8rem) 3rem;
   background:
-    radial-gradient(ellipse at 88% 5%, rgba(96, 108, 56, 0.16), transparent 35%),
+    radial-gradient(
+      ellipse at 88% 5%,
+      rgba(96, 108, 56, 0.16),
+      transparent 35%
+    ),
     linear-gradient(135deg, #fefae0 0%, #f5f1d8 100%);
 }
 
