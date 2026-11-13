@@ -276,6 +276,9 @@ importers:
 
   apps/web/business-workspace:
     dependencies:
+      '@workos-inc/authkit-nextjs':
+        specifier: ^4.6.3
+        version: 4.6.3(@workos-inc/node@12.2.0)(next@16.4.5(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.10.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.2)
       next:
         specifier: 16.4.5
         version: 16.4.5(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.10.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
