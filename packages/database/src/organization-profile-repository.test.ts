@@ -208,6 +208,73 @@ describe("PostgresOrganizationProfileRepository", () => {
     });
   });
 
+  it("does not materialize a first patch that matches virtual defaults", async () => {
+    const { pool, calls } = makePool({ profile: null });
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
+
+    await expect(
+      repository.updateForOrganization({
+        organizationId,
+        actorAccountId,
+        description: null,
+        websiteUrl: null,
+        countryCode: null,
+        locale: "en",
+        timeZone: "UTC",
+      }),
+    ).resolves.toEqual({
+      organizationId,
+      description: null,
+      websiteUrl: null,
+      countryCode: null,
+      locale: "en",
+      timeZone: "UTC",
+      updatedAt: null,
+    });
+
+    expect(
+      calls.some((call) =>
+        call.sql.includes("INSERT INTO organization_profiles"),
+      ),
+    ).toBe(false);
+    expect(
+      calls.some((call) => call.sql.includes("INSERT INTO audit_events")),
+    ).toBe(false);
+  });
+
+  it("audits only non-default fields on the first profile patch", async () => {
+    const saved = {
+      ...profileRow,
+      description: null,
+      website_url: null,
+      country_code: null,
+      locale: "en-ZA",
+      time_zone: "UTC",
+    };
+    const { pool, calls } = makePool({ profile: null, saved });
+    const repository = new PostgresOrganizationProfileRepository(
+      pool,
+      authorize,
+    );
+
+    await repository.updateForOrganization({
+      organizationId,
+      actorAccountId,
+      description: null,
+      locale: "en-ZA",
+    });
+
+    const audit = calls.find((call) =>
+      call.sql.includes("INSERT INTO audit_events"),
+    );
+    expect(JSON.parse(String(audit?.parameters?.[3]))).toEqual({
+      changedFields: ["locale"],
+    });
+  });
+
   it("suppresses no-op updates and does not append an audit event", async () => {
     const { pool, calls } = makePool();
     const repository = new PostgresOrganizationProfileRepository(
