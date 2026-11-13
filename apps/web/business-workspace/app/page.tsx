@@ -18,7 +18,11 @@ export default async function HomePage() {
   return (
     <main className="workspace">
       <header className="topbar">
-        <a className="wordmark" href="/business/" aria-label="Volition Vector Business Workspace">
+        <a
+          className="wordmark"
+          href="/business/"
+          aria-label="Volition Vector Business Workspace"
+        >
           VOLITION <span>VECTOR</span>
         </a>
         <nav aria-label="Workspace navigation">
@@ -50,7 +54,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="organization-section" aria-labelledby="organizations-heading">
+      <section
+        className="organization-section"
+        aria-labelledby="organizations-heading"
+      >
         <div className="section-heading">
           <div>
             <p className="eyebrow">YOUR ORGANIZATIONS</p>
@@ -59,7 +66,9 @@ export default async function HomePage() {
           {organizations.status === "ready" ? (
             <span className="count">
               {organizations.value.length} active{" "}
-              {organizations.value.length === 1 ? "organization" : "organizations"}
+              {organizations.value.length === 1
+                ? "organization"
+                : "organizations"}
             </span>
           ) : null}
         </div>
@@ -91,7 +100,10 @@ export default async function HomePage() {
         ) : (
           <div className="organization-grid">
             {organizations.value.map((organization) => (
-              <article className="organization-card" key={organization.organizationId}>
+              <article
+                className="organization-card"
+                key={organization.organizationId}
+              >
                 <div className="card-mark" aria-hidden="true">
                   {organization.name.slice(0, 1).toUpperCase()}
                 </div>
@@ -103,7 +115,10 @@ export default async function HomePage() {
                 </div>
                 <a
                   className="open-link"
-                  href={"/business/" + encodeURIComponent(organization.organizationId)}
+                  href={
+                    "/business/" +
+                    encodeURIComponent(organization.organizationId)
+                  }
                   aria-label={"Open " + organization.name + " workspace"}
                 >
                   Open workspace <span aria-hidden="true">↗</span>
