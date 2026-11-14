@@ -22,7 +22,10 @@ export async function GET() {
     !isBusinessCallbackUri(callbackUri)
   ) {
     return NextResponse.json(
-      { error: "Business Workspace authentication is not configured for this environment." },
+      {
+        error:
+          "Business Workspace authentication is not configured for this environment.",
+      },
       { status: 503 },
     );
   }
