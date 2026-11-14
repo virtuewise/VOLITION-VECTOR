@@ -1,0 +1,38 @@
+name: Temporary PostgreSQL integration diagnostic
+
+on:
+  push:
+    branches:
+      - "feat/identity-organization-discovery"
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-rls:
+    runs-on: ubuntu-26.04
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_DB: volition_vector
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d volition_vector"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/volition_vector
+      RUNTIME_DATABASE_URL: postgresql://vv_runtime:runtime-test@localhost:5432/volition_vector
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Verify tenant isolation and append-only audit events
+        run: bash tests/integration/database-rls.sh
