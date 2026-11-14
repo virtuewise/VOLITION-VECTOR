@@ -7,9 +7,7 @@ import {
 describe("Business Workspace AuthKit redirect URIs", () => {
   it("accepts the exact HTTPS callback route", () => {
     expect(
-      isBusinessCallbackUri(
-        "https://business.example.com/business/callback",
-      ),
+      isBusinessCallbackUri("https://business.example.com/business/callback"),
     ).toBe(true);
   });
 
