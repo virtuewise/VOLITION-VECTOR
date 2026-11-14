@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isBusinessCallbackUri,
-  isBusinessSignedOutUri,
-} from "./auth-config";
+import { isBusinessCallbackUri, isBusinessSignedOutUri } from "./auth-config";
 
 describe("Business Workspace AuthKit redirect URIs", () => {
   it("accepts the exact HTTPS callback route", () => {
@@ -18,9 +15,9 @@ describe("Business Workspace AuthKit redirect URIs", () => {
   });
 
   it("rejects another app's callback and unsafe callback origins", () => {
-    expect(
-      isBusinessCallbackUri("https://example.com/app/callback"),
-    ).toBe(false);
+    expect(isBusinessCallbackUri("https://example.com/app/callback")).toBe(
+      false,
+    );
     expect(
       isBusinessCallbackUri("http://business.example.com/business/callback"),
     ).toBe(false);
@@ -48,9 +45,9 @@ describe("Business Workspace AuthKit redirect URIs", () => {
     expect(
       isBusinessSignedOutUri("https://business.example.com/business/"),
     ).toBe(false);
-    expect(
-      isBusinessSignedOutUri("https://business.example.com/app/"),
-    ).toBe(false);
+    expect(isBusinessSignedOutUri("https://business.example.com/app/")).toBe(
+      false,
+    );
     expect(isBusinessSignedOutUri(undefined)).toBe(false);
   });
 });
