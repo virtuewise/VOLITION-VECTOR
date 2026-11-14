@@ -1,7 +1,7 @@
 "use server";
 
 import { signOut } from "@workos-inc/authkit-nextjs";
-import { isBusinessSignedOutUri } from "../auth-config.js";
+import { isBusinessSignedOutUri } from "../auth-config";
 
 /**
  * AuthKit clears the encrypted session cookie and returns only to the
