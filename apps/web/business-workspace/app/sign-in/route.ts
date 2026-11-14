@@ -1,6 +1,6 @@
 import { getSignInUrl } from "@workos-inc/authkit-nextjs";
 import { NextResponse } from "next/server";
-import { isBusinessCallbackUri } from "../auth-config.js";
+import { isBusinessCallbackUri } from "../auth-config";
 
 export async function GET() {
   const required = [
