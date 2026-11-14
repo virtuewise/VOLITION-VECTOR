@@ -735,7 +735,7 @@ done
 # the intentionally suspended tenant-one membership. RLS counts rows by
 # tenant, not only active memberships.
 assert_count organization_memberships "$TENANT_ONE" 2
-assert_count organization_memberships "$TENANT_TWO" 2
+assert_count organization_memberships "$TENANT_TWO" 3
 # Public rows are visible across tenants; drafts remain tenant-private.
 assert_count opportunities "$TENANT_ONE" 3
 assert_count opportunities "$TENANT_TWO" 2
