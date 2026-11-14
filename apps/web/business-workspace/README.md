@@ -13,10 +13,29 @@ Copy the app-specific environment template:
 cp apps/web/business-workspace/.env.example apps/web/business-workspace/.env.local
 ```
 
-Set `VOLITION_API_URL` to the API origin. Local HTTP is accepted only for
-`localhost` and `127.0.0.1`; remote origins must use HTTPS. In a Vercel
-deployment, `WEB_ORIGIN` may be used when the host routes `/v1/*` to the API
-service. Keep all API origins and AuthKit secrets server-side.
+Set `VOLITION_API_URL` to the API origin. The repository root environment
+example sets `API_PORT=4000`, so the local API origin is
+`http://localhost:4000`; port 3003 belongs to the Business Workspace Next.js
+app. Local HTTP is accepted only for `localhost` and `127.0.0.1`; remote
+origins must use HTTPS. In a Vercel deployment, `WEB_ORIGIN` may be used when
+the host routes `/v1/*` to the API service. Keep API origins and AuthKit
+secrets server-side.
+
+## AuthKit callback and sign-out
+
+Configure `NEXT_PUBLIC_WORKOS_REDIRECT_URI` for this app as the absolute
+`/business/callback` URL, for example
+`http://localhost:3003/business/callback` locally. Add the exact URI to the
+WorkOS redirect allowlist. The callback handler uses AuthKit's
+`handleAuth({ returnPathname: "/" })` and returns the completed sign-in to the
+Business Workspace root under its `/business` basePath. Do not reuse the
+Individual Workspace `/app/callback` URI for this app.
+
+Configure `WORKOS_SIGN_OUT_REDIRECT_URI` as the absolute public
+`/business/signed-out` URL and add it to the WorkOS sign-out redirect
+allowlist. The sign-out action rejects missing, insecure, or wrong-path return
+URIs instead of falling back to a protected workspace route. The signed-out
+page is public and offers a link to sign in again.
 
 ## Organization access
 
