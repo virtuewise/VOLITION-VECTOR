@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PostgresProjectWorkspaceRepository } from "./project-workspace-repository.js";
+import { PostgresProjectWorkspaceRepository } from "./index.js";
 import type {
   TenantConnection,
   TenantConnectionPool,
