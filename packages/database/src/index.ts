@@ -109,6 +109,11 @@ export type {
   OutboxEventRecord,
 } from "./outbox-repository.js";
 
+export { PostgresAccountOrganizationRepository } from "./account-organization-repository.js";
+export type {
+  AccountOrganizationRole,
+  AccountOrganizationSummary,
+} from "./account-organization-repository.js";
 export { normalizeAccountId } from "./account-context.js";
 export { withAccountTransaction } from "./account-transaction.js";
 export { PostgresAccountProfileRepository } from "./account-profile-repository.js";

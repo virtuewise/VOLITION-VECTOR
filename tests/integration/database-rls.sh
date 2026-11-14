@@ -35,6 +35,8 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261107120000_transactional_outbox/migration.sql"
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
   -f "$MIGRATIONS_DIR/20261110100000_account_profiles/migration.sql"
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 \
+  -f "$MIGRATIONS_DIR/20261113123000_account_organization_discovery/migration.sql"
 
 psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
 CREATE ROLE vv_runtime
@@ -121,6 +123,15 @@ INSERT INTO organizations (id, name, slug, created_by_account_id) VALUES
     '22222222-2222-4222-8222-222222222222'
   );
 
+INSERT INTO organizations (id, name, slug, status, created_by_account_id)
+VALUES (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  'Suspended Organization',
+  'suspended-organization',
+  'suspended',
+  '11111111-1111-4111-8111-111111111111'
+);
+
 INSERT INTO organization_memberships
   (id, organization_id, account_id, role) VALUES
   (
@@ -134,6 +145,36 @@ INSERT INTO organization_memberships
     'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     '22222222-2222-4222-8222-222222222222',
     'owner'
+  ),
+  (
+    '55555555-aaaa-4555-8555-555555555555',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    '11111111-1111-4111-8111-111111111111',
+    'viewer'
+  );
+
+INSERT INTO organization_memberships
+  (id, organization_id, account_id, role, status) VALUES
+  (
+    '66666666-aaaa-4666-8666-666666666666',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '22222222-2222-4222-8222-222222222222',
+    'viewer',
+    'suspended'
+  ),
+  (
+    '77777777-aaaa-4777-8777-777777777777',
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    '66666666-6666-4666-8666-666666666666',
+    'viewer',
+    'active'
+  ),
+  (
+    '88888888-aaaa-4888-8888-888888888888',
+    'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    '11111111-1111-4111-8111-111111111111',
+    'viewer',
+    'active'
   );
 
 INSERT INTO organization_invitations
@@ -667,7 +708,7 @@ suspended_identity_result="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT a.id::text || '|' || a.status FROM external_identities AS ei JOIN accounts AS a ON a.id = ei.account_id WHERE ei.issuer = '$IDENTITY_ISSUER' AND ei.subject = 'suspended-subject' LIMIT 2;"
 )"
-if [[ "$suspended_identity_result" != "$SUSPENDED_ACCOUNT_ID|suspended" ]]; then
+if [[ "$suspended_identity_result" != "66666666-6666-4666-8666-666666666666|suspended" ]]; then
   echo "Suspended external identity fixture did not retain its account status." >&2
   exit 1
 fi
@@ -686,10 +727,15 @@ expect_failure "runtime cannot read external identity email addresses" \
 expect_failure "runtime cannot read external identity email verification metadata" \
   "SELECT email_verified FROM external_identities LIMIT 1;"
 
-for table in organizations organization_memberships organization_invitations organization_invitation_rate_limits opportunity_applications audit_events; do
+for table in organizations organization_invitations organization_invitation_rate_limits opportunity_applications audit_events; do
   assert_count "$table" "$TENANT_ONE" 1
   assert_count "$table" "$TENANT_TWO" 1
 done
+# Each tenant has its owner plus one additional membership fixture, including
+# the intentionally suspended tenant-one membership. RLS counts rows by
+# tenant, not only active memberships.
+assert_count organization_memberships "$TENANT_ONE" 2
+assert_count organization_memberships "$TENANT_TWO" 3
 # Public rows are visible across tenants; drafts remain tenant-private.
 assert_count opportunities "$TENANT_ONE" 3
 assert_count opportunities "$TENANT_TWO" 2
@@ -1074,7 +1120,7 @@ if [[ "$active_owner_count" != "1" ]]; then
   exit 1
 fi
 
-assert_count organization_memberships "$TENANT_ONE" 2
+assert_count organization_memberships "$TENANT_ONE" 3
 assert_count audit_events "$TENANT_ONE" 2
 assert_count audit_events "$TENANT_TWO" 1
 
@@ -1119,6 +1165,47 @@ expect_admin_failure "outbox UPDATE" \
 expect_admin_failure "outbox DELETE" \
   "SET app.tenant_id = '$TENANT_ONE'; DELETE FROM outbox_events WHERE id = '99999999-9999-4999-8999-999999999991';"
 expect_admin_failure "outbox TRUNCATE" "TRUNCATE outbox_events;"
+
+# Account-scoped organization discovery must reveal only the caller's own
+# active memberships, even when those memberships span multiple tenants.
+account_one_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organization_memberships;"
+)"
+account_one_organization_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organizations;"
+)"
+account_two_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_TWO'; SELECT count(*) FROM organization_memberships;"
+)"
+suspended_account_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$SUSPENDED_ACCOUNT_ID'; SELECT count(*) FROM organization_memberships;"
+)"
+account_one_cross_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organization_memberships WHERE account_id = '$ACCOUNT_TWO';"
+)"
+no_account_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SELECT count(*) FROM organization_memberships;"
+)"
+mixed_context_membership_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.tenant_id = '$TENANT_ONE'; SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM organization_memberships;"
+)"
+if [[ "$account_one_membership_count" != "3" ||
+      "$account_one_organization_count" != "2" ||
+      "$account_two_membership_count" != "1" ||
+      "$suspended_account_membership_count" != "0" ||
+      "$account_one_cross_membership_count" != "0" ||
+      "$no_account_membership_count" != "0" ||
+      "$mixed_context_membership_count" != "3" ]]; then
+  echo "Account-scoped organization discovery did not preserve membership isolation." >&2
+  exit 1
+fi
 
 # Account profile rows are visible only within the authenticated account context.
 profile_one_count="$(

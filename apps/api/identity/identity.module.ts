@@ -1,5 +1,8 @@
 import { Module } from "@nestjs/common";
-import { PostgresAccountProfileRepository } from "@volition/database";
+import {
+  PostgresAccountProfileRepository,
+  PostgresAccountOrganizationRepository,
+} from "@volition/database";
 import {
   MEMBERSHIP_MUTATION_COMMAND,
   UnconfiguredMembershipMutationCommand,
@@ -11,6 +14,11 @@ import { WorkOSIdentityResolver } from "./workos-identity.resolver.js";
 import { WorkOSAuthenticationGuard } from "./workos-authentication.guard.js";
 import { OrganizationMembershipController } from "./organization-membership.controller.js";
 import { AccountProfileController } from "./account-profile.controller.js";
+import { AccountOrganizationController } from "./account-organization.controller.js";
+import {
+  ACCOUNT_ORGANIZATION_REPOSITORY,
+  AccountOrganizationApplicationService,
+} from "./account-organization.service.js";
 import {
   ACCOUNT_PROFILE_REPOSITORY,
   AccountProfileApplicationService,
@@ -29,7 +37,11 @@ import { PostgresInvitationRateLimiter } from "./invitations/postgres-invitation
 import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invitation.repository.js";
 
 @Module({
-  controllers: [OrganizationMembershipController, AccountProfileController],
+  controllers: [
+    OrganizationMembershipController,
+    AccountProfileController,
+    AccountOrganizationController,
+  ],
   providers: [
     IdentityContextGuard,
     WorkOSAccessTokenVerifier,
@@ -37,6 +49,13 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
     WorkOSAuthenticationGuard,
     OrganizationMembershipApplicationService,
     AccountProfileApplicationService,
+    AccountOrganizationApplicationService,
+    {
+      provide: ACCOUNT_ORGANIZATION_REPOSITORY,
+      inject: [PostgresTenantConnectionPool],
+      useFactory: (pool: PostgresTenantConnectionPool | null) =>
+        pool ? new PostgresAccountOrganizationRepository(pool) : null,
+    },
     {
       provide: ACCOUNT_PROFILE_REPOSITORY,
       inject: [PostgresTenantConnectionPool],
@@ -78,6 +97,7 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
   exports: [
     OrganizationMembershipApplicationService,
     AccountProfileApplicationService,
+    AccountOrganizationApplicationService,
     WorkOSAccessTokenVerifier,
     WorkOSIdentityResolver,
     INVITATION_REPOSITORY,
