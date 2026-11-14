@@ -108,3 +108,12 @@ export type {
   OutboxEventInput,
   OutboxEventRecord,
 } from "./outbox-repository.js";
+
+export {
+  PostgresProjectWorkspaceRepository,
+  ProjectWorkspaceInputError,
+} from "./project-workspace-repository.js";
+export type {
+  ProjectMilestoneRecord,
+  ProjectWorkspaceRecord,
+} from "./project-workspace-repository.js";
