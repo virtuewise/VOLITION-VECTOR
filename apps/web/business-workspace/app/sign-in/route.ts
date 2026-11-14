@@ -1,5 +1,6 @@
 import { getSignInUrl } from "@workos-inc/authkit-nextjs";
 import { NextResponse } from "next/server";
+import { isBusinessCallbackUri } from "../auth-config.js";
 
 export async function GET() {
   const required = [
@@ -13,10 +14,15 @@ export async function GET() {
   const cookiePasswordValid = Boolean(
     cookiePassword && cookiePassword.length >= 32,
   );
+  const callbackUri = process.env["NEXT_PUBLIC_WORKOS_REDIRECT_URI"];
 
-  if (missing.length > 0 || !cookiePasswordValid) {
+  if (
+    missing.length > 0 ||
+    !cookiePasswordValid ||
+    !isBusinessCallbackUri(callbackUri)
+  ) {
     return NextResponse.json(
-      { error: "Authentication is not configured for this environment." },
+      { error: "Business Workspace authentication is not configured for this environment." },
       { status: 503 },
     );
   }
