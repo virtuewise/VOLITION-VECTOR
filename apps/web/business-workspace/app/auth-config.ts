@@ -31,6 +31,8 @@ export function isBusinessCallbackUri(value: string | undefined): boolean {
   return isAllowedBusinessRedirectUri(value, BUSINESS_CALLBACK_PATH);
 }
 
-export function isBusinessSignedOutUri(value: string | undefined): boolean {
+export function isBusinessSignedOutUri(
+  value: string | undefined,
+): value is string {
   return isAllowedBusinessRedirectUri(value, BUSINESS_SIGNED_OUT_PATH);
 }
