@@ -727,10 +727,15 @@ expect_failure "runtime cannot read external identity email addresses" \
 expect_failure "runtime cannot read external identity email verification metadata" \
   "SELECT email_verified FROM external_identities LIMIT 1;"
 
-for table in organizations organization_memberships organization_invitations organization_invitation_rate_limits opportunity_applications audit_events; do
+for table in organizations organization_invitations organization_invitation_rate_limits opportunity_applications audit_events; do
   assert_count "$table" "$TENANT_ONE" 1
   assert_count "$table" "$TENANT_TWO" 1
 done
+# Each tenant has its owner plus one additional membership fixture, including
+# the intentionally suspended tenant-one membership. RLS counts rows by
+# tenant, not only active memberships.
+assert_count organization_memberships "$TENANT_ONE" 2
+assert_count organization_memberships "$TENANT_TWO" 2
 # Public rows are visible across tenants; drafts remain tenant-private.
 assert_count opportunities "$TENANT_ONE" 3
 assert_count opportunities "$TENANT_TWO" 2
