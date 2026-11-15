@@ -220,10 +220,13 @@ export class PostgresProjectWorkspaceRepository {
     organizationId: string,
     projectId: string,
     participantAccountId: string,
+    limit = 20,
+    offset = 0,
   ): Promise<readonly ProjectMilestoneRecord[]> {
     const normalizedOrganizationId = normalizeTenantId(organizationId);
     const normalizedProjectId = normalizeTenantId(projectId);
     const normalizedAccountId = normalizeTenantId(participantAccountId);
+    validatePagination(limit, offset);
 
     return withTenantTransaction(
       this.pool,
@@ -239,8 +242,15 @@ export class PostgresProjectWorkspaceRepository {
             "AND milestone.project_id = $2 " +
             "AND (project.client_account_id = $3 " +
             "OR project.provider_account_id = $3) " +
-            "ORDER BY milestone.sequence_number ASC, milestone.id ASC",
-          [normalizedOrganizationId, normalizedProjectId, normalizedAccountId],
+            "ORDER BY milestone.sequence_number ASC, milestone.id ASC " +
+            "LIMIT $4 OFFSET $5",
+          [
+            normalizedOrganizationId,
+            normalizedProjectId,
+            normalizedAccountId,
+            limit,
+            offset,
+          ],
         );
         return (result.rows as readonly ProjectMilestoneRow[]).map(
           mapMilestone,
