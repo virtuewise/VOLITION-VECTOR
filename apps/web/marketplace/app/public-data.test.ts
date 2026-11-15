@@ -85,6 +85,14 @@ describe("public marketplace response validation", () => {
     ).toBeNull();
   });
 
+  it("rejects impossible calendar dates", () => {
+    expect(
+      parsePublicOpportunityCollection([
+        { ...opportunity, publishedAt: "2026-02-30T08:00:00.000Z" },
+      ]),
+    ).toBeNull();
+  });
+
   it("accepts a valid priced public service projection", () => {
     expect(parsePublicServiceCollection([service])).toEqual([service]);
   });

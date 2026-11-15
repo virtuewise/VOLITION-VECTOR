@@ -74,11 +74,12 @@ function isSlug(value: unknown): value is string {
 }
 
 function isUtcDate(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    UTC_DATE_PATTERN.test(value) &&
-    Number.isFinite(Date.parse(value))
-  );
+  if (typeof value !== "string" || !UTC_DATE_PATTERN.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
 }
 
 function isNullableUtcDate(value: unknown): value is string | null {
