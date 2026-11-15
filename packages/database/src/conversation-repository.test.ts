@@ -233,6 +233,9 @@ describe("PostgresConversationRepository", () => {
 
     expect(query.mock.calls[1]?.[0]).toContain("app.account_id");
     expect(query.mock.calls[2]?.[0]).toContain("conversation_participants");
+    expect(query.mock.calls[2]?.[0]).toContain(
+      "conversation.created_at DESC, conversation.id ASC",
+    );
     expect(release).toHaveBeenCalledOnce();
   });
 
