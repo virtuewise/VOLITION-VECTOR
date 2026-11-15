@@ -118,8 +118,7 @@ export class ProjectWorkspaceController {
     @Param("projectId", new ParseUUIDPipe({ version: "4" }))
     projectId: string,
   ): Promise<ProjectWorkspaceRecord> {
-    const participantAccountId =
-      requireIdentityPrincipal(request).accountId;
+    const participantAccountId = requireIdentityPrincipal(request).accountId;
     const repository = this.requireRepository();
 
     try {
@@ -145,8 +144,7 @@ export class ProjectWorkspaceController {
     projectId: string,
     @Query() query: Record<string, string | undefined>,
   ): Promise<readonly ProjectMilestoneRecord[]> {
-    const participantAccountId =
-      requireIdentityPrincipal(request).accountId;
+    const participantAccountId = requireIdentityPrincipal(request).accountId;
     const repository = this.requireRepository();
     const pagination = validateListQuery(query);
 
