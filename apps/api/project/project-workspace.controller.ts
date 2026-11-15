@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Header,
   Inject,
   NotFoundException,
   Param,
@@ -85,6 +86,7 @@ export class ProjectWorkspaceController {
   ) {}
 
   @Get()
+  @Header("Cache-Control", "private, no-store")
   async list(
     @Req() request: IdentityRequest,
     @Param("organizationId", new ParseUUIDPipe({ version: "4" }))
@@ -108,6 +110,7 @@ export class ProjectWorkspaceController {
   }
 
   @Get(":projectId")
+  @Header("Cache-Control", "private, no-store")
   async get(
     @Req() request: IdentityRequest,
     @Param("organizationId", new ParseUUIDPipe({ version: "4" }))
@@ -133,6 +136,7 @@ export class ProjectWorkspaceController {
   }
 
   @Get(":projectId/milestones")
+  @Header("Cache-Control", "private, no-store")
   async listMilestones(
     @Req() request: IdentityRequest,
     @Param("organizationId", new ParseUUIDPipe({ version: "4" }))
