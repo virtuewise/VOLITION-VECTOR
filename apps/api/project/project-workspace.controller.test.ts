@@ -3,9 +3,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
-import {
-  ProjectWorkspaceInputError,
-} from "@volition/database";
+import { ProjectWorkspaceInputError } from "@volition/database";
 import type {
   ProjectMilestoneRecord,
   ProjectWorkspaceRecord,
@@ -101,7 +99,9 @@ describe("ProjectWorkspaceController", () => {
   it("maps repository pagination validation to HTTP 400", async () => {
     const repository = createRepository();
     vi.mocked(repository.listForParticipant).mockRejectedValueOnce(
-      new ProjectWorkspaceInputError("Project workspace pagination parameters are invalid."),
+      new ProjectWorkspaceInputError(
+        "Project workspace pagination parameters are invalid.",
+      ),
     );
     const controller = new ProjectWorkspaceController(repository);
 
@@ -166,7 +166,12 @@ describe("ProjectWorkspaceController", () => {
     const controller = new ProjectWorkspaceController(repository);
 
     await expect(
-      controller.listMilestones(identityRequest(), organizationId, projectId, {}),
+      controller.listMilestones(
+        identityRequest(),
+        organizationId,
+        projectId,
+        {},
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(repository.listMilestonesForParticipant).not.toHaveBeenCalled();
   });
