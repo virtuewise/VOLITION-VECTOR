@@ -89,50 +89,65 @@ describe("public marketplace response validation", () => {
     expect(parsePublicServiceCollection([service])).toEqual([service]);
   });
 
-  it("accepts a quote service only when amount and currency are absent", () => {
-    expect(
-      parsePublicServiceCollection([
-        {
-          ...service,
-          pricingModel: "quote",
-          priceAmount: null,
-          priceCurrency: null,
-        },
-      ]),
-    ).not.toBeNull();
-    expect(
-      parsePublicServiceCollection([
-        { ...service, pricingModel: "quote", priceAmount: "100.00" },
-      ]),
-    ).toBeNull();
-  });
+  it(
+    "accepts a quote service only when amount and currency are absent",
+    () => {
+      expect(
+        parsePublicServiceCollection([
+          {
+            ...service,
+            pricingModel: "quote",
+            priceAmount: null,
+            priceCurrency: null,
+          },
+        ]),
+      ).not.toBeNull();
+      expect(
+        parsePublicServiceCollection([
+          { ...service, pricingModel: "quote", priceAmount: "100.00" },
+        ]),
+      ).toBeNull();
+    },
+  );
 
-  it("rejects invalid service categories, delivery modes and pricing models", () => {
-    expect(
-      parsePublicServiceCollection([{ ...service, category: "Not A Slug" }]),
-    ).toBeNull();
-    expect(
-      parsePublicServiceCollection([{ ...service, deliveryMode: "unknown" }]),
-    ).toBeNull();
-    expect(
-      parsePublicServiceCollection([{ ...service, pricingModel: "free" }]),
-    ).toBeNull();
-  });
+  it(
+    "rejects invalid service categories, delivery modes and pricing models",
+    () => {
+      expect(
+        parsePublicServiceCollection([
+          { ...service, category: "Not A Slug" },
+        ]),
+      ).toBeNull();
+      expect(
+        parsePublicServiceCollection([
+          { ...service, deliveryMode: "unknown" },
+        ]),
+      ).toBeNull();
+      expect(
+        parsePublicServiceCollection([
+          { ...service, pricingModel: "free" },
+        ]),
+      ).toBeNull();
+    },
+  );
 
-  it("rejects malformed, oversized and partially invalid collections", () => {
-    expect(
-      parsePublicOpportunityCollection({ items: [opportunity] }),
-    ).toBeNull();
-    expect(
-      parsePublicOpportunityCollection(
-        Array.from({ length: 21 }, () => opportunity),
-      ),
-    ).toBeNull();
-    expect(
-      parsePublicServiceCollection([
-        service,
-        { ...service, title: "" },
-      ]),
-    ).toBeNull();
-  });
+  it(
+    "rejects malformed, oversized and partially invalid collections",
+    () => {
+      expect(
+        parsePublicOpportunityCollection({ items: [opportunity] }),
+      ).toBeNull();
+      expect(
+        parsePublicOpportunityCollection(
+          Array.from({ length: 21 }, () => opportunity),
+        ),
+      ).toBeNull();
+      expect(
+        parsePublicServiceCollection([
+          service,
+          { ...service, title: "" },
+        ]),
+      ).toBeNull();
+    },
+  );
 });
