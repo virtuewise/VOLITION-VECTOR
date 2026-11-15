@@ -42,3 +42,20 @@ PostgreSQL integration tests verify tenant isolation, participant-only
 conversation/message visibility and rejection of non-participant message
 inserts. Repository tests cover eligibility, participant membership, input
 limits, account-scoped reads and transactional audit events.
+
+
+## Implementation status — 2026-11-15
+
+The PostgreSQL conversation repository and Communication module provider are
+implemented on main. The repository provides account-scoped conversation and
+message reads, participant-checked message sends, organization-authorized
+conversation opening and same-transaction audit events. WorkOS authentication
+and active internal-account resolution are now present on main. Durable session
+revocation remains unimplemented.
+
+A draft read-only HTTP API is proposed in PR #72. It exposes only participant
+conversation and message reads, derives the actor from the verified principal,
+and adds an explicit participant predicate to message SQL in addition to RLS.
+It does not expose conversation opening or message-send commands. This ADR
+remains Proposed pending human review; the draft API is not merged and does
+not establish Staging/Production verification.
