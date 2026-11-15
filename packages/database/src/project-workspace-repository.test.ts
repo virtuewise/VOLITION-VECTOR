@@ -140,6 +140,8 @@ describe("PostgresProjectWorkspaceRepository", () => {
       ORGANIZATION_ID,
       PROJECT_ID,
       ACCOUNT_ID,
+      10,
+      5,
     );
 
     expect(milestones).toHaveLength(1);
@@ -160,7 +162,25 @@ describe("PostgresProjectWorkspaceRepository", () => {
       ORGANIZATION_ID,
       PROJECT_ID,
       ACCOUNT_ID,
+      10,
+      5,
     ]);
+  });
+
+  it("rejects invalid milestone pagination before acquiring a connection", async () => {
+    const pool = new FakePool();
+    const repository = new PostgresProjectWorkspaceRepository(pool);
+
+    await expect(
+      repository.listMilestonesForParticipant(
+        ORGANIZATION_ID,
+        PROJECT_ID,
+        ACCOUNT_ID,
+        51,
+        0,
+      ),
+    ).rejects.toThrow("pagination parameters are invalid");
+    expect(pool.connectCalls).toBe(0);
   });
 
   it("rejects invalid pagination before acquiring a connection", async () => {
