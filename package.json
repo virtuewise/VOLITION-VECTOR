@@ -13,7 +13,7 @@
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
     "test": "vitest run --passWithNoTests",
-    "format:check": "prettier --write apps/api/project/project-workspace.controller.ts && git diff -- apps/api/project/project-workspace.controller.ts && prettier --check .",
+    "format:check": "prettier --check .",
     "clean": "turbo clean"
   },
   "devDependencies": {
