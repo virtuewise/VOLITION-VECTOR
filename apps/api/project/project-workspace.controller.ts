@@ -22,9 +22,7 @@ import {
   requireIdentityPrincipal,
 } from "../identity/identity-context.guard.js";
 import type { IdentityRequest } from "../identity/identity-context.guard.js";
-import {
-  WorkOSAuthenticationGuard,
-} from "../identity/workos-authentication.guard.js";
+import { WorkOSAuthenticationGuard } from "../identity/workos-authentication.guard.js";
 import {
   PROJECT_WORKSPACE_REPOSITORY,
   type ProjectWorkspaceRepositoryPort,
