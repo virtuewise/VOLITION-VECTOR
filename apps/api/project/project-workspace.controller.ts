@@ -11,9 +11,7 @@ import {
   ServiceUnavailableException,
   UseGuards,
 } from "@nestjs/common";
-import {
-  ProjectWorkspaceInputError,
-} from "@volition/database";
+import { ProjectWorkspaceInputError } from "@volition/database";
 import type {
   ProjectMilestoneRecord,
   ProjectWorkspaceRecord,
@@ -91,8 +89,7 @@ export class ProjectWorkspaceController {
     organizationId: string,
     @Query() query: Record<string, string | undefined>,
   ): Promise<readonly ProjectWorkspaceRecord[]> {
-    const participantAccountId =
-      requireIdentityPrincipal(request).accountId;
+    const participantAccountId = requireIdentityPrincipal(request).accountId;
     const repository = this.requireRepository();
     const pagination = validateListQuery(query);
 
