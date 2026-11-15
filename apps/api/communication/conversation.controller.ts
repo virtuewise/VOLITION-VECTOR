@@ -73,6 +73,7 @@ function rethrowRepositoryError(error: unknown): never {
  * A conversation ID is a locator; participant RLS and the repository's
  * explicit participant predicate remain authoritative.
  * This controller intentionally exposes no conversation or message writes.
+ * The repository uses stable ordering for paginated conversation lists.
  */
 @Controller("conversations")
 @UseGuards(WorkOSAuthenticationGuard, IdentityContextGuard)
