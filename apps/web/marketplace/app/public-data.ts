@@ -196,10 +196,7 @@ function parseCollection<T>(
   payload: unknown,
   isItem: (value: unknown) => value is T,
 ): readonly T[] | null {
-  if (
-    !Array.isArray(payload) ||
-    payload.length > MAX_PUBLIC_PAGE_SIZE
-  ) {
+  if (!Array.isArray(payload) || payload.length > MAX_PUBLIC_PAGE_SIZE) {
     return null;
   }
 
