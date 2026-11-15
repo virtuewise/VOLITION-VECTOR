@@ -92,7 +92,12 @@ describe("public marketplace response validation", () => {
   it("accepts a quote service only when amount and currency are absent", () => {
     expect(
       parsePublicServiceCollection([
-        { ...service, pricingModel: "quote", priceAmount: null, priceCurrency: null },
+        {
+          ...service,
+          pricingModel: "quote",
+          priceAmount: null,
+          priceCurrency: null,
+        },
       ]),
     ).not.toBeNull();
     expect(
@@ -115,14 +120,19 @@ describe("public marketplace response validation", () => {
   });
 
   it("rejects malformed, oversized and partially invalid collections", () => {
-    expect(parsePublicOpportunityCollection({ items: [opportunity] })).toBeNull();
+    expect(
+      parsePublicOpportunityCollection({ items: [opportunity] }),
+    ).toBeNull();
     expect(
       parsePublicOpportunityCollection(
         Array.from({ length: 21 }, () => opportunity),
       ),
     ).toBeNull();
     expect(
-      parsePublicServiceCollection([service, { ...service, title: "" }]),
+      parsePublicServiceCollection([
+        service,
+        { ...service, title: "" },
+      ]),
     ).toBeNull();
   });
 });

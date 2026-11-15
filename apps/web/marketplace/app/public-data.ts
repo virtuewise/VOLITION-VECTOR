@@ -47,7 +47,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isNonEmptyText(value: unknown, maximumLength: number): value is string {
+function isNonEmptyText(
+  value: unknown,
+  maximumLength: number,
+): value is string {
   return (
     typeof value === "string" &&
     value.trim().length > 0 &&
@@ -55,7 +58,10 @@ function isNonEmptyText(value: unknown, maximumLength: number): value is string 
   );
 }
 
-function isNullableText(value: unknown, maximumLength: number): value is string | null {
+function isNullableText(
+  value: unknown,
+  maximumLength: number,
+): value is string | null {
   return value === null || isNonEmptyText(value, maximumLength);
 }
 
@@ -94,7 +100,10 @@ function isAmount(value: unknown): value is string | null {
 }
 
 function isCurrency(value: unknown): value is string | null {
-  return value === null || (typeof value === "string" && /^[A-Z]{3}$/.test(value));
+  return (
+    value === null ||
+    (typeof value === "string" && /^[A-Z]{3}$/.test(value))
+  );
 }
 
 function isOpportunityType(
@@ -187,7 +196,10 @@ function parseCollection<T>(
   payload: unknown,
   isItem: (value: unknown) => value is T,
 ): readonly T[] | null {
-  if (!Array.isArray(payload) || payload.length > MAX_PUBLIC_PAGE_SIZE) {
+  if (
+    !Array.isArray(payload) ||
+    payload.length > MAX_PUBLIC_PAGE_SIZE
+  ) {
     return null;
   }
 
