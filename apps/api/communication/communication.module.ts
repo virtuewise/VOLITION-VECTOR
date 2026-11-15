@@ -4,9 +4,11 @@ import { canOpenApplicationConversation } from "@volition/permissions";
 import { IdentityModule } from "../identity/identity.module.js";
 import { PostgresTenantConnectionPool } from "../identity/postgres-tenant-connection.pool.js";
 import { CONVERSATION_REPOSITORY } from "./conversation.repository.js";
+import { ConversationController } from "./conversation.controller.js";
 
 @Module({
   imports: [IdentityModule],
+  controllers: [ConversationController],
   providers: [
     {
       provide: CONVERSATION_REPOSITORY,
