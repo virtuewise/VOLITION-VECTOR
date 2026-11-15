@@ -769,6 +769,14 @@ if [[ "$project_provider_count" != "1" ]]; then
   echo "The accepted applicant could not read their project workspace." >&2
   exit 1
 fi
+project_client_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM project_workspaces;"
+)"
+if [[ "$project_client_count" != "1" ]]; then
+  echo "The client participant could not read their project workspace." >&2
+  exit 1
+fi
 project_nonparticipant_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM project_workspaces;"
@@ -783,6 +791,14 @@ provider_milestone_count="$(
 )"
 if [[ "$provider_milestone_count" != "1" ]]; then
   echo "The project provider could not read the project milestone." >&2
+  exit 1
+fi
+client_milestone_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM project_milestones;"
+)"
+if [[ "$client_milestone_count" != "1" ]]; then
+  echo "The project client could not read the project milestone." >&2
   exit 1
 fi
 expect_failure "provider cannot rewrite milestone scope while submitting" \
