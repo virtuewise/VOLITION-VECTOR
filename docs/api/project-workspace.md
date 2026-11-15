@@ -44,6 +44,8 @@ Each repository operation uses a transaction-scoped tenant context and a transac
 
 The API does not expose organization-wide project administration. Organization-wide reads, project creation and every project or milestone state transition require separately reviewed authorization and audit semantics.
 
+Responses include `Cache-Control: private, no-store` because project and milestone data is participant-specific.
+
 ## Error behavior
 
 - HTTP 400: malformed UUIDs, unknown query keys, invalid pagination.
