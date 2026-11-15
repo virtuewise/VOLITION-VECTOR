@@ -411,7 +411,8 @@ export class PostgresConversationRepository {
             "WHERE participant.account_id = $1 " +
             "ORDER BY coalesce((SELECT max(message.created_at) FROM messages AS message " +
             " WHERE message.organization_id = conversation.organization_id " +
-            " AND message.conversation_id = conversation.id), conversation.created_at) DESC " +
+            " AND message.conversation_id = conversation.id), conversation.created_at) DESC, " +
+            "conversation.created_at DESC, conversation.id ASC " +
             "LIMIT $2 OFFSET $3",
           [normalizeTenantId(accountId), limit, offset],
         );
