@@ -258,9 +258,7 @@ describe("PostgresConversationRepository", () => {
     expect(query.mock.calls[2]?.[0]).toContain(
       "JOIN conversation_participants AS participant",
     );
-    expect(query.mock.calls[2]?.[0]).toContain(
-      "participant.account_id = $2",
-    );
+    expect(query.mock.calls[2]?.[0]).toContain("participant.account_id = $2");
     expect(query.mock.calls[2]?.[1]).toEqual([
       conversationId,
       applicantAccountId,
