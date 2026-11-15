@@ -74,6 +74,7 @@ function rethrowRepositoryError(error: unknown): never {
  * The account identifier always comes from the verified WorkOS principal.
  * The organization and project path values are locators, not capabilities;
  * PostgreSQL RLS and explicit participant predicates remain authoritative.
+ * No project or milestone write operations are exposed by this controller.
  */
 @Controller("organizations/:organizationId/projects")
 @UseGuards(WorkOSAuthenticationGuard, IdentityContextGuard)
