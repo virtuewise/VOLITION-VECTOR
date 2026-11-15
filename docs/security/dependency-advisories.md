@@ -16,15 +16,18 @@ the repository has no other vulnerabilities.
   resolves 14.0.6. The October 2026 AbortSignal traversal advisory is fixed
   from 14.0.2; 14.0.6 is the stable 14.x release reviewed on 2026-11-15.
 - **minimatch:** The main lockfile had 11.0.1 and 11.0.4. The CI-generated
-  lockfile now resolves both affected 11.x paths to 11.0.8. The November 10
-  advisory affects 11.0.0 through 11.0.6. The November 11 escape-contract
-  and cache-retention advisories affect versions through 11.0.7 and list
-  11.0.8 as patched. The GHSA-hqmv advisory body still contains an older
-  sentence saying no patch is available, which conflicts with its structured
-  affected/patched version fields. This record follows the structured range
-  and corroborates 11.0.8 with the published npm release and current package
-  advisory scans; the live repository alert still requires administrator
-  recheck.
+  lockfile now resolves both 11.x paths to 11.0.8. GHSA-cf2h affects
+  11.0.0 through 11.0.6 and lists 11.0.7 as patched. GHSA-c859 affects
+  7.4.0 through 11.0.7 and lists 11.0.8 as patched. The 11.0.8 upgrade
+  addresses those two advisories.
+- **Unresolved moderate finding — GHSA-hqmv-qgp3-jx75:** The advisory affects
+  11.0.3 through 11.0.7. Its structured metadata lists 11.0.8 as patched,
+  but the advisory body still says no patched version is available. Treat
+  this finding as unresolved until the maintainer clarifies the discrepancy
+  or publishes a verifiably fixed release. This PR does not claim that
+  11.0.8 fixes the cache-retention issue. The current main version 11.0.1
+  is a stated negative control; 11.0.4 is affected. The live repository
+  alert still requires administrator recheck.
 
 ## Regeneration and verification
 
