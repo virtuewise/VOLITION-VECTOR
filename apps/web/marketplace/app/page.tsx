@@ -1,40 +1,15 @@
 import Link from "next/link";
 import { formatMoney } from "./format-money";
+import {
+  parsePublicOpportunityCollection,
+  parsePublicServiceCollection,
+} from "./public-data";
+import type { PublicOpportunity, PublicService } from "./public-data";
 
 type SearchParams = Promise<{
   q?: string | string[];
   view?: string | string[];
 }>;
-
-interface PublicOpportunity {
-  readonly id: string;
-  readonly slug: string;
-  readonly title: string;
-  readonly summary: string;
-  readonly opportunityType: string;
-  readonly locationLabel: string | null;
-  readonly isRemote: boolean;
-  readonly compensationMin: string | null;
-  readonly compensationMax: string | null;
-  readonly compensationCurrency: string | null;
-  readonly publishedAt: string;
-  readonly expiresAt: string | null;
-}
-
-interface PublicService {
-  readonly id: string;
-  readonly slug: string;
-  readonly title: string;
-  readonly summary: string;
-  readonly category: string;
-  readonly deliveryMode: "remote" | "onsite" | "hybrid";
-  readonly pricingModel: "fixed" | "hourly" | "starting_at" | "quote";
-  readonly priceAmount: string | null;
-  readonly priceCurrency: string | null;
-  readonly locationLabel: string | null;
-  readonly publishedAt: string;
-  readonly expiresAt: string | null;
-}
 
 interface Collection<T> {
   readonly items: readonly T[] | null;
@@ -61,6 +36,7 @@ async function loadCollection<T>(
   apiOrigin: string,
   resource: string,
   query: string,
+  parse: (payload: unknown) => readonly T[] | null,
 ): Promise<Collection<T>> {
   try {
     const response = await fetch(apiOrigin + "/v1/" + resource + "?" + query, {
@@ -72,7 +48,7 @@ async function loadCollection<T>(
     if (!response.ok) return { items: null };
 
     const payload: unknown = await response.json();
-    return Array.isArray(payload) ? { items: payload as T[] } : { items: null };
+    return { items: parse(payload) };
   } catch {
     return { items: null };
   }
@@ -139,17 +115,19 @@ export default async function MarketplaceHome({
     const results = await Promise.all([
       view === "services"
         ? Promise.resolve<Collection<PublicOpportunity>>({ items: [] })
-        : loadCollection<PublicOpportunity>(
+        : loadCollection(
             apiOrigin,
             "opportunities",
             search.toString(),
+            parsePublicOpportunityCollection,
           ),
       view === "opportunities"
         ? Promise.resolve<Collection<PublicService>>({ items: [] })
-        : loadCollection<PublicService>(
+        : loadCollection(
             apiOrigin,
             "services",
             search.toString(),
+            parsePublicServiceCollection,
           ),
     ]);
 
