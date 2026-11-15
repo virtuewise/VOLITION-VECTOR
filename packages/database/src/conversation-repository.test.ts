@@ -251,8 +251,19 @@ describe("PostgresConversationRepository", () => {
       { id: messageId, senderAccountId: applicantAccountId },
     ]);
 
-    expect(query.mock.calls[2]?.[0]).toContain("FROM messages");
-    expect(query.mock.calls[2]?.[1]).toEqual([conversationId, 50, 0]);
+    expect(query.mock.calls[2]?.[0]).toContain("FROM messages AS message");
+    expect(query.mock.calls[2]?.[0]).toContain(
+      "JOIN conversation_participants AS participant",
+    );
+    expect(query.mock.calls[2]?.[0]).toContain(
+      "participant.account_id = $2",
+    );
+    expect(query.mock.calls[2]?.[1]).toEqual([
+      conversationId,
+      applicantAccountId,
+      50,
+      0,
+    ]);
     expect(release).toHaveBeenCalledOnce();
   });
 
