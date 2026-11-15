@@ -753,8 +753,16 @@ other_applicant_conversation_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM conversations;"
 )"
-if [[ "$applicant_conversation_count" != "1" || "$applicant_message_count" != "2" || "$other_applicant_conversation_count" != "0" ]]; then
-  echo "Conversation or message RLS exposed records outside the participant account." >&2
+organization_conversation_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM conversations;"
+)"
+organization_message_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM messages;"
+)"
+if [[ "$applicant_conversation_count" != "1" || "$applicant_message_count" != "2" || "$other_applicant_conversation_count" != "0" || "$organization_conversation_count" != "1" || "$organization_message_count" != "2" ]]; then
+  echo "Conversation or message RLS exposed records outside the participant account or denied a named participant." >&2
   exit 1
 fi
 cross_applicant_count="$(
