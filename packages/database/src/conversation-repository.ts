@@ -437,16 +437,22 @@ export class PostgresConversationRepository {
       throw new ConversationInputError("Message pagination is invalid.");
     }
 
+    const normalizedAccountId = normalizeTenantId(accountId);
     const normalizedConversationId = normalizeTenantId(conversationId);
     return withParticipantReadTransaction(
       this.pool,
-      accountId,
+      normalizedAccountId,
       async (client) => {
         const result = await client.query(
-          "SELECT id, organization_id, conversation_id, sender_account_id, body, created_at " +
-            "FROM messages WHERE conversation_id = $1 " +
-            "ORDER BY created_at ASC, id LIMIT $2 OFFSET $3",
-          [normalizedConversationId, limit, offset],
+          "SELECT message.id, message.organization_id, message.conversation_id, " +
+            "message.sender_account_id, message.body, message.created_at " +
+            "FROM messages AS message " +
+            "JOIN conversation_participants AS participant " +
+            "ON participant.organization_id = message.organization_id " +
+            "AND participant.conversation_id = message.conversation_id " +
+            "WHERE message.conversation_id = $1 AND participant.account_id = $2 " +
+            "ORDER BY message.created_at ASC, message.id LIMIT $3 OFFSET $4",
+          [normalizedConversationId, normalizedAccountId, limit, offset],
         );
         return (result.rows as readonly MessageRow[]).map(mapMessage);
       },
