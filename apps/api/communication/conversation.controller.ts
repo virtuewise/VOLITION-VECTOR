@@ -72,6 +72,7 @@ function rethrowRepositoryError(error: unknown): never {
  * The account identifier is derived only from the verified WorkOS principal.
  * A conversation ID is a locator; participant RLS and the repository's
  * explicit participant predicate remain authoritative.
+ * This controller intentionally exposes no conversation or message writes.
  */
 @Controller("conversations")
 @UseGuards(WorkOSAuthenticationGuard, IdentityContextGuard)
