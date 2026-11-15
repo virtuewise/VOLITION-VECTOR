@@ -116,8 +116,8 @@ describe("ConversationController", () => {
   it("fails closed when conversation persistence is not configured", async () => {
     const controller = new ConversationController(null);
 
-    await expect(
-      controller.list(identityRequest(), {}),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    await expect(controller.list(identityRequest(), {})).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
   });
 });
