@@ -19,7 +19,12 @@ the repository has no other vulnerabilities.
   lockfile now resolves both affected 11.x paths to 11.0.8. The November 10
   advisory affects 11.0.0 through 11.0.6. The November 11 escape-contract
   and cache-retention advisories affect versions through 11.0.7 and list
-  11.0.8 as patched.
+  11.0.8 as patched. The GHSA-hqmv advisory body still contains an older
+  sentence saying no patch is available, which conflicts with its structured
+  affected/patched version fields. This record follows the structured range
+  and corroborates 11.0.8 with the published npm release and current package
+  advisory scans; the live repository alert still requires administrator
+  recheck.
 
 ## Regeneration and verification
 
