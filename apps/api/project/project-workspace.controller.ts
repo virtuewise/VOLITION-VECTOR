@@ -46,9 +46,10 @@ function parseInteger(
   return parsed;
 }
 
-function validateListQuery(
-  query: Record<string, string | undefined>,
-): { limit: number; offset: number } {
+function validateListQuery(query: Record<string, string | undefined>): {
+  limit: number;
+  offset: number;
+} {
   for (const [key, value] of Object.entries(query)) {
     if (!ALLOWED_LIST_QUERY_KEYS.has(key) || typeof value !== "string") {
       throw new BadRequestException(`Invalid ${key} query parameter.`);
