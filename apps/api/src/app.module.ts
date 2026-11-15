@@ -7,6 +7,7 @@ import { IntelligenceModule } from "../intelligence/intelligence.module";
 import { CredentialsModule } from "../credentials/credentials.module";
 import { GovernanceModule } from "../governance/governance.module";
 import { CommunicationModule } from "../communication/communication.module";
+import { ProjectWorkspaceModule } from "../project/project-workspace.module";
 import { HealthModule } from "./modules/health/health.module.js";
 
 @Module({
@@ -20,6 +21,7 @@ import { HealthModule } from "./modules/health/health.module.js";
     CredentialsModule,
     GovernanceModule,
     CommunicationModule,
+    ProjectWorkspaceModule,
   ],
 })
 export class AppModule {}
