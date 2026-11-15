@@ -107,26 +107,17 @@ describe("public marketplace response validation", () => {
     ).toBeNull();
   });
 
-  it(
-    "rejects invalid service categories, delivery modes and pricing models",
-    () => {
-      expect(
-        parsePublicServiceCollection([
-          { ...service, category: "Not A Slug" },
-        ]),
-      ).toBeNull();
-      expect(
-        parsePublicServiceCollection([
-          { ...service, deliveryMode: "unknown" },
-        ]),
-      ).toBeNull();
-      expect(
-        parsePublicServiceCollection([
-          { ...service, pricingModel: "free" },
-        ]),
-      ).toBeNull();
-    },
-  );
+  it("rejects invalid service categories, delivery modes and pricing models", () => {
+    expect(
+      parsePublicServiceCollection([{ ...service, category: "Not A Slug" }]),
+    ).toBeNull();
+    expect(
+      parsePublicServiceCollection([{ ...service, deliveryMode: "unknown" }]),
+    ).toBeNull();
+    expect(
+      parsePublicServiceCollection([{ ...service, pricingModel: "free" }]),
+    ).toBeNull();
+  });
 
   it("rejects malformed, oversized and partially invalid collections", () => {
     expect(
@@ -138,10 +129,7 @@ describe("public marketplace response validation", () => {
       ),
     ).toBeNull();
     expect(
-      parsePublicServiceCollection([
-        service,
-        { ...service, title: "" },
-      ]),
+      parsePublicServiceCollection([service, { ...service, title: "" }]),
     ).toBeNull();
   });
 });

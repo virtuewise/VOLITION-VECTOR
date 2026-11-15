@@ -3,8 +3,7 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
 const CATEGORY_PATTERN = /^[a-z][a-z0-9-]{1,62}$/;
-const UTC_DATE_PATTERN =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+const UTC_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 
 export interface PublicOpportunity {
   readonly id: string;
@@ -13,11 +12,7 @@ export interface PublicOpportunity {
   readonly title: string;
   readonly summary: string;
   readonly opportunityType:
-    | "employment"
-    | "project"
-    | "tender"
-    | "partnership"
-    | "volunteering";
+    "employment" | "project" | "tender" | "partnership" | "volunteering";
   readonly locationLabel: string | null;
   readonly isRemote: boolean;
   readonly compensationMin: string | null;
@@ -101,8 +96,7 @@ function isAmount(value: unknown): value is string | null {
 
 function isCurrency(value: unknown): value is string | null {
   return (
-    value === null ||
-    (typeof value === "string" && /^[A-Z]{3}$/.test(value))
+    value === null || (typeof value === "string" && /^[A-Z]{3}$/.test(value))
   );
 }
 
