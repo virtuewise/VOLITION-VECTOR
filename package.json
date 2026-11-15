@@ -13,7 +13,7 @@
     "typecheck": "turbo typecheck",
     "lint": "turbo lint",
     "test": "vitest run --passWithNoTests",
-    "format:check": "prettier --write apps/api/communication/conversation.controller.test.ts packages/database/src/conversation-repository.test.ts docs/architecture/decisions/0016-private-application-conversations.md && git diff -- apps/api/communication/conversation.controller.test.ts packages/database/src/conversation-repository.test.ts docs/architecture/decisions/0016-private-application-conversations.md && prettier --check .",
+    "format:check": "prettier --check .",
     "clean": "turbo clean"
   },
   "devDependencies": {
