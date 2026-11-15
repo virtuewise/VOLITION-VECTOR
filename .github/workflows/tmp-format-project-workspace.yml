@@ -1,0 +1,24 @@
+name: Temporary project workspace formatter inspection
+
+on:
+  push:
+    branches:
+      - feat/project-workspace-participant-read-api
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - name: Install pinned pnpm
+        run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Print formatted controller
+        run: pnpm exec prettier apps/api/project/project-workspace.controller.ts
