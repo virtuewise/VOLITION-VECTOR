@@ -43,7 +43,6 @@ conversation/message visibility and rejection of non-participant message
 inserts. Repository tests cover eligibility, participant membership, input
 limits, account-scoped reads and transactional audit events.
 
-
 ## Implementation status — 2026-11-15
 
 The PostgreSQL conversation repository and Communication module provider are
