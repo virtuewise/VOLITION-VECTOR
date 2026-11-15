@@ -27,7 +27,7 @@ Both path identifiers must be UUIDv4 values.
 
 ### List participant project milestones
 
-`GET /v1/organizations/{organizationId}/projects/{projectId}/milestones?limit=50&offset=0`
+`GET /v1/organizations/{organizationId}/projects/{projectId}/milestones?limit=20&offset=0`
 
 Returns milestones in sequence order after the API has confirmed that the authenticated account can read the parent project.
 
