@@ -21,7 +21,7 @@ participant record.
 - `limit` defaults to 20 and must be between 1 and 50.
 - `offset` defaults to 0 and must be a safe integer between 0 and 10,000.
 - Only `limit` and `offset` query parameters are accepted.
-- Conversations are ordered by most recent message, then creation time.
+- Conversations are ordered by most recent message, then creation time and ID.
 
 ### List messages in a conversation
 
