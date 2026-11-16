@@ -53,7 +53,7 @@ A controller does not inherit authentication merely because the guard is registe
 - The Staging rollout document records environment-specific AuthKit URLs, a JWT audience template and encrypted Preview variables. It also records that a real browser sign-in/callback/session-refresh/sign-out sequence has not yet been observed and that a working Staging `DATABASE_URL`/runtime-role binding has not been confirmed. Treat the configuration as provisioned but not end-to-end verified.
 - Production WorkOS URLs, JWT audience template and runtime credentials remain unconfigured. Production authentication and external access remain gated.
 - Account suspension/closure authority, state transitions, recovery proofing, session cutoff, retention, deletion, appeal and audit-notice semantics require the human decisions recorded in issue #64. Organization owner/admin permissions must not be reused as platform-wide account authority.
-- The project workspace read repository is participant-scoped and read-only. Its package export is under PR #68. Project HTTP routes and all write transitions remain deferred until trusted identity, participant/membership authorization, audit-event semantics and their integration tests are complete.
+- The project workspace read repository is participant-scoped and read-only. Its public package export is proposed in PR #68; the participant-scoped read API is proposed separately in PR #70, which remains unmerged. No project or milestone write transitions are exposed.
 - Communication, trust, financial and other domain controllers must each establish their own verified-principal, resource authorization, audit and tenant-RLS boundaries before exposure.
 
 The membership API fails closed with HTTP 503 when its required database/provider configuration is absent and with an authentication/authorization failure when trusted identity or membership context is absent or invalid. No production identity integration, production database deployment, independent security assessment, certification or production readiness is claimed.
@@ -61,7 +61,7 @@ The membership API fails closed with HTTP 503 when its required database/provide
 ## References
 
 - ADR 0007: WorkOS AuthKit identity boundary.
-- ADR 0017: project workspace and milestone boundaries.
+- ADR 0017: private Trust evidence intake.
 - ADR 0020: participant-scoped project workspace read model.
 - `docs/architecture/workos-authkit-rollout.md`: environment configuration and Staging verification record.
 - Issue #34: core marketplace and identity implementation gates.
