@@ -513,98 +513,31 @@ SUSPENDED_ACCOUNT_ID="66666666-6666-4666-8666-666666666666"
 # Exercise the same explicit predicates used by the repository, including the
 # milestone join, under transaction-local tenant and account context.
 project_client_count="$(
-  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<SQL
-WITH context AS MATERIALIZED (
-  SELECT
-    set_config('app.tenant_id', '$TENANT_ONE', true) AS tenant_id,
-    set_config('app.account_id', '$ACCOUNT_ONE', true) AS account_id
-)
-SELECT count(*)
-FROM project_workspaces, context
-WHERE organization_id = '$TENANT_ONE'
-  AND (client_account_id = '$ACCOUNT_ONE' OR provider_account_id = '$ACCOUNT_ONE');
-SQL
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM project_workspaces WHERE organization_id = '$TENANT_ONE' AND (client_account_id = '$ACCOUNT_ONE' OR provider_account_id = '$ACCOUNT_ONE'); COMMIT;" | tail -n 1
 )"
 project_provider_count="$(
-  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<SQL
-WITH context AS MATERIALIZED (
-  SELECT
-    set_config('app.tenant_id', '$TENANT_ONE', true) AS tenant_id,
-    set_config('app.account_id', '44444444-4444-4444-8444-444444444444', true) AS account_id
-)
-SELECT count(*)
-FROM project_workspaces, context
-WHERE organization_id = '$TENANT_ONE'
-  AND (
-    client_account_id = '44444444-4444-4444-8444-444444444444'
-    OR provider_account_id = '44444444-4444-4444-8444-444444444444'
-  );
-SQL
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM project_workspaces WHERE organization_id = '$TENANT_ONE' AND (client_account_id = '44444444-4444-4444-8444-444444444444' OR provider_account_id = '44444444-4444-4444-8444-444444444444'); COMMIT;" | tail -n 1
 )"
 project_nonparticipant_count="$(
-  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<SQL
-WITH context AS MATERIALIZED (
-  SELECT
-    set_config('app.tenant_id', '$TENANT_ONE', true) AS tenant_id,
-    set_config('app.account_id', '55555555-5555-4555-8555-555555555555', true) AS account_id
-)
-SELECT count(*)
-FROM project_workspaces, context
-WHERE organization_id = '$TENANT_ONE'
-  AND (
-    client_account_id = '55555555-5555-4555-8555-555555555555'
-    OR provider_account_id = '55555555-5555-4555-8555-555555555555'
-  );
-SQL
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM project_workspaces WHERE organization_id = '$TENANT_ONE' AND (client_account_id = '55555555-5555-4555-8555-555555555555' OR provider_account_id = '55555555-5555-4555-8555-555555555555'); COMMIT;" | tail -n 1
 )"
 milestone_client_count="$(
-  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<SQL
-WITH context AS MATERIALIZED (
-  SELECT
-    set_config('app.tenant_id', '$TENANT_ONE', true) AS tenant_id,
-    set_config('app.account_id', '$ACCOUNT_ONE', true) AS account_id
-)
-SELECT count(*)
-FROM project_milestones AS milestone
-JOIN project_workspaces AS project
-  ON project.organization_id = milestone.organization_id
-  AND project.id = milestone.project_id
-CROSS JOIN context
-WHERE milestone.organization_id = '$TENANT_ONE'
-  AND milestone.project_id = '99999999-9999-4999-8999-999999999998'
-  AND (
-    project.client_account_id = '$ACCOUNT_ONE'
-    OR project.provider_account_id = '$ACCOUNT_ONE'
-  );
-SQL
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM project_milestones AS milestone JOIN project_workspaces AS project ON project.organization_id = milestone.organization_id AND project.id = milestone.project_id WHERE milestone.organization_id = '$TENANT_ONE' AND milestone.project_id = '99999999-9999-4999-8999-999999999998' AND (project.client_account_id = '$ACCOUNT_ONE' OR project.provider_account_id = '$ACCOUNT_ONE'); COMMIT;" | tail -n 1
 )"
 milestone_nonparticipant_count="$(
-  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<SQL
-WITH context AS MATERIALIZED (
-  SELECT
-    set_config('app.tenant_id', '$TENANT_ONE', true) AS tenant_id,
-    set_config('app.account_id', '55555555-5555-4555-8555-555555555555', true) AS account_id
-)
-SELECT count(*)
-FROM project_milestones AS milestone
-JOIN project_workspaces AS project
-  ON project.organization_id = milestone.organization_id
-  AND project.id = milestone.project_id
-CROSS JOIN context
-WHERE milestone.organization_id = '$TENANT_ONE'
-  AND milestone.project_id = '99999999-9999-4999-8999-999999999998'
-  AND (
-    project.client_account_id = '55555555-5555-4555-8555-555555555555'
-    OR project.provider_account_id = '55555555-5555-4555-8555-555555555555'
-  );
-SQL
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM project_milestones AS milestone JOIN project_workspaces AS project ON project.organization_id = milestone.organization_id AND project.id = milestone.project_id WHERE milestone.organization_id = '$TENANT_ONE' AND milestone.project_id = '99999999-9999-4999-8999-999999999998' AND (project.client_account_id = '55555555-5555-4555-8555-555555555555' OR project.provider_account_id = '55555555-5555-4555-8555-555555555555'); COMMIT;" | tail -n 1
 )"
 if [[ "$project_client_count" != "1" ||
       "$project_provider_count" != "1" ||
       "$project_nonparticipant_count" != "0" ||
       "$milestone_client_count" != "1" ||
       "$milestone_nonparticipant_count" != "0" ]]; then
-  echo "Project/milestone participant reads did not enforce the expected account boundary." >&2
+  echo "Project/milestone participant read counts were unexpected: project client=$project_client_count provider=$project_provider_count nonparticipant=$project_nonparticipant_count; milestone client=$milestone_client_count nonparticipant=$milestone_nonparticipant_count." >&2
   exit 1
 fi
 
