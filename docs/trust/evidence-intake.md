@@ -21,7 +21,6 @@ New records enter as `submitted`. A separate `trust_evidence_decisions` table no
 
 Organization verification, identity-provider integrations, credential standards and issuer registry, file upload/storage, evidence scanning, review queues, appeals, reputation scoring, public badges, and production verification are not implemented by this increment.
 
-
 ## Private account read API — implementation proposal
 
 A draft API increment adds GET /v1/me/trust-evidence for the authenticated

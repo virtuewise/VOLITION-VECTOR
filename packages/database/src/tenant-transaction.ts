@@ -92,7 +92,7 @@ async function withTransactionContext<T>(
  * The caller must authorize the principal's membership before invoking this
  * function. The pool must use a non-owner role without BYPASSRLS.
  */
-export function withTenantTransaction<T>(
+export async function withTenantTransaction<T>(
   pool: TenantConnectionPool,
   tenantId: string,
   work: (client: TenantTransactionClient) => Promise<T>,
@@ -112,7 +112,7 @@ export function withTenantTransaction<T>(
  * explicitly uses app.account_id. It does not establish organization membership
  * or tenant authority; callers must not use it for organization-scoped actions.
  */
-export function withAccountTransaction<T>(
+export async function withAccountTransaction<T>(
   pool: TenantConnectionPool,
   accountId: string,
   work: (client: TenantTransactionClient) => Promise<T>,

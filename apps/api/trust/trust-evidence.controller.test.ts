@@ -17,20 +17,23 @@ function createService() {
 }
 
 describe("TrustEvidenceController", () => {
-  it("lists evidence for the verified account with bounded pagination", async () => {
-    const service = createService();
-    const controller = new TrustEvidenceController(service);
+  it(
+    "lists evidence for the verified account with bounded pagination",
+    async () => {
+      const service = createService();
+      const controller = new TrustEvidenceController(service);
 
-    await expect(
-      controller.list(identityRequest(), { limit: "10", offset: "20" }),
-    ).resolves.toEqual([]);
+      await expect(
+        controller.list(identityRequest(), { limit: "10", offset: "20" }),
+      ).resolves.toEqual([]);
 
-    expect(service.list).toHaveBeenCalledWith(
-      { accountId: ACCOUNT_ID },
-      10,
-      20,
-    );
-  });
+      expect(service.list).toHaveBeenCalledWith(
+        { accountId: ACCOUNT_ID },
+        10,
+        20,
+      );
+    },
+  );
 
   it("uses safe defaults", async () => {
     const service = createService();

@@ -115,7 +115,8 @@ export class PostgresTrustEvidenceRepository {
             "LIMIT $2 OFFSET $3",
           [normalizedAccountId, limit, offset],
         );
-        const evidenceRows = evidenceResult.rows as readonly TrustEvidenceRow[];
+        const evidenceRows =
+          evidenceResult.rows as readonly TrustEvidenceRow[];
 
         if (evidenceRows.length === 0) return [];
 

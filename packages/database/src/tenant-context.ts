@@ -10,8 +10,10 @@ export function normalizeTenantId(value: string): string {
   return normalized;
 }
 
-
-/** Validate and canonicalize an account UUID before binding it as an RLS setting. */
+/**
+ * Validate and canonicalize an account UUID before binding it as an RLS
+ * setting.
+ */
 export function normalizeAccountId(value: string): string {
   const normalized = value.trim().toLowerCase();
   if (!UUID_PATTERN.test(normalized)) {
