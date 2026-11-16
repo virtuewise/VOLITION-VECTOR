@@ -20,3 +20,22 @@ New records enter as `submitted`. A separate `trust_evidence_decisions` table no
 ## Deferred
 
 Organization verification, identity-provider integrations, credential standards and issuer registry, file upload/storage, evidence scanning, review queues, appeals, reputation scoring, public badges, and production verification are not implemented by this increment.
+
+## Private account read API — implementation proposal
+
+A draft API increment adds GET /v1/me/trust-evidence for the authenticated
+subject account. It returns only claim metadata, current status, submission
+and review timestamps, and decision type/timestamp history. It deliberately
+does not return the private object locator, reviewer account identifiers, or
+reviewer decision notes.
+
+The endpoint derives the account exclusively from the verified WorkOS-backed
+internal principal, sets app.account_id transaction-locally, and relies on
+the existing forced RLS policies. The repository also adds an explicit
+subject_account_id predicate and bounded pagination.
+
+This read surface does not submit evidence, upload files, create decisions,
+change evidence status, issue credentials, verify issuers, or expose public
+badges. Object-storage upload, object ownership checks, malware scanning,
+retention and issuer verification remain deferred integrations. The existing
+opaque locator is never returned by this endpoint.

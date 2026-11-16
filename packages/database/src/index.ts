@@ -108,3 +108,17 @@ export type {
   OutboxEventInput,
   OutboxEventRecord,
 } from "./outbox-repository.js";
+
+export { normalizeAccountId } from "./tenant-context.js";
+export { withAccountTransaction } from "./tenant-transaction.js";
+export {
+  PostgresTrustEvidenceRepository,
+  TrustEvidenceInputError,
+} from "./trust-evidence-repository.js";
+export type {
+  TrustEvidenceClaimType,
+  TrustEvidenceDecisionRecord,
+  TrustEvidenceDecisionType,
+  TrustEvidenceRecord,
+  TrustEvidenceStatus,
+} from "./trust-evidence-repository.js";

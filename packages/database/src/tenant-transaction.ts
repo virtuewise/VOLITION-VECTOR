@@ -1,4 +1,4 @@
-import { normalizeTenantId } from "./tenant-context.js";
+import { normalizeAccountId, normalizeTenantId } from "./tenant-context.js";
 
 export interface TenantQueryResult {
   readonly rows: readonly unknown[];
@@ -23,20 +23,18 @@ export interface TenantConnectionPool {
   connect(): Promise<TenantConnection>;
 }
 
+type TransactionContextSetting = "tenant_id" | "account_id";
+
 /**
- * Run tenant-owned database work in a transaction with PostgreSQL RLS context.
- *
- * The tenant identifier is validated and bound as a parameter. set_config's
- * third argument makes the setting transaction-local (equivalent to SET LOCAL).
- * The caller must authorize the principal's membership before invoking this
- * function. The pool must use a non-owner role without BYPASSRLS.
+ * Run work in a transaction with one transaction-local PostgreSQL RLS context.
+ * The setting name is an internal literal union, never caller-controlled SQL.
  */
-export async function withTenantTransaction<T>(
+async function withTransactionContext<T>(
   pool: TenantConnectionPool,
-  tenantId: string,
+  setting: TransactionContextSetting,
+  normalizedId: string,
   work: (client: TenantTransactionClient) => Promise<T>,
 ): Promise<T> {
-  const normalizedTenantId = normalizeTenantId(tenantId);
   const client = await pool.connect();
   let transactionStarted = false;
   let releaseError: Error | undefined;
@@ -55,8 +53,8 @@ export async function withTenantTransaction<T>(
       throw error;
     }
 
-    await client.query("SELECT set_config('app.tenant_id', $1, true)", [
-      normalizedTenantId,
+    await client.query("SELECT set_config('app." + setting + "', $1, true)", [
+      normalizedId,
     ]);
 
     const result = await work(client);
@@ -80,4 +78,45 @@ export async function withTenantTransaction<T>(
   } finally {
     client.release(releaseError);
   }
+}
+
+/**
+ * Run tenant-owned database work in a transaction with PostgreSQL RLS context.
+ *
+ * The tenant identifier is validated and bound as a parameter. set_config's
+ * third argument makes the setting transaction-local (equivalent to SET LOCAL).
+ * The caller must authorize the principal's membership before invoking this
+ * function. The pool must use a non-owner role without BYPASSRLS.
+ */
+export async function withTenantTransaction<T>(
+  pool: TenantConnectionPool,
+  tenantId: string,
+  work: (client: TenantTransactionClient) => Promise<T>,
+): Promise<T> {
+  return withTransactionContext(
+    pool,
+    "tenant_id",
+    normalizeTenantId(tenantId),
+    work,
+  );
+}
+
+/**
+ * Run account-owned database work with transaction-local app.account_id.
+ *
+ * This helper is for self-scoped account reads and writes whose RLS policy
+ * explicitly uses app.account_id. It does not establish organization membership
+ * or tenant authority; callers must not use it for organization-scoped actions.
+ */
+export async function withAccountTransaction<T>(
+  pool: TenantConnectionPool,
+  accountId: string,
+  work: (client: TenantTransactionClient) => Promise<T>,
+): Promise<T> {
+  return withTransactionContext(
+    pool,
+    "account_id",
+    normalizeAccountId(accountId),
+    work,
+  );
 }
