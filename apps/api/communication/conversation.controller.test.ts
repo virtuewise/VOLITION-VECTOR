@@ -50,7 +50,7 @@ function identityRequest(): IdentityRequest {
 }
 
 describe("ConversationController", () => {
-  it("lists conversations using only the verified account principal", async () => {
+  it("lists conversations for the verified account", async () => {
     const repository = createRepository();
     const controller = new ConversationController(repository);
 
@@ -61,7 +61,7 @@ describe("ConversationController", () => {
     expect(repository.listMine).toHaveBeenCalledWith(accountId, 10, 20);
   });
 
-  it("rejects caller-selected account identifiers and malformed pagination", async () => {
+  it("rejects caller account IDs and malformed pages", async () => {
     const controller = new ConversationController(createRepository());
 
     await expect(
@@ -75,19 +75,53 @@ describe("ConversationController", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it("maps repository pagination validation to HTTP 400", async () => {
+  it("rejects repeated query parameters", async () => {
+    const repository = createRepository();
+    const controller = new ConversationController(repository);
+
+    await expect(
+      controller.list(identityRequest(), { limit: ["10", "20"] }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(repository.listMine).not.toHaveBeenCalled();
+  });
+
+  it("rejects out-of-range pages before persistence", async () => {
+    const repository = createRepository();
+    const controller = new ConversationController(repository);
+
+    await expect(
+      controller.list(identityRequest(), { limit: "51" }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      controller.listMessages(identityRequest(), conversationId, {
+        limit: "101",
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      controller.listMessages(identityRequest(), conversationId, {
+        offset: "10001",
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(repository.listMine).not.toHaveBeenCalled();
+    expect(repository.listMessages).not.toHaveBeenCalled();
+  });
+
+  it("maps repository pagination errors to HTTP 400", async () => {
     const repository = createRepository();
     vi.mocked(repository.listMine).mockRejectedValueOnce(
       new ConversationInputError("Conversation pagination is invalid."),
     );
     const controller = new ConversationController(repository);
 
-    await expect(
-      controller.list(identityRequest(), { limit: "0" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(controller.list(identityRequest(), {})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(repository.listMine).toHaveBeenCalledWith(accountId, 20, 0);
   });
 
-  it("lists messages with the verified account and bounded default page", async () => {
+  it("lists messages for the verified account", async () => {
     const repository = createRepository();
     const controller = new ConversationController(repository);
 
@@ -103,7 +137,7 @@ describe("ConversationController", () => {
     );
   });
 
-  it("returns an empty result without revealing non-participant conversations", async () => {
+  it("returns no messages for a non-participant", async () => {
     const repository = createRepository();
     vi.mocked(repository.listMessages).mockResolvedValueOnce([]);
     const controller = new ConversationController(repository);
@@ -113,7 +147,7 @@ describe("ConversationController", () => {
     ).resolves.toEqual([]);
   });
 
-  it("fails closed when conversation persistence is not configured", async () => {
+  it("fails closed when persistence is not configured", async () => {
     const controller = new ConversationController(null);
 
     await expect(controller.list(identityRequest(), {})).rejects.toBeInstanceOf(

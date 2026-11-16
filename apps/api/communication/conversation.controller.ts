@@ -27,13 +27,9 @@ import type { ConversationRepositoryPort } from "./conversation.repository.js";
 
 const ALLOWED_LIST_QUERY_KEYS = new Set(["limit", "offset"]);
 
-function parseInteger(
-  value: string | undefined,
-  fallback: number,
-  field: string,
-): number {
+function parseInteger(value: unknown, fallback: number, field: string): number {
   if (value === undefined) return fallback;
-  if (!/^(0|[1-9]\d*)$/.test(value)) {
+  if (typeof value !== "string" || !/^(0|[1-9]\d*)$/.test(value)) {
     throw new BadRequestException(`Invalid ${field} query parameter.`);
   }
   const parsed = Number(value);
@@ -44,19 +40,28 @@ function parseInteger(
 }
 
 function validateListQuery(
-  query: Record<string, string | undefined>,
+  query: Record<string, unknown>,
   defaultLimit: number,
+  maximumLimit: number,
 ): { limit: number; offset: number } {
   for (const [key, value] of Object.entries(query)) {
-    if (!ALLOWED_LIST_QUERY_KEYS.has(key) || typeof value !== "string") {
+    if (
+      !ALLOWED_LIST_QUERY_KEYS.has(key) ||
+      (value !== undefined && typeof value !== "string")
+    ) {
       throw new BadRequestException(`Invalid ${key} query parameter.`);
     }
   }
 
-  return {
-    limit: parseInteger(query["limit"], defaultLimit, "limit"),
-    offset: parseInteger(query["offset"], 0, "offset"),
-  };
+  const limit = parseInteger(query["limit"], defaultLimit, "limit");
+  const offset = parseInteger(query["offset"], 0, "offset");
+  if (limit < 1 || limit > maximumLimit) {
+    throw new BadRequestException("Invalid limit query parameter.");
+  }
+  if (offset > 10_000) {
+    throw new BadRequestException("Invalid offset query parameter.");
+  }
+  return { limit, offset };
 }
 
 function rethrowRepositoryError(error: unknown): never {
@@ -87,11 +92,11 @@ export class ConversationController {
   @Header("Cache-Control", "private, no-store")
   async list(
     @Req() request: IdentityRequest,
-    @Query() query: Record<string, string | undefined>,
+    @Query() query: Record<string, unknown>,
   ): Promise<readonly ConversationRecord[]> {
     const accountId = requireIdentityPrincipal(request).accountId;
+    const pagination = validateListQuery(query, 20, 50);
     const repository = this.requireRepository();
-    const pagination = validateListQuery(query, 20);
 
     try {
       return await repository.listMine(
@@ -110,11 +115,11 @@ export class ConversationController {
     @Req() request: IdentityRequest,
     @Param("conversationId", new ParseUUIDPipe({ version: "4" }))
     conversationId: string,
-    @Query() query: Record<string, string | undefined>,
+    @Query() query: Record<string, unknown>,
   ): Promise<readonly ConversationMessageRecord[]> {
     const accountId = requireIdentityPrincipal(request).accountId;
+    const pagination = validateListQuery(query, 50, 100);
     const repository = this.requireRepository();
-    const pagination = validateListQuery(query, 50);
 
     try {
       return await repository.listMessages(
