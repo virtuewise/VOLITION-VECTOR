@@ -42,9 +42,10 @@ function parseInteger(value: unknown, fallback: number, field: string): number {
   return parsed;
 }
 
-function validateListQuery(
-  query: Record<string, unknown>,
-): { limit: number; offset: number } {
+function validateListQuery(query: Record<string, unknown>): {
+  limit: number;
+  offset: number;
+} {
   for (const [key, value] of Object.entries(query)) {
     if (
       !ALLOWED_LIST_QUERY_KEYS.has(key) ||
