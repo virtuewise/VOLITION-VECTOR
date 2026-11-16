@@ -155,22 +155,22 @@ describe("PostgresTrustEvidenceRepository", () => {
   });
 
   it("rolls back and releases the connection when decision history fails", async () => {
-      const pool = new FakePool((sql) => {
-        if (sql.includes("FROM trust_evidence AS evidence")) {
-          return [evidenceRow];
-        }
-        if (sql.includes("FROM trust_evidence_decisions AS decision")) {
-          throw new Error("decision history unavailable");
-        }
-        return [];
-      });
-      const repository = new PostgresTrustEvidenceRepository(pool);
+    const pool = new FakePool((sql) => {
+      if (sql.includes("FROM trust_evidence AS evidence")) {
+        return [evidenceRow];
+      }
+      if (sql.includes("FROM trust_evidence_decisions AS decision")) {
+        throw new Error("decision history unavailable");
+      }
+      return [];
+    });
+    const repository = new PostgresTrustEvidenceRepository(pool);
 
-      await expect(repository.listForAccount(ACCOUNT_ID)).rejects.toThrow(
-        "decision history unavailable",
-      );
+    await expect(repository.listForAccount(ACCOUNT_ID)).rejects.toThrow(
+      "decision history unavailable",
+    );
 
-      expect(pool.statements.at(-1)?.sql).toBe("ROLLBACK");
-      expect(pool.releaseCalls).toBe(1);
+    expect(pool.statements.at(-1)?.sql).toBe("ROLLBACK");
+    expect(pool.releaseCalls).toBe(1);
   });
 });
