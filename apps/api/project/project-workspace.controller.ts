@@ -30,13 +30,9 @@ import {
 
 const ALLOWED_LIST_QUERY_KEYS = new Set(["limit", "offset"]);
 
-function parseInteger(
-  value: string | undefined,
-  fallback: number,
-  field: string,
-): number {
+function parseInteger(value: unknown, fallback: number, field: string): number {
   if (value === undefined) return fallback;
-  if (!/^(0|[1-9]\d*)$/.test(value)) {
+  if (typeof value !== "string" || !/^(0|[1-9]\d*)$/.test(value)) {
     throw new BadRequestException(`Invalid ${field} query parameter.`);
   }
   const parsed = Number(value);
@@ -46,20 +42,27 @@ function parseInteger(
   return parsed;
 }
 
-function validateListQuery(query: Record<string, string | undefined>): {
-  limit: number;
-  offset: number;
-} {
+function validateListQuery(
+  query: Record<string, unknown>,
+): { limit: number; offset: number } {
   for (const [key, value] of Object.entries(query)) {
-    if (!ALLOWED_LIST_QUERY_KEYS.has(key) || typeof value !== "string") {
+    if (
+      !ALLOWED_LIST_QUERY_KEYS.has(key) ||
+      (value !== undefined && typeof value !== "string")
+    ) {
       throw new BadRequestException(`Invalid ${key} query parameter.`);
     }
   }
 
-  return {
-    limit: parseInteger(query["limit"], 20, "limit"),
-    offset: parseInteger(query["offset"], 0, "offset"),
-  };
+  const limit = parseInteger(query["limit"], 20, "limit");
+  const offset = parseInteger(query["offset"], 0, "offset");
+  if (limit < 1 || limit > 50) {
+    throw new BadRequestException("Invalid limit query parameter.");
+  }
+  if (offset > 10_000) {
+    throw new BadRequestException("Invalid offset query parameter.");
+  }
+  return { limit, offset };
 }
 
 function rethrowRepositoryError(error: unknown): never {
@@ -91,11 +94,11 @@ export class ProjectWorkspaceController {
     @Req() request: IdentityRequest,
     @Param("organizationId", new ParseUUIDPipe({ version: "4" }))
     organizationId: string,
-    @Query() query: Record<string, string | undefined>,
+    @Query() query: Record<string, unknown>,
   ): Promise<readonly ProjectWorkspaceRecord[]> {
     const participantAccountId = requireIdentityPrincipal(request).accountId;
-    const repository = this.requireRepository();
     const pagination = validateListQuery(query);
+    const repository = this.requireRepository();
 
     try {
       return await repository.listForParticipant(
@@ -142,11 +145,11 @@ export class ProjectWorkspaceController {
     organizationId: string,
     @Param("projectId", new ParseUUIDPipe({ version: "4" }))
     projectId: string,
-    @Query() query: Record<string, string | undefined>,
+    @Query() query: Record<string, unknown>,
   ): Promise<readonly ProjectMilestoneRecord[]> {
     const participantAccountId = requireIdentityPrincipal(request).accountId;
-    const repository = this.requireRepository();
     const pagination = validateListQuery(query);
+    const repository = this.requireRepository();
 
     try {
       const project = await repository.getForParticipant(

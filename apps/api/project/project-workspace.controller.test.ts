@@ -82,7 +82,7 @@ describe("ProjectWorkspaceController", () => {
     );
   });
 
-  it("rejects caller-selected account identifiers and malformed pagination", async () => {
+  it("rejects caller account IDs and malformed pages", async () => {
     const controller = new ProjectWorkspaceController(createRepository());
 
     await expect(
@@ -96,7 +96,38 @@ describe("ProjectWorkspaceController", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it("maps repository pagination validation to HTTP 400", async () => {
+  it("rejects repeated query parameters", async () => {
+    const repository = createRepository();
+    const controller = new ProjectWorkspaceController(repository);
+
+    await expect(
+      controller.list(identityRequest(), organizationId, {
+        limit: ["10", "20"],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(repository.listForParticipant).not.toHaveBeenCalled();
+  });
+
+  it("rejects out-of-range project pages before persistence", async () => {
+    const repository = createRepository();
+    const controller = new ProjectWorkspaceController(repository);
+
+    await expect(
+      controller.list(identityRequest(), organizationId, { limit: "51" }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      controller.listMilestones(identityRequest(), organizationId, projectId, {
+        offset: "10001",
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(repository.listForParticipant).not.toHaveBeenCalled();
+    expect(repository.getForParticipant).not.toHaveBeenCalled();
+    expect(repository.listMilestonesForParticipant).not.toHaveBeenCalled();
+  });
+
+  it("maps repository pagination errors to HTTP 400", async () => {
     const repository = createRepository();
     vi.mocked(repository.listForParticipant).mockRejectedValueOnce(
       new ProjectWorkspaceInputError(
@@ -106,11 +137,17 @@ describe("ProjectWorkspaceController", () => {
     const controller = new ProjectWorkspaceController(repository);
 
     await expect(
-      controller.list(identityRequest(), organizationId, { limit: "0" }),
+      controller.list(identityRequest(), organizationId, {}),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(repository.listForParticipant).toHaveBeenCalledWith(
+      organizationId,
+      participantAccountId,
+      20,
+      0,
+    );
   });
 
-  it("returns a project only when the verified account is a named participant", async () => {
+  it("returns a project to a named participant", async () => {
     const repository = createRepository();
     const controller = new ProjectWorkspaceController(repository);
 
@@ -125,7 +162,7 @@ describe("ProjectWorkspaceController", () => {
     );
   });
 
-  it("does not distinguish a missing project from a non-participant", async () => {
+  it("does not reveal non-participant projects", async () => {
     const repository = createRepository();
     vi.mocked(repository.getForParticipant).mockResolvedValueOnce(null);
     const controller = new ProjectWorkspaceController(repository);
@@ -135,7 +172,7 @@ describe("ProjectWorkspaceController", () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it("checks project participation before listing bounded milestones", async () => {
+  it("checks participation before listing milestones", async () => {
     const repository = createRepository();
     const controller = new ProjectWorkspaceController(repository);
 
@@ -160,7 +197,7 @@ describe("ProjectWorkspaceController", () => {
     );
   });
 
-  it("does not query milestones for a missing or non-participant project", async () => {
+  it("does not list milestones for a non-participant", async () => {
     const repository = createRepository();
     vi.mocked(repository.getForParticipant).mockResolvedValueOnce(null);
     const controller = new ProjectWorkspaceController(repository);
@@ -176,7 +213,7 @@ describe("ProjectWorkspaceController", () => {
     expect(repository.listMilestonesForParticipant).not.toHaveBeenCalled();
   });
 
-  it("fails closed when project persistence is not configured", async () => {
+  it("fails closed when persistence is not configured", async () => {
     const controller = new ProjectWorkspaceController(null);
 
     await expect(
