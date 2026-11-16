@@ -732,7 +732,8 @@ for table in organizations organization_invitations organization_invitation_rate
   assert_count "$table" "$TENANT_TWO" 1
 done
 # Each tenant has its owner plus two additional membership rows. Tenant
-# one includes the intentionally suspended membership; RLS counts all rows.
+# one counts owner + active viewer + suspended viewer; tenant two counts its
+# owner + two active viewers. RLS counts every row, not only active memberships.
 assert_count organization_memberships "$TENANT_ONE" 3
 assert_count organization_memberships "$TENANT_TWO" 3
 # Public rows are visible across tenants; drafts remain tenant-private.
