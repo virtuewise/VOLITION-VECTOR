@@ -53,7 +53,6 @@ package-tree remediation and public advisory dispositions only. A repository
 administrator must recheck live Dependabot alerts after lockfile refresh and
 after merge. No alert is marked dismissed or resolved by this document.
 
-
 ## Additional advisory review — 2026-11-16
 
 The public advisory records were rechecked after the original lockfile refresh:
