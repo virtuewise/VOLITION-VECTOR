@@ -45,20 +45,20 @@ describe("TrustEvidenceController", () => {
     const service = createService();
     const controller = new TrustEvidenceController(service);
 
-    await expect(
+    expect(() =>
       controller.list(identityRequest(), {
         accountId: "55555555-5555-4555-8555-555555555555",
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
+    ).toThrow(BadRequestException);
+    expect(() =>
       controller.list(identityRequest(), { limit: ["10", "20"] }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
+    ).toThrow(BadRequestException);
+    expect(() =>
       controller.list(identityRequest(), { limit: "10items" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
+    ).toThrow(BadRequestException);
+    expect(() =>
       controller.list(identityRequest(), { offset: "10001" }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).toThrow(BadRequestException);
 
     expect(service.list).not.toHaveBeenCalled();
   });
