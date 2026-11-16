@@ -1,6 +1,6 @@
 # Dependency advisory remediation record
 
-Last reviewed: 2026-11-15
+Last reviewed: 2026-11-16
 
 This record captures the package-version review for the workspace lockfile.
 It does not state that GitHub Dependabot alerts have been dismissed or that
@@ -52,3 +52,19 @@ Dependabot-alert or dependency-graph/SBOM endpoints. This record documents
 package-tree remediation and public advisory dispositions only. A repository
 administrator must recheck live Dependabot alerts after lockfile refresh and
 after merge. No alert is marked dismissed or resolved by this document.
+
+
+## Additional advisory review — 2026-11-16
+
+The public advisory records were rechecked after the original lockfile refresh:
+
+- **glob — GHSA-3g3m-2fjr-6pw4:** affected versions are 9.0.0 through 14.0.1; 14.0.2 is patched. The lockfile's 14.0.6 resolution is outside the affected range.
+- **minimatch — GHSA-g3hv-75wg-m249:** affected versions are 7.0.0 through versions before 11.0.1; 11.0.1 is patched. The 11.0.8 resolution is outside the affected range.
+- **minimatch — GHSA-cf2h-pxjq-68xw:** the 11.x affected range ends at 11.0.6; 11.0.7 is patched. The lockfile's 11.0.8 resolution is outside the affected range.
+- **minimatch — GHSA-c859-jr93-m5j4:** the affected range ends at 11.0.7; 11.0.8 is listed as patched.
+- **minimatch — GHSA-23c5-xmqv-rm74 and GHSA-7r86-cg39-jmmj:** the published affected ranges cover 10.2.x and earlier release lines; they do not include 11.0.8.
+- **minimatch — GHSA-3ppc-4f35-3m26:** the published affected ranges likewise do not include the 11.0.x release line.
+
+The separate **GHSA-hqmv-qgp3-jx75** discrepancy remains unresolved: its structured metadata lists 11.0.8 as patched while the advisory description still says that no patched version is available. The conservative disposition above is unchanged; do not claim this finding resolved until the maintainer clarifies the advisory or a release-level fix is independently verified.
+
+These are public advisory/version-range assessments, not a substitute for the repository's live Dependabot alert inventory. The connected GitHub integration still cannot retrieve that inventory or the dependency-graph SBOM. A repository administrator must recheck the live alerts after lockfile refresh and after merge.
