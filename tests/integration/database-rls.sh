@@ -508,6 +508,39 @@ IDENTITY_ISSUER="https://issuer.example/user_management/client"
 OTHER_IDENTITY_ISSUER="https://other-issuer.example/user_management/client"
 SUSPENDED_ACCOUNT_ID="66666666-6666-4666-8666-666666666666"
 
+# Tenant RLS scopes these rows to an organization, but project visibility is
+# narrower: only the named client/provider participants may read a project.
+# Exercise the same explicit predicates used by the repository, including the
+# milestone join, under transaction-local tenant and account context.
+project_client_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM project_workspaces WHERE organization_id = '$TENANT_ONE' AND (client_account_id = '$ACCOUNT_ONE' OR provider_account_id = '$ACCOUNT_ONE'); COMMIT;" | tail -n 1
+)"
+project_provider_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '44444444-4444-4444-8444-444444444444'; SELECT count(*) FROM project_workspaces WHERE organization_id = '$TENANT_ONE' AND (client_account_id = '44444444-4444-4444-8444-444444444444' OR provider_account_id = '44444444-4444-4444-8444-444444444444'); COMMIT;" | tail -n 1
+)"
+project_nonparticipant_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM project_workspaces WHERE organization_id = '$TENANT_ONE' AND (client_account_id = '55555555-5555-4555-8555-555555555555' OR provider_account_id = '55555555-5555-4555-8555-555555555555'); COMMIT;" | tail -n 1
+)"
+milestone_client_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM project_milestones AS milestone JOIN project_workspaces AS project ON project.organization_id = milestone.organization_id AND project.id = milestone.project_id WHERE milestone.organization_id = '$TENANT_ONE' AND milestone.project_id = '99999999-9999-4999-8999-999999999998' AND (project.client_account_id = '$ACCOUNT_ONE' OR project.provider_account_id = '$ACCOUNT_ONE'); COMMIT;" | tail -n 1
+)"
+milestone_nonparticipant_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "BEGIN; SET LOCAL app.tenant_id = '$TENANT_ONE'; SET LOCAL app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM project_milestones AS milestone JOIN project_workspaces AS project ON project.organization_id = milestone.organization_id AND project.id = milestone.project_id WHERE milestone.organization_id = '$TENANT_ONE' AND milestone.project_id = '99999999-9999-4999-8999-999999999998' AND (project.client_account_id = '55555555-5555-4555-8555-555555555555' OR project.provider_account_id = '55555555-5555-4555-8555-555555555555'); COMMIT;" | tail -n 1
+)"
+if [[ "$project_client_count" != "1" ||
+      "$project_provider_count" != "1" ||
+      "$project_nonparticipant_count" != "0" ||
+      "$milestone_client_count" != "1" ||
+      "$milestone_nonparticipant_count" != "0" ]]; then
+  echo "Project/milestone participant read counts were unexpected: project client=$project_client_count provider=$project_provider_count nonparticipant=$project_nonparticipant_count; milestone client=$milestone_client_count nonparticipant=$milestone_nonparticipant_count." >&2
+  exit 1
+fi
+
 # Exercise the same startup trust checks used by PostgresTenantConnectionPool.
 runtime_role_safe="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<'SQL'
@@ -769,6 +802,14 @@ if [[ "$project_provider_count" != "1" ]]; then
   echo "The accepted applicant could not read their project workspace." >&2
   exit 1
 fi
+project_client_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM project_workspaces;"
+)"
+if [[ "$project_client_count" != "1" ]]; then
+  echo "The client participant could not read their project workspace." >&2
+  exit 1
+fi
 project_nonparticipant_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SET app.account_id = '55555555-5555-4555-8555-555555555555'; SELECT count(*) FROM project_workspaces;"
@@ -783,6 +824,14 @@ provider_milestone_count="$(
 )"
 if [[ "$provider_milestone_count" != "1" ]]; then
   echo "The project provider could not read the project milestone." >&2
+  exit 1
+fi
+client_milestone_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
+    -c "SET app.account_id = '$ACCOUNT_ONE'; SELECT count(*) FROM project_milestones;"
+)"
+if [[ "$client_milestone_count" != "1" ]]; then
+  echo "The project client could not read the project milestone." >&2
   exit 1
 fi
 expect_failure "provider cannot rewrite milestone scope while submitting" \
