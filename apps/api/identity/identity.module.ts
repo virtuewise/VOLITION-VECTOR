@@ -63,6 +63,8 @@ import { PostgresInvitationRepositoryAdapter } from "./invitations/postgres-invi
     },
   ],
   exports: [
+    IdentityContextGuard,
+    WorkOSAuthenticationGuard,
     OrganizationMembershipApplicationService,
     WorkOSAccessTokenVerifier,
     WorkOSIdentityResolver,
