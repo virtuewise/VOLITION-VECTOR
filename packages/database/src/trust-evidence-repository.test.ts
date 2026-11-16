@@ -135,9 +135,9 @@ describe("PostgresTrustEvidenceRepository", () => {
     const pool = new FakePool();
     const repository = new PostgresTrustEvidenceRepository(pool);
 
-    await expect(
-      repository.listForAccount("not-an-account"),
-    ).rejects.toThrow(TypeError);
+    await expect(repository.listForAccount("not-an-account")).rejects.toThrow(
+      TypeError,
+    );
     expect(pool.connectCalls).toBe(0);
   });
 
@@ -145,18 +145,16 @@ describe("PostgresTrustEvidenceRepository", () => {
     const pool = new FakePool();
     const repository = new PostgresTrustEvidenceRepository(pool);
 
-    await expect(
-      repository.listForAccount(ACCOUNT_ID, 51, 0),
-    ).rejects.toThrow("pagination parameters are invalid");
+    await expect(repository.listForAccount(ACCOUNT_ID, 51, 0)).rejects.toThrow(
+      "pagination parameters are invalid",
+    );
     await expect(
       repository.listForAccount(ACCOUNT_ID, 20, 10_001),
     ).rejects.toThrow("pagination parameters are invalid");
     expect(pool.connectCalls).toBe(0);
   });
 
-  it(
-    "rolls back and releases the connection when decision history fails",
-    async () => {
+  it("rolls back and releases the connection when decision history fails", async () => {
       const pool = new FakePool((sql) => {
         if (sql.includes("FROM trust_evidence AS evidence")) {
           return [evidenceRow];
@@ -174,6 +172,5 @@ describe("PostgresTrustEvidenceRepository", () => {
 
       expect(pool.statements.at(-1)?.sql).toBe("ROLLBACK");
       expect(pool.releaseCalls).toBe(1);
-    },
-  );
+  });
 });

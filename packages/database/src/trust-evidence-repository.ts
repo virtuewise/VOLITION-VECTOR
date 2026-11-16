@@ -6,10 +6,7 @@ import {
 } from "./tenant-transaction.js";
 
 export type TrustEvidenceClaimType =
-  | "identity"
-  | "qualification"
-  | "capability"
-  | "work_history";
+  "identity" | "qualification" | "capability" | "work_history";
 
 export type TrustEvidenceStatus =
   | "submitted"
@@ -20,10 +17,7 @@ export type TrustEvidenceStatus =
   | "expired";
 
 export type TrustEvidenceDecisionType =
-  | "verified"
-  | "rejected"
-  | "revoked"
-  | "expired";
+  "verified" | "rejected" | "revoked" | "expired";
 
 export interface TrustEvidenceDecisionRecord {
   readonly decision: TrustEvidenceDecisionType;
@@ -115,8 +109,7 @@ export class PostgresTrustEvidenceRepository {
             "LIMIT $2 OFFSET $3",
           [normalizedAccountId, limit, offset],
         );
-        const evidenceRows =
-          evidenceResult.rows as readonly TrustEvidenceRow[];
+        const evidenceRows = evidenceResult.rows as readonly TrustEvidenceRow[];
 
         if (evidenceRows.length === 0) return [];
 

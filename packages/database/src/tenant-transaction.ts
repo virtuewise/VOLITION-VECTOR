@@ -1,7 +1,4 @@
-import {
-  normalizeAccountId,
-  normalizeTenantId,
-} from "./tenant-context.js";
+import { normalizeAccountId, normalizeTenantId } from "./tenant-context.js";
 
 export interface TenantQueryResult {
   readonly rows: readonly unknown[];
@@ -56,10 +53,9 @@ async function withTransactionContext<T>(
       throw error;
     }
 
-    await client.query(
-      "SELECT set_config('app." + setting + "', $1, true)",
-      [normalizedId],
-    );
+    await client.query("SELECT set_config('app." + setting + "', $1, true)", [
+      normalizedId,
+    ]);
 
     const result = await work(client);
     await client.query("COMMIT");
