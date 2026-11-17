@@ -223,27 +223,102 @@ export type DateTimeFormatOptions = Omit<
  * implementation-dependent strings are rejected. The time zone is never
  * inferred from locale.
  */
+function isValidCalendarDate(
+  year: number,
+  month: number,
+  day: number,
+): boolean {
+  if (month < 1 || month > 12 || day < 1) {
+    return false;
+  }
+
+  const leapYear =
+    year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  const maximumDay = daysInMonth[month - 1];
+
+  return maximumDay !== undefined && day <= maximumDay;
+}
+
+function parseIsoDateTime(value: string): Date {
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (dateOnlyMatch !== null) {
+    const year = Number(dateOnlyMatch[1]);
+    const month = Number(dateOnlyMatch[2]);
+    const day = Number(dateOnlyMatch[3]);
+
+    if (!isValidCalendarDate(year, month, day)) {
+      throw new RangeError("A valid ISO calendar date is required.");
+    }
+
+    return new Date(value);
+  }
+
+  const dateTimeMatch =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|([+-])(\d{2}):(\d{2}))$/i.exec(
+      value,
+    );
+  if (dateTimeMatch === null) {
+    throw new RangeError(
+      "Date/time strings must be ISO 8601 with an explicit UTC offset.",
+    );
+  }
+
+  const year = Number(dateTimeMatch[1]);
+  const month = Number(dateTimeMatch[2]);
+  const day = Number(dateTimeMatch[3]);
+  const hour = Number(dateTimeMatch[4]);
+  const minute = Number(dateTimeMatch[5]);
+  const second = Number(dateTimeMatch[6] ?? "0");
+  const zone = dateTimeMatch[8];
+  const offsetHour = Number(dateTimeMatch[10] ?? "0");
+  const offsetMinute = Number(dateTimeMatch[11] ?? "0");
+
+  if (!isValidCalendarDate(year, month, day)) {
+    throw new RangeError("A valid ISO calendar date is required.");
+  }
+
+  if (hour > 23 || minute > 59 || second > 59) {
+    throw new RangeError("A valid ISO time is required.");
+  }
+
+  if (
+    zone !== undefined &&
+    zone.toUpperCase() !== "Z" &&
+    (offsetHour > 23 || offsetMinute > 59)
+  ) {
+    throw new RangeError("A valid UTC offset is required.");
+  }
+
+  return new Date(value);
+}
+
 export function formatDateTime(
   value: Date | string | number,
   locale: string,
   timeZone: string,
   options: DateTimeFormatOptions = {},
 ): string {
-  if (typeof value === "string") {
-    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
-    const dateTimeWithOffset =
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/i.test(
-        value,
-      );
-    if (!dateOnly && !dateTimeWithOffset) {
-      throw new RangeError(
-        "Date/time strings must be ISO 8601 with an explicit UTC offset.",
-      );
-    }
-  }
-
   const date =
-    value instanceof Date ? new Date(value.getTime()) : new Date(value);
+    typeof value === "string"
+      ? parseIsoDateTime(value)
+      : value instanceof Date
+        ? new Date(value.getTime())
+        : new Date(value);
+
   if (!Number.isFinite(date.getTime())) {
     throw new RangeError("A valid date/time value is required.");
   }
