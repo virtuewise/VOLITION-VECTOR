@@ -131,7 +131,7 @@ export function negotiateLocale(
   });
 
   const supportedByKey = new Map(
-    supported.map((locale) => [locale.toLowerCase(), locale]),
+    supported.map((locale) => [locale.toLowerCase(), locale] as const),
   );
 
   if (supportedByKey.size === 0) {
