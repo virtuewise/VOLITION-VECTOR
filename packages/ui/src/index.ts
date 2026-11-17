@@ -26,7 +26,7 @@ export function Button({
 
 export type SkipLinkProps = Omit<
   ComponentPropsWithoutRef<"a">,
-  "href"
+  "aria-hidden" | "href"
 > & {
   readonly href?: string;
 };
@@ -39,11 +39,15 @@ export function SkipLink({
   return createElement("a", {
     ...props,
     href,
+    "aria-hidden": false,
     className: joinClassNames("vv-skip-link", className),
   });
 }
 
-export type VisuallyHiddenProps = ComponentPropsWithoutRef<"span">;
+export type VisuallyHiddenProps = Omit<
+  ComponentPropsWithoutRef<"span">,
+  "aria-hidden"
+>;
 
 export function VisuallyHidden({
   className,
@@ -51,6 +55,7 @@ export function VisuallyHidden({
 }: VisuallyHiddenProps) {
   return createElement("span", {
     ...props,
+    "aria-hidden": false,
     className: joinClassNames("vv-visually-hidden", className),
   });
 }
