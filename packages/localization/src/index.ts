@@ -227,6 +227,19 @@ export function formatDateTime(
   timeZone: string,
   options: DateTimeFormatOptions = {},
 ): string {
+  if (typeof value === "string") {
+    const dateOnly = /^\\d{4}-\\d{2}-\\d{2}$/.test(value);
+    const dateTimeWithOffset =
+      /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?(?:Z|[+-]\\d{2}:\\d{2})$/i.test(
+        value,
+      );
+    if (!dateOnly && !dateTimeWithOffset) {
+      throw new RangeError(
+        "Date/time strings must be ISO 8601 with an explicit UTC offset.",
+      );
+    }
+  }
+
   const date =
     value instanceof Date ? new Date(value.getTime()) : new Date(value);
   if (!Number.isFinite(date.getTime())) {
