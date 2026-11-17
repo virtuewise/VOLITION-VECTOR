@@ -2,21 +2,50 @@
 
 Last reviewed: 2026-11-17
 
-This record captures the package-version review for the workspace lockfile.
-It does not state that GitHub Dependabot alerts have been dismissed or that
-the repository has no other vulnerabilities.
+This record captures package-version review and explicitly accepted residual
+findings for the workspace lockfile. It does not state that GitHub Dependabot
+alerts have been dismissed or that the repository has no other vulnerabilities.
 
-## Package tree on this PR branch
+## Package tree targeted by this PR
 
-The CI-generated lockfile resolves:
+The intended lockfile after the registry-enabled refresh is:
 
 - `vitest@4.1.12` and `@vitest/mocker@4.1.12`.
-- `glob@14.0.6`.
-- `minimatch@11.0.8` for the overridden 10.x and 11.x dependency paths,
-  plus `minimatch@3.1.5` for an older transitive path.
+- `glob@14.0.6` for the updated Expo SDK 58 CLI/config packages.
+- `minimatch@11.0.8` for packages whose supported API/range accepts 11.x.
+- `@nestjs/cli@12.0.13` and `@nestjs/schematics@12.0.13`.
+- `@typescript-eslint/parser@8.72.2` and `@typescript-eslint/typescript-estree@8.72.2`.
+- `@expo/fingerprint@0.21.9) retains its declared compatible `glob@13.0.6`
+  and `minimatch@10.2.6) path. Its nested glob 13 path also retains
+  minimatch 10.2.6. This is the only intended remaining 13.x/10.x exception.
+- `minimatch@3.1.5` remains on an older transitive path; its reviewed affected
+  ranges are addressed by that version.
 
-The root package manifest pins Vitest 4.1.12. No prerelease package is
-introduced by this remediation.
+The lockfile refresh and security workflow's `pnpm why` output must confirm
+this graph before the exception can be considered accurately scoped.
+
+## Compatibility review
+
+- The root uses Node 26 and TypeScript 6.0.2. `@typescript-eslint/parser`
+  8.72.2 supports TypeScript below 6.1 and its `typescript-estree` package
+  uses minimatch `^11.0.1).
+- Nest CLI 12.0.13 requires Node >=20.11, uses TypeScript ~6.0.2 and
+  declares minimatch 11.0.5; the 11.0.8 override satisfies that range.
+- glob 14.0.6 declares minimatch `^11.0.5`; minimatch 11.0.8 satisfies it.
+- `@eslint/config-array@0.23.5` still declares minimatch `^10.2.4`.
+  The workspace override intentionally supplies 11.0.8. Upstream ESLint
+  compatibility investigation reports that this consumer uses
+  `new Minimatch(...)` and `.match(...)`, which remain in 11.x, and reports
+  equivalent lint results with 10.2.6 and 11.0.3. This remains a major
+  override outside the declared semver range; the repository's full lint,
+  typecheck, tests and build gates are required evidence, not a substitute
+  for an upstream range update.
+- Expo's SDK 58 fingerprint dependency is treated differently. The Expo
+  maintainers state that the fingerprint package retains minimatch 10.x
+  because of breaking changes in 11.x, and that the relevant glob/minimatch
+  advisories are development-tooling DoS findings rather than production-app
+  vulnerabilities. Therefore this PR does not force the fingerprint path
+  across those majors.
 
 ## Current advisory dispositions
 
@@ -35,54 +64,70 @@ introduced by this remediation.
 
 ### glob
 
-- **GHSA-3g3m-2fjr-6pw4:** affected versions end before 14.0.2. The lockfile's
-  14.0.6 resolution is outside the affected range.
+- **GHSA-3g3m-2fjr-6pw4:** affected versions include glob 13.x and releases
+  before 14.0.2. Most consumers move to 14.0.6. The Expo fingerprint path
+  remains on 13.0.6 to avoid the upstream-documented major-version break.
+  Disposition: **moderate development-tooling exception**, not resolved.
 - **GHSA-5j98-mcp5-4vw2:** the command-injection advisory affects glob 10.2.0
   through 10.4.5 and 11.0.0 through 11.0.3. The 14.0.6 release line is not
-  in either affected range.
+  in either affected range; 13.0.6 is not in these specific ranges.
 
 ### minimatch
 
 - **GHSA-g3hv-75wg-m249:** affected versions are before 11.0.1; 11.0.1 is
-  patched. The 11.0.8 resolution is outside the affected range.
+  patched. Most consumers move to 11.0.8. The Expo fingerprint path remains
+  on 10.2.6 because upstream documents breaking API changes and has not
+  declared 11.x support for that path. Disposition: **moderate
+  development-tooling exception**, not resolved.
 - **GHSA-cf2h-pxjq-68xw:** the affected 11.x range ends at 11.0.6; 11.0.7 is
   patched. The 11.0.8 resolution is outside the affected range.
 - **GHSA-c859-jr93-m5j4:** the affected 11.x range ends at 11.0.7; 11.0.8 is
   listed as patched.
 - **GHSA-hqmv-qgp3-jx75:** the current official advisory page (published
   2026-11-11) lists affected versions `>=11.0.3, <=11.0.7` and patched
-  version 11.0.8. The lockfile's 11.0.8 resolution is outside that affected
-  range. The advisory description's final impact paragraph still says
-  "No patched version is currently available", which conflicts with its own
-  affected range and patched-version fields. Disposition: package-version
-  exposure is **mitigated by 11.0.8**; retain the stale prose discrepancy as
-  an upstream documentation issue, not as an unresolved affected version.
+  version 11.0.8. The 11.0.8 resolution is outside that affected range. The
+  advisory description's final impact paragraph still says no patched
+  version is available, contradicting its own range and patched-version
+  fields. Disposition: package-version exposure is **mitigated by 11.0.8**;
+  retain the stale prose discrepancy as an upstream documentation issue.
   Do not infer that a live Dependabot alert has been dismissed.
 - **GHSA-23c5-xmqv-rm74, GHSA-7r86-cg39-jmmj and GHSA-3ppc-4f35-3m26:**
-  their published affected ranges do not include the 11.0.x release line.
+  their reviewed affected ranges do not affect the selected 11.0.8 path or
+  the selected 10.2.6 Expo path.
+
+## Narrow pnpm audit exceptions
+
+The security workflow fails on moderate or higher findings. The workspace
+therefore ignores only the two GHSA IDs associated with the retained Expo
+fingerprint path:
+
+- GHSA-3g3m-2fjr-6pw4 (glob 13.0.6).
+- GHSA-g3hv-75wg-m249 (minimatch 10.2.6).
+
+These are not marked resolved. The ignore list is an explicit, reviewable
+risk disposition for the upstream-compatible development-tooling path. It
+must be removed when Expo ships a compatible patched dependency path. The
+security workflow prints recursive and production-only `pnpm why) output
+for glob and minimatch so reviewers can verify that the retained path does
+not enter production dependencies. If a production path is found, this
+exception must be revisited before merge.
 
 ## Lockfile regeneration and required checks
 
-This PR changes pnpm workspace overrides. The existing
+This PR changes package manifests and pnpm workspace overrides. The existing
 `.github/workflows/pnpm-lock-refresh.yml` regenerates `pnpm-lock.yaml` on
 the registry-enabled GitHub-hosted runner with pinned `pnpm@12.18.0`, using
 `pnpm install --lockfile-only --ignore-scripts`.
 
-The generated lockfile was committed by that workflow as
-`865a727eca51fb0b2b91c411acafc80682e94551` after successful refresh run
-`43696561895`. It was not edited manually.
-
-The prior refreshed head passed frozen-lockfile installation, formatting,
-lint, strict typecheck, tests, build, dependency audit, dependency review,
-secret scan, CodeQL and PostgreSQL tenant integration. Any documentation
-update changes the PR head and requires fresh exact-head checks before the
-PR can be considered ready.
+The lockfile must not be edited manually. The refreshed head must pass frozen
+installation, formatting, lint, strict typecheck, tests, build, dependency
+review, the documented pnpm audit exceptions, secret scanning, CodeQL and
+PostgreSQL tenant integration where applicable.
 
 ## Alert visibility limitation
 
 The connected GitHub integration does not expose the repository's
 Dependabot-alert or dependency-graph/SBOM endpoints. This record documents
-the resolved package tree and public advisory version ranges only. A
-repository administrator must recheck live Dependabot alerts after lockfile
-refresh and after merge. No alert is marked dismissed or resolved by this
-document.
+the package tree and public advisory dispositions only. A repository
+administrator must recheck live Dependabot alerts after lockfile refresh and
+after merge. No alert is marked dismissed or resolved by this document.
