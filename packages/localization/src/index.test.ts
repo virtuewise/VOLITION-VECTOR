@@ -91,35 +91,29 @@ describe("locale-aware formatting", () => {
     expect(formatDateTime(value, "en-US", "UTC", options)).toBe(expected);
   });
 
-  it("accepts ISO date-only and offset-qualified strings", () => {
-    const options = { dateStyle: "medium", timeStyle: "short" } as const;
-    const dateOnly = "2026-11-17";
-    const offsetDateTime = "2026-11-17T10:00:00+02:00";
-    const dateOnlyExpected = formatDateTime(
-      new Date(dateOnly),
-      "en-US",
-      "UTC",
-      options,
-    );
-    const offsetExpected = formatDateTime(
-      new Date(offsetDateTime),
-      "en-US",
-      "UTC",
-      options,
-    );
+  it("accepts date-only ISO strings", () => {
+    const value = "2026-11-17";
 
-    expect(formatDateTime(dateOnly, "en-US", "UTC", options)).toBe(
-      dateOnlyExpected,
-    );
-    expect(formatDateTime(offsetDateTime, "en-US", "UTC", options)).toBe(
-      offsetExpected,
+    expect(formatDateTime(value, "en-US", "UTC")).toBe(
+      formatDateTime(new Date(value), "en-US", "UTC"),
     );
   });
 
-  it("rejects timezone-less and implementation-dependent date strings", () => {
+  it("accepts offset-qualified ISO date-time strings", () => {
+    const value = "2026-11-17T10:00:00+02:00";
+
+    expect(formatDateTime(value, "en-US", "UTC")).toBe(
+      formatDateTime(new Date(value), "en-US", "UTC"),
+    );
+  });
+
+  it("rejects timezone-less date-time strings", () => {
     expect(() =>
       formatDateTime("2026-11-17T10:00:00", "en-US", "UTC"),
     ).toThrow(/explicit UTC offset/i);
+  });
+
+  it("rejects implementation-dependent date strings", () => {
     expect(() =>
       formatDateTime("November 17, 2026 10:00", "en-US", "UTC"),
     ).toThrow(/explicit UTC offset/i);
