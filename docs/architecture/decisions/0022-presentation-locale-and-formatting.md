@@ -28,7 +28,10 @@ internationalization APIs.
   Never infer currency from locale, IP address, country or language.
 - Format date/time values only when the caller supplies an explicit time zone.
   This keeps server rendering deterministic and avoids treating locale as a
-  time-zone signal.
+  time-zone signal. String inputs are limited to ISO 8601 date-only values or
+  date-time values with an explicit `Z` or numeric UTC offset; timezone-less
+  and implementation-dependent strings are rejected. Date-only ISO strings
+  are interpreted as UTC.
 - Keep locale, currency and time-zone inputs separate from authorization,
   residency, citizenship, tax status, jurisdiction, eligibility and payment
   routing.
