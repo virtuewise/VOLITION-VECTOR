@@ -9,9 +9,10 @@ alerts have been dismissed or that the repository has no other vulnerabilities.
 ## Generated dependency tree
 
 The registry-enabled lockfile refresh completed with pinned
-`pnpm@12.18.0` in [run 44056070407](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44056070407).
-The generated lockfile commit is
-`c8af7d1a6fdb0c9086695f574134427cabe254c6`. It resolves:
+`pnpm@12.18.0` in [run 44056394907](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44056394907).
+That run regenerated the lockfile after the Expo SDK alignment and removal of
+the unused glob override, then committed
+`ed6aba1202e172911ff9dd252e4122ee28f71282`. It resolves:
 
 - `vitest@4.1.12` and `@vitest/mocker@4.1.12`.
 - `minimatch@11.0.8` for consumers on the 11.x API/range.
