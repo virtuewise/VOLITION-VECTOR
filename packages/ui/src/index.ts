@@ -2,10 +2,7 @@ import { createElement, type ComponentPropsWithoutRef } from "react";
 
 export type ButtonVariant = "primary" | "secondary" | "tertiary";
 
-export type ButtonProps = Omit<
-  ComponentPropsWithoutRef<"button">,
-  "type"
-> & {
+export type ButtonProps = Omit<ComponentPropsWithoutRef<"button">, "type"> & {
   readonly type?: "button" | "submit" | "reset";
   readonly variant?: ButtonVariant;
 };
