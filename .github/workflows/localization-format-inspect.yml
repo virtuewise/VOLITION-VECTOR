@@ -1,0 +1,35 @@
+name: Temporary localization formatter
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/localization-format-inspect.yml
+      - packages/localization/src/index.ts
+      - packages/localization/src/index.test.ts
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    if: github.event.pull_request.number == 75
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          package-manager-cache: false
+      - name: Install pinned pnpm
+        run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format and print localization files
+        run: |
+          pnpm exec prettier --write packages/localization/src/index.ts packages/localization/src/index.test.ts
+          echo "----- SOURCE -----"
+          cat packages/localization/src/index.ts
+          echo "----- TESTS -----"
+          cat packages/localization/src/index.test.ts
