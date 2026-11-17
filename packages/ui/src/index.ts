@@ -2,8 +2,7 @@ import { createElement, type ComponentPropsWithoutRef } from "react";
 
 export type ButtonVariant = "primary" | "secondary" | "tertiary";
 
-export type ButtonProps = Omit<ComponentPropsWithoutRef<"button">, "type"> & {
-  readonly type?: "button" | "submit" | "reset";
+export type ButtonProps = ComponentPropsWithoutRef<"button"> & {
   readonly variant?: ButtonVariant;
 };
 
@@ -21,11 +20,8 @@ export function Button({
   });
 }
 
-export type SkipLinkProps = Omit<
-  ComponentPropsWithoutRef<"a">,
-  "aria-hidden" | "href"
-> & {
-  readonly href?: string;
+export type SkipLinkProps = ComponentPropsWithoutRef<"a"> & {
+  readonly "aria-hidden"?: false;
 };
 
 export function SkipLink({
@@ -41,10 +37,9 @@ export function SkipLink({
   });
 }
 
-export type VisuallyHiddenProps = Omit<
-  ComponentPropsWithoutRef<"span">,
-  "aria-hidden"
->;
+export type VisuallyHiddenProps = ComponentPropsWithoutRef<"span"> & {
+  readonly "aria-hidden"?: false;
+};
 
 export function VisuallyHidden({
   className,
