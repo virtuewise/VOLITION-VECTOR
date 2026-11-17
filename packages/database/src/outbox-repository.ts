@@ -44,7 +44,6 @@ const MAX_ARRAY_ITEMS = 100;
 const MAX_STRING_LENGTH = 4_096;
 
 const RESTRICTED_FIELD_TOKENS = new Set([
-  "access",
   "address",
   "authorization",
   "cookie",
@@ -52,7 +51,6 @@ const RESTRICTED_FIELD_TOKENS = new Set([
   "cvv",
   "cvc",
   "email",
-  "key",
   "pan",
   "password",
   "passwd",
