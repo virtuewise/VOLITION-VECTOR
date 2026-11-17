@@ -140,6 +140,11 @@ describe("insertOutboxEvent", () => {
       { signedUrl: "https://storage.example.test/private" },
       { phoneNumber: "+10000000000" },
       { dateOfBirth: "2000-01-01" },
+      { firstName: "Ada" },
+      { governmentId: "restricted-id" },
+      { routingNumber: "restricted-routing" },
+      { iban: "restricted-iban" },
+      { beneficiaryName: "Ada" },
     ];
 
     for (const payload of payloads) {
@@ -149,6 +154,22 @@ describe("insertOutboxEvent", () => {
       ).rejects.toThrow("restricted or invalid field");
       expect(client.statements).toHaveLength(0);
     }
+  });
+
+  it("allows stable internal identifiers and non-sensitive metadata", async () => {
+    const client = new FakeClient();
+    const payload = {
+      accountId: ORGANIZATION_ID,
+      externalKey: "provider-reference",
+      status: "active",
+      source: "api",
+    };
+
+    await expect(
+      insertOutboxEvent(client, { ...validInput, payload }),
+    ).resolves.toEqual(returnedRecord);
+
+    expect(client.statements[0]?.parameters[6]).toBe(JSON.stringify(payload));
   });
 
   it("rejects unsupported JavaScript values and accessor properties", async () => {
