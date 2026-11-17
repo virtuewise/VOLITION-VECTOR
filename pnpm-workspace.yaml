@@ -9,21 +9,16 @@ overrides:
   "glob@^13.0.0": "14.0.6"
   "minimatch@^10.0.0": "11.0.8"
   "minimatch@^11.0.4": "11.0.8"
-  # Keep the Expo SDK 58 fingerprint tool on its declared compatible majors.
-  # The path is in pnpm's mobile production dependency graph via expo, although
-  # Expo's maintainer assesses it as tooling-only/not shipped in app bundles.
-  # Bundle exclusion is not independently verified; see the advisory record.
-  "@expo/fingerprint>glob": "13.0.6"
+  # Expo SDK 58.0.25's fingerprint package drops glob. Keep its declared
+  # minimatch 10.x major until Expo's compatibility boundary changes.
   "@expo/fingerprint>minimatch": "10.2.6"
-  "glob@^13.0.0>minimatch": "10.2.6"
 
-# These two moderate findings remain on the Expo fingerprint path. The path
-# is present in the mobile production dependency graph; upstream says it is
-# tooling-only, but bundle exclusion is unverified. See the advisory record.
-# Remove these ignores when Expo ships a compatible patched path.
+# One moderate finding remains on Expo's build-time fingerprint dependency.
+# Expo retains minimatch 10.x for compatibility and states it is not shipped
+# in production app bundles. The package graph still includes it; see the
+# advisory record. Remove this ignore when Expo provides a compatible fix.
 audit:
   ignore:
-    - GHSA-3g3m-2fjr-6pw4
     - GHSA-g3hv-75wg-m249
 
 # Explicitly approve only the native build scripts required by this workspace.
