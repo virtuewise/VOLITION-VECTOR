@@ -108,9 +108,9 @@ describe("locale-aware formatting", () => {
   });
 
   it("rejects timezone-less date-time strings", () => {
-    expect(() =>
-      formatDateTime("2026-11-17T10:00:00", "en-US", "UTC"),
-    ).toThrow(/explicit UTC offset/i);
+    expect(() => formatDateTime("2026-11-17T10:00:00", "en-US", "UTC")).toThrow(
+      /explicit UTC offset/i,
+    );
   });
 
   it("rejects implementation-dependent date strings", () => {
