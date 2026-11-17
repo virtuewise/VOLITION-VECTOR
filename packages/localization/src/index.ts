@@ -217,12 +217,6 @@ export type DateTimeFormatOptions = Omit<
   "timeZone"
 >;
 
-/**
- * Format a date/time in an explicit IANA time zone. String inputs must be
- * ISO 8601 date-only (UTC) or include an explicit UTC offset; ambiguous and
- * implementation-dependent strings are rejected. The time zone is never
- * inferred from locale.
- */
 function isValidCalendarDate(
   year: number,
   month: number,
@@ -232,8 +226,7 @@ function isValidCalendarDate(
     return false;
   }
 
-  const leapYear =
-    year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   const daysInMonth = [
     31,
     leapYear ? 29 : 28,
@@ -306,6 +299,13 @@ function parseIsoDateTime(value: string): Date {
   return new Date(value);
 }
 
+/**
+ * Format a date/time in an explicit IANA time zone. String inputs must be
+ * ISO 8601 date-only (UTC) or include an explicit UTC offset; ambiguous and
+ * implementation-dependent strings are rejected. Calendar, clock and offset
+ * fields are range-checked before parsing. The time zone is never inferred
+ * from locale.
+ */
 export function formatDateTime(
   value: Date | string | number,
   locale: string,
