@@ -117,6 +117,9 @@ describe("locale-aware formatting", () => {
     expect(() =>
       formatDateTime("2026-11-17T24:00:00Z", "en-US", "UTC"),
     ).toThrow(/ISO time/i);
+    expect(() =>
+      formatDateTime("2026-11-17T10:00:00+24:00", "en-US", "UTC"),
+    ).toThrow(/UTC offset/i);
   });
 
   it("accepts valid leap-day dates", () => {
