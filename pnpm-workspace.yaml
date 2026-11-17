@@ -9,6 +9,19 @@ overrides:
   "glob@^13.0.0": "14.0.6"
   "minimatch@^10.0.0": "11.0.8"
   "minimatch@^11.0.4": "11.0.8"
+  # Keep the Expo SDK 58 fingerprint tool on its declared compatible majors.
+  "@expo/fingerprint>glob": "13.0.6"
+  "@expo/fingerprint>minimatch": "10.2.6"
+  "glob@^13.0.0>minimatch": "10.2.6"
+
+# These two moderate findings remain only on the upstream-compatible Expo
+# fingerprint tooling path. Their disposition is documented in
+# docs/security/dependency-advisories.md; remove these ignores when Expo ships
+# a compatible patched path. Do not treat them as resolved.
+audit:
+  ignore:
+    - GHSA-3g3m-2fjr-6pw4
+    - GHSA-g3hv-75wg-m249
 
 # Explicitly approve only the native build scripts required by this workspace.
 allowBuilds:
