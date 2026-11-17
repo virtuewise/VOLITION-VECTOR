@@ -14,25 +14,25 @@ and committed generated lockfile commit
 `44c739679b5af747d960196dbf337ae426850184`, using the repository's pinned
 `pnpm@12.18.0`. The resulting lockfile resolves:
 
-- `vitest@4.1.12) and `@vitest/mocker@4.1.12`.
+- `vitest@4.1.12` and `@vitest/mocker@4.1.12`.
 - `glob@14.0.6` for the updated Expo SDK 58 CLI/config packages.
 - `minimatch@11.0.8` for consumers on the 11.x API/range.
 - `@nestjs/cli@12.0.13` and `@nestjs/schematics@12.0.13`.
-- `@typescript-eslint/parser@8.72.2) and
-  `@typescript-eslint/typescript-estree@8.72.2); the Next ESLint configuration
-  also retains `typescript-estree@8.72.1), which resolves minimatch 11.0.8
+- `@typescript-eslint/parser@8.72.2` and
+  `@typescript-eslint/typescript-estree@8.72.2`; the Next ESLint configuration
+  also retains `typescript-estree@8.72.1`, which resolves minimatch 11.0.8
   through the workspace override.
-- `@eslint/config-array@0.23.5) resolves minimatch 11.0.8 despite declaring
+- `@eslint/config-array@0.23.5` resolves minimatch 11.0.8 despite declaring
   `^10.2.4`; this is an intentional major override described below.
-- `@expo/fingerprint@0.21.9) retains its declared compatible 13.x/10.x
+- `@expo/fingerprint@0.21.9` retains its declared compatible 13.x/10.x
   ranges, resolved to `glob@13.0.6` and `minimatch@10.2.6`. Its nested glob
   13 path also retains minimatch 10.2.6. This is the only intended remaining
   13.x/10.x exception.
-- `minimatch@3.1.5) remains on an older transitive path; the reviewed
+- `minimatch@3.1.5` remains on an older transitive path; the reviewed
   advisories' patched ranges include that version.
 
-The security workflow's recursive and production-only `pnpm why) report
-from run 44053920236 confirms that the `@expo/fingerprint@0.21.9) path is
+The security workflow's recursive and production-only `pnpm why` report
+from run 44053920236 confirms that the `@expo/fingerprint@0.21.9` path is
 reachable under `expo@58.0.23` and `@volition/mobile@0.1.0 (dependencies)`.
 It is therefore present in pnpm's mobile production dependency graph.
 Expo's maintainer assesses this fingerprint code as tooling-only and not
