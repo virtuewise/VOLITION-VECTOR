@@ -217,12 +217,7 @@ describe("insertOutboxEvent", () => {
       fourth: "d".repeat(4_096),
     };
 
-    for (const payload of [
-      tooDeep,
-      tooManyKeys,
-      tooManyItems,
-      tooManyBytes,
-    ]) {
+    for (const payload of [tooDeep, tooManyKeys, tooManyItems, tooManyBytes]) {
       const client = new FakeClient();
       await expect(
         insertOutboxEvent(client, {
