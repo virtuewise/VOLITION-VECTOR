@@ -8,14 +8,19 @@ alerts have been dismissed or that the repository has no other vulnerabilities.
 
 ## Package tree targeted by this PR
 
-The intended lockfile after the registry-enabled refresh is:
+The registry-enabled lockfile refresh completed successfully in run
+`44053478424` and committed generated lockfile commit
+`44c739679b5af747d960196dbf337ae426850184`. The current lockfile snapshot
+confirms:
 
 - `vitest@4.1.12` and `@vitest/mocker@4.1.12`.
 - `glob@14.0.6` for the updated Expo SDK 58 CLI/config packages.
 - `minimatch@11.0.8` for packages whose supported API/range accepts 11.x.
 - `@nestjs/cli@12.0.13` and `@nestjs/schematics@12.0.13`.
 - `@typescript-eslint/parser@8.72.2` and
-  `@typescript-eslint/typescript-estree@8.72.2`.
+  `@typescript-eslint/typescript-estree@8.72.2`; the Next ESLint config also
+  retains `typescript-estree@8.72.1`, which resolves minimatch 11.0.8 through
+  the workspace override.
 - `@expo/fingerprint@0.21.9` retains its declared compatible
   `glob@13.0.6` and `minimatch@10.2.6` path. Its nested glob 13 path also
   retains minimatch 10.2.6. This is the only intended remaining 13.x/10.x
@@ -23,8 +28,12 @@ The intended lockfile after the registry-enabled refresh is:
 - `minimatch@3.1.5` remains on an older transitive path; the reviewed
   advisories' patched ranges include that version.
 
-The lockfile refresh and security workflow's `pnpm why` output must confirm
-this graph before the exception can be considered accurately scoped.
+The lockfile snapshot confirms that `@expo/fingerprint@0.21.9` alone retains
+`glob@13.0.6) and `minimatch@10.2.6`; the other reviewed glob/minimatch
+paths resolve to the 14.x/11.x lines. The security workflow now emits
+recursive and production-only `pnpm why` output. That output must be inspected
+before merge; if a retained path is in a production dependency graph, the
+exception must be revisited.
 
 ## Compatibility review
 
