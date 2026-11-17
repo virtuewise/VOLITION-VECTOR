@@ -149,6 +149,22 @@ describe("insertOutboxEvent", () => {
       { GovernmentID: "restricted-id" },
       { APIKey: "not-for-events" },
       { IBAN: "restricted-iban" },
+      { fullName: "Ada Lovelace" },
+      { customerName: "Ada Lovelace" },
+      { recipientName: "Ada Lovelace" },
+      { displayName: "Ada Lovelace" },
+      { contactName: "Ada Lovelace" },
+      { birthDate: "2000-01-01" },
+      { mobileNumber: "+10000000000" },
+      { telephoneNumber: "+10000000000" },
+      { postalCode: "12345" },
+      { zipCode: "12345" },
+      { healthStatus: "restricted" },
+      { genderIdentity: "restricted" },
+      { biometricTemplate: "restricted" },
+      { ethnicity: "restricted" },
+      { politicalOpinion: "restricted" },
+      { religiousBelief: "restricted" },
     ];
 
     for (const payload of payloads) {
@@ -158,6 +174,57 @@ describe("insertOutboxEvent", () => {
       ).rejects.toThrow("restricted or invalid field");
       expect(client.statements).toHaveLength(0);
     }
+  });
+
+  it("normalizes acronym boundaries before matching restricted fields", async () => {
+    for (const fieldName of ["APIKey", "ApiKey", "api_key", "api-key", "api.key"]) {
+      const client = new FakeClient();
+      const payload = { [fieldName]: "not-for-events" };
+
+      await expect(
+        insertOutboxEvent(client, { ...validInput, payload }),
+      ).rejects.toThrow("restricted or invalid field");
+      expect(client.statements).toHaveLength(0);
+    }
+  });
+
+  it("bounds aggregate traversal of shared object graphs before serialization", async () => {
+    const shared = { value: "x".repeat(1_000) };
+    const branch = {
+      first: shared,
+      second: shared,
+      third: shared,
+      fourth: shared,
+      fifth: shared,
+      sixth: shared,
+      seventh: shared,
+      eighth: shared,
+    };
+    const payload = {
+      first: branch,
+      second: branch,
+      third: branch,
+    };
+    const client = new FakeClient();
+
+    await expect(
+      insertOutboxEvent(client, { ...validInput, payload }),
+    ).rejects.toBeInstanceOf(OutboxEventInputError);
+    expect(client.statements).toHaveLength(0);
+  });
+
+  it("caps total visited JSON nodes across nested collections", async () => {
+    const payload = {
+      groups: Array.from({ length: 100 }, () =>
+        Array.from({ length: 100 }, () => null),
+      ),
+    };
+    const client = new FakeClient();
+
+    await expect(
+      insertOutboxEvent(client, { ...validInput, payload }),
+    ).rejects.toBeInstanceOf(OutboxEventInputError);
+    expect(client.statements).toHaveLength(0);
   });
 
   it("allows stable internal identifiers and non-sensitive metadata", async () => {

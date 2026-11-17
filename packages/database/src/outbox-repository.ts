@@ -39,34 +39,63 @@ interface OutboxEventRow {
 
 const MAX_PAYLOAD_BYTES = 16 * 1024;
 const MAX_PAYLOAD_DEPTH = 8;
+const MAX_PAYLOAD_NODES = 2_048;
 const MAX_OBJECT_KEYS = 64;
 const MAX_ARRAY_ITEMS = 100;
 const MAX_STRING_LENGTH = 4_096;
+const utf8Encoder = new TextEncoder();
 
 const RESTRICTED_FIELD_TOKENS = new Set([
   "address",
   "authorization",
   "bank",
+  "biometric",
+  "birthdate",
   "card",
   "cardholder",
+  "citizenship",
   "cookie",
   "credential",
   "cvv",
   "cvc",
+  "disability",
   "dob",
   "email",
+  "ethnic",
+  "ethnicity",
+  "fax",
+  "gender",
+  "genetic",
+  "health",
   "iban",
+  "immigration",
+  "medical",
+  "mobile",
+  "nationality",
+  "orientation",
   "pan",
   "password",
   "passwd",
   "passport",
   "phone",
+  "political",
+  "postalcode",
+  "postcode",
+  "pronoun",
+  "pronouns",
+  "race",
+  "religion",
+  "religious",
   "routing",
   "secret",
+  "sex",
+  "sexual",
   "ssn",
   "swift",
+  "telephone",
   "token",
   "username",
+  "zipcode",
 ]);
 
 const RESTRICTED_FIELD_PAIRS = [
@@ -74,35 +103,55 @@ const RESTRICTED_FIELD_PAIRS = [
   ["account", "number"],
   ["api", "key"],
   ["bank", "account"],
+  ["birth", "date"],
+  ["beneficiary", "name"],
   ["card", "number"],
   ["client", "secret"],
+  ["contact", "name"],
+  ["customer", "name"],
   ["date", "birth"],
+  ["display", "name"],
+  ["emergency", "contact"],
   ["evidence", "locator"],
   ["family", "name"],
+  ["father", "name"],
   ["file", "path"],
   ["first", "name"],
   ["full", "name"],
   ["given", "name"],
   ["government", "id"],
+  ["guardian", "name"],
   ["identity", "document"],
   ["identity", "number"],
   ["last", "name"],
+  ["legal", "name"],
   ["license", "number"],
+  ["maiden", "name"],
+  ["middle", "name"],
+  ["mobile", "number"],
+  ["mother", "name"],
   ["national", "id"],
+  ["national", "insurance"],
   ["object", "key"],
   ["payee", "name"],
+  ["person", "name"],
   ["personal", "data"],
+  ["postal", "code"],
+  ["preferred", "name"],
   ["private", "key"],
   ["provider", "payload"],
   ["raw", "payload"],
   ["raw", "response"],
+  ["recipient", "name"],
   ["signed", "url"],
   ["social", "security"],
   ["sort", "code"],
   ["storage", "key"],
   ["tax", "id"],
+  ["tax", "number"],
+  ["telephone", "number"],
   ["webhook", "body"],
-  ["beneficiary", "name"],
+  ["zip", "code"],
 ] as const;
 
 export class OutboxEventInputError extends Error {
@@ -135,6 +184,7 @@ function requiredText(
 }
 
 function isRestrictedPayloadField(fieldName: string): boolean {
+  // Split acronym-to-word boundaries before tokenization (for example, APIKey -> api_key).
   const normalized = fieldName
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
@@ -151,10 +201,35 @@ function isRestrictedPayloadField(fieldName: string): boolean {
   );
 }
 
+interface PayloadSerializationBudget {
+  nodes: number;
+  serializedBytes: number;
+}
+
+function addPayloadBytes(
+  budget: PayloadSerializationBudget,
+  bytes: number,
+): void {
+  budget.serializedBytes += bytes;
+  if (
+    !Number.isSafeInteger(budget.serializedBytes) ||
+    budget.serializedBytes > MAX_PAYLOAD_BYTES
+  ) {
+    throw new OutboxEventInputError(
+      "Outbox payload exceeds structural limits.",
+    );
+  }
+}
+
+function serializedStringByteLength(value: string): number {
+  return utf8Encoder.encode(JSON.stringify(value)).byteLength;
+}
+
 function validateJsonValue(
   value: unknown,
   depth: number,
   ancestors: WeakSet<object>,
+  budget: PayloadSerializationBudget,
 ): void {
   if (depth > MAX_PAYLOAD_DEPTH) {
     throw new OutboxEventInputError(
@@ -162,7 +237,20 @@ function validateJsonValue(
     );
   }
 
-  if (value === null || typeof value === "boolean") {
+  budget.nodes += 1;
+  if (budget.nodes > MAX_PAYLOAD_NODES) {
+    throw new OutboxEventInputError(
+      "Outbox payload exceeds structural limits.",
+    );
+  }
+
+  if (value === null) {
+    addPayloadBytes(budget, 4);
+    return;
+  }
+
+  if (typeof value === "boolean") {
+    addPayloadBytes(budget, value ? 4 : 5);
     return;
   }
 
@@ -172,6 +260,7 @@ function validateJsonValue(
         "Outbox payload exceeds structural limits.",
       );
     }
+    addPayloadBytes(budget, serializedStringByteLength(value));
     return;
   }
 
@@ -181,6 +270,7 @@ function validateJsonValue(
         "Outbox payload must contain finite numbers.",
       );
     }
+    addPayloadBytes(budget, JSON.stringify(value).length);
     return;
   }
 
@@ -207,7 +297,11 @@ function validateJsonValue(
         );
       }
 
+      addPayloadBytes(budget, 2);
       for (let index = 0; index < value.length; index += 1) {
+        if (index > 0) {
+          addPayloadBytes(budget, 1);
+        }
         const descriptor = Object.getOwnPropertyDescriptor(
           value,
           String(index),
@@ -221,7 +315,7 @@ function validateJsonValue(
             "Outbox payload must contain plain JSON arrays.",
           );
         }
-        validateJsonValue(descriptor.value, depth + 1, ancestors);
+        validateJsonValue(descriptor.value, depth + 1, ancestors, budget);
       }
       return;
     }
@@ -243,6 +337,8 @@ function validateJsonValue(
       );
     }
 
+    addPayloadBytes(budget, 2);
+    let propertyIndex = 0;
     for (const key of keys as string[]) {
       if (
         !/^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(key) ||
@@ -264,7 +360,12 @@ function validateJsonValue(
         );
       }
 
-      validateJsonValue(descriptor.value, depth + 1, ancestors);
+      if (propertyIndex > 0) {
+        addPayloadBytes(budget, 1);
+      }
+      addPayloadBytes(budget, serializedStringByteLength(key) + 1);
+      validateJsonValue(descriptor.value, depth + 1, ancestors, budget);
+      propertyIndex += 1;
     }
   } finally {
     ancestors.delete(value);
@@ -280,14 +381,14 @@ function serializePayload(
   }
 
   try {
-    validateJsonValue(value, 0, new WeakSet<object>());
+    validateJsonValue(value, 0, new WeakSet<object>(), { nodes: 0, serializedBytes: 0 });
     const serialized = JSON.stringify(value);
     if (typeof serialized !== "string") {
       throw new OutboxEventInputError(
         "Outbox payload must serialize to a JSON object.",
       );
     }
-    if (new TextEncoder().encode(serialized).byteLength > MAX_PAYLOAD_BYTES) {
+    if (utf8Encoder.encode(serialized).byteLength > MAX_PAYLOAD_BYTES) {
       throw new OutboxEventInputError(
         `Outbox payload must not exceed ${MAX_PAYLOAD_BYTES} UTF-8 bytes.`,
       );
