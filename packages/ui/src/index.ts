@@ -2,9 +2,9 @@ import { createElement, type ComponentPropsWithoutRef } from "react";
 
 export type ButtonVariant = "primary" | "secondary" | "tertiary";
 
-export type ButtonProps = ComponentPropsWithoutRef<"button"> & {
-  readonly variant?: ButtonVariant;
-};
+export interface ButtonProps extends ComponentPropsWithoutRef<"button"> {
+  variant?: ButtonVariant;
+}
 
 export function Button({
   type = "button",
@@ -20,9 +20,9 @@ export function Button({
   });
 }
 
-export type SkipLinkProps = ComponentPropsWithoutRef<"a"> & {
-  readonly "aria-hidden"?: false;
-};
+export interface SkipLinkProps extends ComponentPropsWithoutRef<"a"> {
+  "aria-hidden"?: false;
+}
 
 export function SkipLink({
   href = "#main-content",
@@ -37,9 +37,9 @@ export function SkipLink({
   });
 }
 
-export type VisuallyHiddenProps = ComponentPropsWithoutRef<"span"> & {
-  readonly "aria-hidden"?: false;
-};
+export interface VisuallyHiddenProps extends ComponentPropsWithoutRef<"span"> {
+  "aria-hidden"?: false;
+}
 
 export function VisuallyHidden({
   className,
