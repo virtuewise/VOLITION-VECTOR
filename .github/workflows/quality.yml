@@ -95,6 +95,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Security audit
         run: pnpm audit --audit-level=moderate
+      - name: Diagnostic Prettier output
+        run: pnpm exec prettier packages/localization/src/index.ts packages/localization/src/index.test.ts
       - name: Formatting
         run: pnpm format:check
       - name: Lint
