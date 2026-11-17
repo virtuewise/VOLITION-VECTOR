@@ -359,7 +359,11 @@ importers:
 
   packages/shared: {}
 
-  packages/ui: {}
+  packages/ui:
+    dependencies:
+      react:
+        specifier: ^19.0.0
+        version: 19.3.1
 
   packages/validation: {}
 
