@@ -176,8 +176,9 @@ describe("insertOutboxEvent", () => {
     }
   });
 
-  it("normalizes acronym boundaries before matching restricted fields", async () => {
-    for (const fieldName of ["APIKey", "ApiKey", "api_key", "api-key", "api.key"]) {
+  it("rejects acronym and delimiter variants of restricted keys", async () => {
+    const fieldNames = ["APIKey", "ApiKey", "api_key", "api-key", "api.key"];
+    for (const fieldName of fieldNames) {
       const client = new FakeClient();
       const payload = { [fieldName]: "not-for-events" };
 
@@ -188,7 +189,7 @@ describe("insertOutboxEvent", () => {
     }
   });
 
-  it("bounds aggregate traversal of shared object graphs before serialization", async () => {
+  it("bounds shared-object traversal before serialization", async () => {
     const shared = { value: "x".repeat(1_000) };
     const branch = {
       first: shared,

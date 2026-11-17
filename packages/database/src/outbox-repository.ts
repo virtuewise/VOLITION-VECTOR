@@ -184,7 +184,8 @@ function requiredText(
 }
 
 function isRestrictedPayloadField(fieldName: string): boolean {
-  // Split acronym-to-word boundaries before tokenization (for example, APIKey -> api_key).
+  // Split acronym-to-word boundaries before tokenization.
+  // For example, APIKey becomes api_key.
   const normalized = fieldName
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
     .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
@@ -381,7 +382,10 @@ function serializePayload(
   }
 
   try {
-    validateJsonValue(value, 0, new WeakSet<object>(), { nodes: 0, serializedBytes: 0 });
+    validateJsonValue(value, 0, new WeakSet<object>(), {
+      nodes: 0,
+      serializedBytes: 0,
+    });
     const serialized = JSON.stringify(value);
     if (typeof serialized !== "string") {
       throw new OutboxEventInputError(
