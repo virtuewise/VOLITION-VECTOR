@@ -9,18 +9,23 @@ import {
 } from "./index.js";
 
 describe("locale normalization and negotiation", () => {
-  it("canonicalizes valid locale tags and falls back for invalid input", () => {
+  it("canonicalizes locale tags and falls back on invalid input", () => {
     expect(normalizeLocale("en-us")).toBe("en-US");
     expect(normalizeLocale("invalid_tag")).toBe("en");
     expect(normalizeLocale(undefined, "fr-ca")).toBe("fr-CA");
   });
 
-  it("orders Accept-Language preferences by q-value and header order", () => {
-    expect(
-      parseAcceptLanguage(
-        "fr-CA;q=0.8, en-US;q=1, fr;q=0.8, de;q=0, *;q=0.5, invalid_tag;q=0.9",
-      ),
-    ).toEqual(["en-US", "fr-CA", "fr"]);
+  it("orders Accept-Language by q-value and header order", () => {
+    const header = [
+      "fr-CA;q=0.8",
+      "en-US;q=1",
+      "fr;q=0.8",
+      "de;q=0",
+      "*;q=0.5",
+      "invalid_tag;q=0.9",
+    ].join(", ");
+
+    expect(parseAcceptLanguage(header)).toEqual(["en-US", "fr-CA", "fr"]);
   });
 
   it("ignores invalid quality values and duplicate canonical tags", () => {
@@ -92,7 +97,9 @@ describe("locale-aware formatting", () => {
     expect(() => formatDateTime("not-a-date", "en-US", "UTC")).toThrow(
       RangeError,
     );
-    expect(() => formatDateTime(Date.now(), "en-US", "")).toThrow(RangeError);
+    expect(() =>
+      formatDateTime(Date.now(), "en-US", ""),
+    ).toThrow(RangeError);
     expect(() =>
       formatDateTime(Date.now(), "en-US", "Mars/Olympus_Mons"),
     ).toThrow(RangeError);

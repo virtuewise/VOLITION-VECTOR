@@ -32,8 +32,7 @@ export function normalizeLocale(
   locale: string | null | undefined,
   fallbackLocale: string = DEFAULT_LOCALE,
 ): string {
-  const fallback =
-    canonicalizeLocale(fallbackLocale) ?? DEFAULT_LOCALE;
+  const fallback = canonicalizeLocale(fallbackLocale) ?? DEFAULT_LOCALE;
 
   return locale === null || locale === undefined
     ? fallback
@@ -230,7 +229,8 @@ export function formatDateTime(
   timeZone: string,
   options: DateTimeFormatOptions = {},
 ): string {
-  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  const date =
+    value instanceof Date ? new Date(value.getTime()) : new Date(value);
   if (!Number.isFinite(date.getTime())) {
     throw new RangeError("A valid date/time value is required.");
   }
