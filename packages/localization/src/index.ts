@@ -218,8 +218,10 @@ export type DateTimeFormatOptions = Omit<
 >;
 
 /**
- * Format a date/time in an explicit IANA time zone. Requiring the time zone
- * keeps server rendering deterministic and avoids inferring it from locale.
+ * Format a date/time in an explicit IANA time zone. String inputs must be
+ * ISO 8601 date-only (UTC) or include an explicit UTC offset; ambiguous and
+ * implementation-dependent strings are rejected. The time zone is never
+ * inferred from locale.
  */
 export function formatDateTime(
   value: Date | string | number,
@@ -228,9 +230,9 @@ export function formatDateTime(
   options: DateTimeFormatOptions = {},
 ): string {
   if (typeof value === "string") {
-    const dateOnly = /^\\d{4}-\\d{2}-\\d{2}$/.test(value);
+    const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
     const dateTimeWithOffset =
-      /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,3})?)?(?:Z|[+-]\\d{2}:\\d{2})$/i.test(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/i.test(
         value,
       );
     if (!dateOnly && !dateTimeWithOffset) {
