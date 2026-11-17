@@ -42,6 +42,12 @@ jobs:
         run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
+      - name: Report reviewed dependency paths
+        run: |
+          pnpm --recursive why minimatch
+          pnpm --recursive why glob
+          pnpm --recursive why --prod minimatch
+          pnpm --recursive why --prod glob
       - name: Fail on moderate or higher dependency advisories
         run: pnpm audit --audit-level=moderate
 
