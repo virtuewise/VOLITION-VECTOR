@@ -8,37 +8,53 @@ alerts have been dismissed or that the repository has no other vulnerabilities.
 
 ## Generated dependency tree
 
-The registry-enabled lockfile refresh completed successfully in run
-[44053478424](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44053478424)
-and committed generated lockfile commit
-`44c739679b5af747d960196dbf337ae426850184`, using the repository's pinned
-`pnpm@12.18.0`. The resulting lockfile resolves:
+The registry-enabled lockfile refresh completed with pinned
+`pnpm@12.18.0` in [run 44056070407](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44056070407).
+The generated lockfile commit is
+`c8af7d1a6fdb0c9086695f574134427cabe254c6`. It resolves:
 
 - `vitest@4.1.12` and `@vitest/mocker@4.1.12`.
-- `glob@14.0.6` for the updated Expo SDK 58 CLI/config packages.
 - `minimatch@11.0.8` for consumers on the 11.x API/range.
+- `minimatch@10.2.6` for the Expo fingerprint package's declared 10.x
+  compatibility range.
 - `@nestjs/cli@12.0.13` and `@nestjs/schematics@12.0.13`.
 - `@typescript-eslint/parser@8.72.2` and
-  `@typescript-eslint/typescript-estree@8.72.2`; the Next ESLint configuration
-  also retains `typescript-estree@8.72.1`, which resolves minimatch 11.0.8
-  through the workspace override.
+  `@typescript-eslint/typescript-estree@8.72.2`; the Next ESLint
+  configuration also retains `typescript-estree@8.72.1`, which resolves
+  minimatch 11.0.8 through the workspace override.
 - `@eslint/config-array@0.23.5` resolves minimatch 11.0.8 despite declaring
   `^10.2.4`; this is an intentional major override described below.
-- `@expo/fingerprint@0.21.9` retains its declared compatible 13.x/10.x
-  ranges, resolved to `glob@13.0.6` and `minimatch@10.2.6`. Its nested glob
-  13 path also retains minimatch 10.2.6. This is the only intended remaining
-  13.x/10.x exception.
+- `@expo/fingerprint@0.21.10` no longer depends on glob and retains only
+  `minimatch@10.2.6`.
+- The mobile app is aligned with Expo SDK 58.0.25:
+  `expo@58.0.25`, `expo-router@58.0.31` and
+  `react-native@0.88.1`.
+- The generated lockfile contains no resolved glob 9.x, 10.x, 11.x, 13.x
+  or 14.x package. Remaining glob entries are 2.x, 3.x and 4.x paths.
 - `minimatch@3.1.5` remains on an older transitive path; the reviewed
   advisories' patched ranges include that version.
 
-The security workflow's recursive and production-only `pnpm why` report
-from run 44053920236 confirms that the `@expo/fingerprint@0.21.9` path is
-reachable under `expo@58.0.23` and `@volition/mobile@0.1.0 (dependencies)`.
-It is therefore present in pnpm's mobile production dependency graph.
-Expo's maintainer assesses this fingerprint code as tooling-only and not
-shipped in production app bundles, but bundle exclusion has not been
-independently verified. Do not claim that the path is absent from the
-production dependency graph.
+The Expo SDK 58.0.24 patch updated the SDK 58 package set, including
+`@expo/fingerprint@0.21.10`. Its changelog records that this fingerprint
+release drops the glob dependency and updates minimatch to `^10.2.6`.
+The SDK 58 bundled native module manifest specifies React Native 0.88.1 and
+Expo Router ~58.0.31. The mobile app now uses those compatible versions.
+
+Before this update, the security workflow's recursive and production-only
+`pnpm why` report showed the older `@expo/fingerprint@0.21.9` glob 13
+path under `expo@58.0.23` and
+`@volition/mobile@0.1.0 (dependencies)`. That glob path has been removed
+from the regenerated lockfile. The current lockfile still shows
+`@expo/fingerprint@0.21.10` depending on minimatch 10.2.6, so that
+minimatch path remains in pnpm's mobile dependency graph.
+
+Expo's maintainer states that this fingerprint code is build-time tooling,
+not shipped in production app bundles, and not a vulnerability in Expo apps.
+The upstream issue reporter also recorded an iOS export inspection with no
+glob, minimatch, `@expo/config-plugins` or `@expo/config` sources in the
+production bundle. This repository has not independently produced and
+inspected its own production iOS bundle. Do not claim the package-manager
+dependency path is absent or that the remaining advisory is resolved.
 
 ## Compatibility review
 
@@ -48,19 +64,19 @@ production dependency graph.
 - Nest CLI and schematics 12.0.13 are compatible with the workspace's Node 26
   and TypeScript 6.0.2; the CLI declares minimatch 11.0.5, which the 11.0.8
   override satisfies.
-- glob 14.0.6 declares minimatch `^11.0.5`; minimatch 11.0.8 satisfies it.
 - `@eslint/config-array@0.23.5` still declares minimatch `^10.2.4`.
   The workspace override intentionally supplies 11.0.8. Upstream ESLint
   compatibility investigation reports that this consumer uses
   `new Minimatch(...)` and `.match(...)`, which remain in 11.x, and reports
   equivalent lint results with 10.2.6 and 11.0.3. This remains a major
-  override outside the declared semver range; the repository's full lint,
-  typecheck, tests and build gates are required evidence, not a substitute
-  for an upstream range update.
-- Expo maintainers state that the SDK 58 fingerprint package retains
-  minimatch 10.x because of breaking changes in 11.x. The workspace therefore
-  preserves the declared glob 13 / minimatch 10 majors for this path rather
-  than forcing a potentially incompatible major upgrade.
+  override outside the declared semver range; full lint, typecheck, tests
+  and build gates are required evidence, not a substitute for an upstream
+  range update.
+- Expo SDK 58.0.25 uses `@expo/fingerprint@0.21.10`. Expo retains
+  minimatch 10.x in this build-time fingerprint package because of breaking
+  changes in minimatch 11.x. The workspace therefore keeps the declared
+  `@expo/fingerprint>minimatch` 10.2.6 override and does not force a
+  potentially incompatible major upgrade.
 
 ## Current advisory dispositions
 
@@ -79,16 +95,15 @@ production dependency graph.
 
 ### glob
 
-- **GHSA-3g3m-2fjr-6pw4 (Moderate):** affected versions include glob 13.x and
-  releases through 14.0.1; 14.0.2 and later are patched. Most consumers move
-  to 14.0.6. The Expo fingerprint path remains on 13.0.6 to avoid the
-  upstream-documented major-version break. Disposition: **moderate residual
-  risk**, not resolved; the path is present in the mobile production
-  dependency graph, although Expo's maintainer says the fingerprint code is
-  tooling-only and not shipped in app bundles. Bundle exclusion is unverified.
+- **GHSA-3g3m-2fjr-6pw4 (Moderate):** affected versions include glob 9.0.0
+  through 14.0.1; 14.0.2 and later are patched. The prior Expo SDK 58
+  fingerprint glob 13 path has been removed by the SDK 58.0.24 package
+  updates. The regenerated lockfile contains no glob 9.x or later package,
+  and this advisory is no longer in the pnpm audit ignore list. Live
+  Dependabot alert status remains unverified.
 - **GHSA-5j98-mcp5-4vw2:** the command-injection advisory affects glob 10.2.0
-  through 10.4.5 and 11.0.0 through 11.0.3. The 14.0.6 release line is not
-  in either affected range; 13.0.6 is not in these specific ranges.
+  through 10.4.5 and 11.0.0 through 11.0.3. The regenerated lockfile has no
+  glob package in either affected range.
 
 ### minimatch
 
@@ -104,8 +119,10 @@ production dependency graph.
 - **GHSA-g3hv-75wg-m249 (Moderate):** the current advisory identifies
   minimatch 10.2.6 as affected and 11.0.1 as patched. The Expo fingerprint
   path intentionally retains 10.2.6 for upstream compatibility. Disposition:
-  **moderate residual risk**, not resolved; the path is present in the mobile
-  production dependency graph, while bundle exclusion remains unverified.
+  **moderate residual risk**, not resolved; the package-manager path remains
+  in the mobile dependency graph. Expo says the code is build-time tooling
+  and not shipped in app bundles, but this repository has not independently
+  verified bundle exclusion.
 - **GHSA-cf2h-pxjq-68xw:** the affected 11.x range ends at 11.0.6; 11.0.7 is
   patched. The 11.0.8 resolution is outside the affected range.
 - **GHSA-c859-jr93-m5j4:** the affected 11.x range ends at 11.0.7; 11.0.8 is
@@ -122,21 +139,20 @@ production dependency graph.
 ## Narrow pnpm audit and dependency-review exceptions
 
 The security workflow fails on moderate or higher findings. The workspace
-pnpm audit and dependency-review action therefore allow only these two GHSA
-IDs associated with the retained Expo fingerprint path:
+pnpm audit and dependency-review action therefore allow only this one GHSA
+ID associated with the retained Expo fingerprint path:
 
-- GHSA-3g3m-2fjr-6pw4 (glob 13.0.6).
 - GHSA-g3hv-75wg-m249 (minimatch 10.2.6).
 
-These are not marked resolved. The pnpm audit ignore and dependency-review
-allowlist are explicit, reviewable risk dispositions. The production-only
-`pnpm why` output confirms that this path is present in the mobile production
-dependency graph via `expo`. Expo's maintainer assesses the packages as
-tooling-only and not bundled into production apps, but that bundle exclusion
-has not been independently verified. A human reviewer must explicitly
-accept or reject this moderate residual risk before merge. Remove the ignores
-when Expo ships a compatible patched dependency path. All other moderate,
-high and critical advisories remain subject to the existing gates.
+This is not marked resolved. The pnpm audit ignore and dependency-review
+allowlist are an explicit, reviewable moderate-risk disposition. The
+package-manager dependency path remains present in the mobile dependency
+graph. Expo's maintainer assesses the package as build-time tooling and says
+it is not shipped in production apps, but this repository has not independently
+verified bundle exclusion. A human reviewer must explicitly accept or reject
+this moderate residual risk before merge. Remove the ignore when Expo ships
+a compatible patched dependency path. All other moderate, high and critical
+advisories remain subject to the existing gates.
 
 ## Lockfile regeneration and required checks
 
@@ -146,8 +162,8 @@ runner with pinned `pnpm@12.18.0`, using
 `pnpm install --lockfile-only --ignore-scripts`. It must not be hand-edited.
 
 The refreshed head must pass frozen installation, formatting, lint, strict
-typecheck, tests, build, dependency review (with only the two documented
-GHSA exceptions), pnpm audit (with only the two documented GHSA exceptions),
+typecheck, tests, build, dependency review (with only the one documented
+GHSA exception), pnpm audit (with only the one documented GHSA exception),
 secret scanning, CodeQL and PostgreSQL tenant integration where applicable.
 
 ## Alert visibility limitation
@@ -166,5 +182,6 @@ after merge. No alert is marked dismissed or resolved by this document.
 - https://github.com/isaacs/minimatch/security/advisories/GHSA-g3hv-75wg-m249
 - https://github.com/isaacs/node-glob/security/advisories/GHSA-3g3m-2fjr-6pw4
 - https://github.com/expo/expo/issues/52735
+- https://github.com/expo/expo/tree/sdk-58/packages/%40expo/fingerprint
 - https://github.com/eslint/eslint/issues/21463
 - https://github.com/typescript-eslint/typescript-eslint/issues/13125
