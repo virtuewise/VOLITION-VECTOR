@@ -91,6 +91,34 @@ describe("locale-aware formatting", () => {
     expect(formatDateTime(value, "en-US", "UTC", options)).toBe(expected);
   });
 
+  it("accepts date-only and offset-qualified ISO strings deterministically", () => {
+    const options = { dateStyle: "medium", timeStyle: "short" } as const;
+    const dateOnly = "2026-11-17";
+    const offsetDateTime = "2026-11-17T10:00:00+02:00";
+
+    expect(formatDateTime(dateOnly, "en-US", "UTC", options)).toBe(
+      new Intl.DateTimeFormat("en-US", {
+        ...options,
+        timeZone: "UTC",
+      }).format(new Date(dateOnly)),
+    );
+    expect(formatDateTime(offsetDateTime, "en-US", "UTC", options)).toBe(
+      new Intl.DateTimeFormat("en-US", {
+        ...options,
+        timeZone: "UTC",
+      }).format(new Date(offsetDateTime)),
+    );
+  });
+
+  it("rejects timezone-less and implementation-dependent date strings", () => {
+    expect(() =>
+      formatDateTime("2026-11-17T10:00:00", "en-US", "UTC"),
+    ).toThrow(/explicit UTC offset/i);
+    expect(() =>
+      formatDateTime("November 17, 2026 10:00", "en-US", "UTC"),
+    ).toThrow(/explicit UTC offset/i);
+  });
+
   it("rejects invalid dates and missing or invalid time zones", () => {
     expect(() => formatDateTime("not-a-date", "en-US", "UTC")).toThrow(
       RangeError,
