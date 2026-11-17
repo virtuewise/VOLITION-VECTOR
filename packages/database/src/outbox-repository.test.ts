@@ -114,11 +114,221 @@ describe("insertOutboxEvent", () => {
     }
   });
 
-  it("rejects non-object and non-serializable payloads", async () => {
+  it("rejects non-object and cyclic payloads", async () => {
     const circular: Record<string, unknown> = {};
     circular["self"] = circular;
 
     for (const payload of [null, [], circular]) {
+      const client = new FakeClient();
+      await expect(
+        insertOutboxEvent(client, {
+          ...validInput,
+          payload: payload as Readonly<Record<string, unknown>>,
+        }),
+      ).rejects.toBeInstanceOf(OutboxEventInputError);
+      expect(client.statements).toHaveLength(0);
+    }
+  });
+
+  it("rejects restricted fields at every nesting level", async () => {
+    const payloads: Readonly<Record<string, unknown>>[] = [
+      { accessToken: "not-for-events" },
+      { nested: { refresh_token: "not-for-events" } },
+      { contactEmail: "person@example.test" },
+      { paymentCardNumber: "4111111111111111" },
+      { evidenceLocator: "private/object/key" },
+      { signedUrl: "https://storage.example.test/private" },
+      { phoneNumber: "+10000000000" },
+      { dateOfBirth: "2000-01-01" },
+      { firstName: "Ada" },
+      { governmentId: "restricted-id" },
+      { routingNumber: "restricted-routing" },
+      { iban: "restricted-iban" },
+      { beneficiaryName: "Ada" },
+      { FirstName: "Ada" },
+      { GovernmentID: "restricted-id" },
+      { APIKey: "not-for-events" },
+      { IBAN: "restricted-iban" },
+      { fullName: "Ada Lovelace" },
+      { customerName: "Ada Lovelace" },
+      { recipientName: "Ada Lovelace" },
+      { displayName: "Ada Lovelace" },
+      { contactName: "Ada Lovelace" },
+      { birthDate: "2000-01-01" },
+      { mobileNumber: "+10000000000" },
+      { telephoneNumber: "+10000000000" },
+      { postalCode: "12345" },
+      { zipCode: "12345" },
+      { healthStatus: "restricted" },
+      { genderIdentity: "restricted" },
+      { biometricTemplate: "restricted" },
+      { ethnicity: "restricted" },
+      { politicalOpinion: "restricted" },
+      { religiousBelief: "restricted" },
+      { surname: "Lovelace" },
+      { Surname: "Lovelace" },
+      { SURNAME: "LOVELACE" },
+      { EMAILADDRESS: "person@example.test" },
+      { GENDERIDENTITY: "restricted" },
+      { HEALTHSTATUS: "restricted" },
+      { POLITICALOPINION: "restricted" },
+    ];
+
+    for (const payload of payloads) {
+      const client = new FakeClient();
+      await expect(
+        insertOutboxEvent(client, { ...validInput, payload }),
+      ).rejects.toThrow("restricted or invalid field");
+      expect(client.statements).toHaveLength(0);
+    }
+  });
+
+  it("rejects acronym and delimiter variants of restricted keys", async () => {
+    const fieldNames = [
+      "APIKey",
+      "ApiKey",
+      "api_key",
+      "api-key",
+      "api.key",
+      "APIKEY",
+      "FIRSTNAME",
+      "FULLNAME",
+      "ACCOUNTNO",
+      "accountNo",
+    ];
+    for (const fieldName of fieldNames) {
+      const client = new FakeClient();
+      const payload = { [fieldName]: "not-for-events" };
+
+      await expect(
+        insertOutboxEvent(client, { ...validInput, payload }),
+      ).rejects.toThrow("restricted or invalid field");
+      expect(client.statements).toHaveLength(0);
+    }
+  });
+
+  it("bounds shared-object traversal before serialization", async () => {
+    const shared = { value: "x".repeat(1_000) };
+    const branch = {
+      first: shared,
+      second: shared,
+      third: shared,
+      fourth: shared,
+      fifth: shared,
+      sixth: shared,
+      seventh: shared,
+      eighth: shared,
+    };
+    const payload = {
+      first: branch,
+      second: branch,
+      third: branch,
+    };
+    const client = new FakeClient();
+
+    await expect(
+      insertOutboxEvent(client, { ...validInput, payload }),
+    ).rejects.toBeInstanceOf(OutboxEventInputError);
+    expect(client.statements).toHaveLength(0);
+  });
+
+  it("caps total visited JSON nodes across nested collections", async () => {
+    const payload = {
+      groups: Array.from({ length: 100 }, () =>
+        Array.from({ length: 100 }, () => null),
+      ),
+    };
+    const client = new FakeClient();
+
+    await expect(
+      insertOutboxEvent(client, { ...validInput, payload }),
+    ).rejects.toBeInstanceOf(OutboxEventInputError);
+    expect(client.statements).toHaveLength(0);
+  });
+
+  it("allows stable internal identifiers and non-sensitive metadata", async () => {
+    const client = new FakeClient();
+    const payload = {
+      accountId: ORGANIZATION_ID,
+      externalKey: "provider-reference",
+      status: "active",
+      source: "api",
+    };
+
+    await expect(
+      insertOutboxEvent(client, { ...validInput, payload }),
+    ).resolves.toEqual(returnedRecord);
+
+    expect(client.statements[0]?.parameters[6]).toBe(JSON.stringify(payload));
+  });
+
+  it("rejects unsupported JavaScript values and accessor properties", async () => {
+    const accessor: Record<string, unknown> = {};
+    Object.defineProperty(accessor, "value", {
+      enumerable: true,
+      get: () => "computed",
+    });
+
+    const symbolProperty: Record<string, unknown> = { safe: "value" };
+    Object.defineProperty(symbolProperty, Symbol("hidden"), {
+      enumerable: true,
+      value: "not-json",
+    });
+
+    const inherited = Object.create({ inherited: true }) as Record<
+      string,
+      unknown
+    >;
+    inherited["safe"] = "value";
+
+    const payloads: unknown[] = [
+      { value: undefined },
+      { value: Number.NaN },
+      { value: Number.POSITIVE_INFINITY },
+      { value: 1n },
+      { value: Symbol("not-json") },
+      { value: () => "not-json" },
+      { value: new Date("2026-11-07T10:00:00.000Z") },
+      { values: new Array(1) },
+      accessor,
+      symbolProperty,
+      inherited,
+    ];
+
+    for (const payload of payloads) {
+      const client = new FakeClient();
+      await expect(
+        insertOutboxEvent(client, {
+          ...validInput,
+          payload: payload as Readonly<Record<string, unknown>>,
+        }),
+      ).rejects.toBeInstanceOf(OutboxEventInputError);
+      expect(client.statements).toHaveLength(0);
+    }
+  });
+
+  it("enforces payload depth, collection and UTF-8 size bounds", async () => {
+    const tooDeep: Record<string, unknown> = {};
+    let current = tooDeep;
+    for (let index = 0; index < 9; index += 1) {
+      const child: Record<string, unknown> = {};
+      current["child"] = child;
+      current = child;
+    }
+    current["value"] = true;
+
+    const tooManyKeys = Object.fromEntries(
+      Array.from({ length: 65 }, (_, index) => [`field${index}`, index]),
+    );
+    const tooManyItems = { values: Array.from({ length: 101 }, (_, i) => i) };
+    const tooManyBytes = {
+      first: "a".repeat(4_096),
+      second: "b".repeat(4_096),
+      third: "c".repeat(4_096),
+      fourth: "d".repeat(4_096),
+    };
+
+    for (const payload of [tooDeep, tooManyKeys, tooManyItems, tooManyBytes]) {
       const client = new FakeClient();
       await expect(
         insertOutboxEvent(client, {
