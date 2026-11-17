@@ -91,7 +91,7 @@ describe("locale-aware formatting", () => {
     expect(formatDateTime(value, "en-US", "UTC", options)).toBe(expected);
   });
 
-  it("accepts date-only and offset-qualified ISO strings deterministically", () => {
+  it("accepts ISO date-only and offset-qualified strings", () => {
     const options = { dateStyle: "medium", timeStyle: "short" } as const;
     const dateOnly = "2026-11-17";
     const offsetDateTime = "2026-11-17T10:00:00+02:00";
