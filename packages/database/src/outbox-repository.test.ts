@@ -145,6 +145,10 @@ describe("insertOutboxEvent", () => {
       { routingNumber: "restricted-routing" },
       { iban: "restricted-iban" },
       { beneficiaryName: "Ada" },
+      { FirstName: "Ada" },
+      { GovernmentID: "restricted-id" },
+      { APIKey: "not-for-events" },
+      { IBAN: "restricted-iban" },
     ];
 
     for (const payload of payloads) {
