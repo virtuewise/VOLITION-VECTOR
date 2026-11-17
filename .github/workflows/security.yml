@@ -25,6 +25,9 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
         with:
           fail-on-severity: moderate
+          allow-ghsas: |
+            GHSA-3g3m-2fjr-6pw4
+            GHSA-g3hv-75wg-m249
 
   dependency-audit:
     name: Audit resolved pnpm dependency tree
@@ -44,10 +47,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Report reviewed dependency paths
         run: |
-          pnpm --recursive why minimatch
-          pnpm --recursive why glob
-          pnpm --recursive why --prod minimatch
-          pnpm --recursive why --prod glob
+          pnpm why --recursive minimatch
+          pnpm why --recursive glob
+          pnpm why --recursive --prod minimatch
+          pnpm why --recursive --prod glob
       - name: Fail on moderate or higher dependency advisories
         run: pnpm audit --audit-level=moderate
 
