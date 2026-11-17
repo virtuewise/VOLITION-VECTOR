@@ -41,6 +41,7 @@ describe("SkipLink", () => {
       href: "#main-content",
       children: "Skip to content",
       className: "vv-skip-link",
+      "aria-hidden": false,
     });
   });
 
@@ -56,6 +57,7 @@ describe("SkipLink", () => {
       href: "#results",
       title: "Jump to results",
       className: "vv-skip-link custom-link",
+      "aria-hidden": false,
     });
   });
 });
@@ -75,7 +77,8 @@ describe("VisuallyHidden", () => {
       id: "search-status",
       role: "status",
       className: "vv-visually-hidden custom-status",
+      "aria-hidden": false,
     });
-    expect(element.props["aria-hidden"]).toBeUndefined();
+    expect(element.props["aria-hidden"]).toBe(false);
   });
 });
