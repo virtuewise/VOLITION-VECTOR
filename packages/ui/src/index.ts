@@ -41,10 +41,7 @@ export interface VisuallyHiddenProps extends ComponentPropsWithoutRef<"span"> {
   "aria-hidden"?: false;
 }
 
-export function VisuallyHidden({
-  className,
-  ...props
-}: VisuallyHiddenProps) {
+export function VisuallyHidden({ className, ...props }: VisuallyHiddenProps) {
   return createElement("span", {
     ...props,
     "aria-hidden": false,
