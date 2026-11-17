@@ -30,8 +30,10 @@ internationalization APIs.
   This keeps server rendering deterministic and avoids treating locale as a
   time-zone signal. String inputs are limited to ISO 8601 date-only values or
   date-time values with an explicit `Z` or numeric UTC offset; timezone-less
-  and implementation-dependent strings are rejected. Date-only ISO strings
-  are interpreted as UTC.
+  and implementation-dependent strings are rejected. Calendar dates, clock
+  fields and numeric offsets are range-checked before parsing; impossible dates
+  are rejected instead of being normalized. Date-only ISO strings are
+  interpreted as UTC.
 - Keep locale, currency and time-zone inputs separate from authorization,
   residency, citizenship, tax status, jurisdiction, eligibility and payment
   routing.
