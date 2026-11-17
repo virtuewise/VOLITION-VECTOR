@@ -91,6 +91,7 @@ const RESTRICTED_FIELD_TOKENS = new Set([
   "sex",
   "sexual",
   "ssn",
+  "surname",
   "swift",
   "telephone",
   "token",
