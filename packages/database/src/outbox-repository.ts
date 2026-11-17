@@ -37,6 +37,56 @@ interface OutboxEventRow {
   readonly created_at: Date;
 }
 
+const MAX_PAYLOAD_BYTES = 16 * 1024;
+const MAX_PAYLOAD_DEPTH = 8;
+const MAX_OBJECT_KEYS = 64;
+const MAX_ARRAY_ITEMS = 100;
+const MAX_STRING_LENGTH = 4_096;
+
+const RESTRICTED_FIELD_TOKENS = new Set([
+  "access",
+  "address",
+  "authorization",
+  "cookie",
+  "credential",
+  "cvv",
+  "cvc",
+  "email",
+  "key",
+  "pan",
+  "password",
+  "passwd",
+  "passport",
+  "phone",
+  "secret",
+  "ssn",
+  "token",
+]);
+
+const RESTRICTED_FIELD_PAIRS = [
+  ["access", "key"],
+  ["account", "number"],
+  ["api", "key"],
+  ["bank", "account"],
+  ["card", "number"],
+  ["client", "secret"],
+  ["date", "birth"],
+  ["evidence", "locator"],
+  ["file", "path"],
+  ["national", "id"],
+  ["object", "key"],
+  ["private", "key"],
+  ["provider", "payload"],
+  ["raw", "payload"],
+  ["raw", "response"],
+  ["signed", "url"],
+  ["social", "security"],
+  ["sort", "code"],
+  ["storage", "key"],
+  ["tax", "id"],
+  ["webhook", "body"],
+] as const;
+
 export class OutboxEventInputError extends Error {
   constructor(message: string) {
     super(message);
@@ -66,6 +116,142 @@ function requiredText(
   return normalized;
 }
 
+function isRestrictedPayloadField(fieldName: string): boolean {
+  const normalized = fieldName
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .toLowerCase();
+  const tokens = new Set(normalized.split("_").filter(Boolean));
+
+  if ([...tokens].some((token) => RESTRICTED_FIELD_TOKENS.has(token))) {
+    return true;
+  }
+
+  return RESTRICTED_FIELD_PAIRS.some(
+    ([first, second]) => tokens.has(first) && tokens.has(second),
+  );
+}
+
+function validateJsonValue(
+  value: unknown,
+  depth: number,
+  ancestors: WeakSet<object>,
+): void {
+  if (depth > MAX_PAYLOAD_DEPTH) {
+    throw new OutboxEventInputError(
+      "Outbox payload exceeds structural limits.",
+    );
+  }
+
+  if (value === null || typeof value === "boolean") {
+    return;
+  }
+
+  if (typeof value === "string") {
+    if (value.length > MAX_STRING_LENGTH) {
+      throw new OutboxEventInputError(
+        "Outbox payload exceeds structural limits.",
+      );
+    }
+    return;
+  }
+
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new OutboxEventInputError(
+        "Outbox payload must contain finite numbers.",
+      );
+    }
+    return;
+  }
+
+  if (typeof value !== "object") {
+    throw new OutboxEventInputError(
+      "Outbox payload must contain only plain JSON values.",
+    );
+  }
+
+  if (ancestors.has(value)) {
+    throw new OutboxEventInputError("Outbox payload must not contain cycles.");
+  }
+
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      if (
+        Object.getPrototypeOf(value) !== Array.prototype ||
+        value.length > MAX_ARRAY_ITEMS ||
+        Reflect.ownKeys(value).length !== value.length + 1
+      ) {
+        throw new OutboxEventInputError(
+          "Outbox payload exceeds structural limits.",
+        );
+      }
+
+      for (let index = 0; index < value.length; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          value,
+          String(index),
+        );
+        if (
+          descriptor === undefined ||
+          descriptor.enumerable !== true ||
+          !("value" in descriptor)
+        ) {
+          throw new OutboxEventInputError(
+            "Outbox payload must contain plain JSON arrays.",
+          );
+        }
+        validateJsonValue(descriptor.value, depth + 1, ancestors);
+      }
+      return;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new OutboxEventInputError(
+        "Outbox payload must contain plain JSON objects.",
+      );
+    }
+
+    const keys = Reflect.ownKeys(value);
+    if (
+      keys.length > MAX_OBJECT_KEYS ||
+      keys.some((key) => typeof key !== "string")
+    ) {
+      throw new OutboxEventInputError(
+        "Outbox payload exceeds structural limits.",
+      );
+    }
+
+    for (const key of keys as string[]) {
+      if (
+        !/^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(key) ||
+        isRestrictedPayloadField(key)
+      ) {
+        throw new OutboxEventInputError(
+          "Outbox payload contains a restricted or invalid field.",
+        );
+      }
+
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (
+        descriptor === undefined ||
+        descriptor.enumerable !== true ||
+        !("value" in descriptor)
+      ) {
+        throw new OutboxEventInputError(
+          "Outbox payload must contain plain JSON properties.",
+        );
+      }
+
+      validateJsonValue(descriptor.value, depth + 1, ancestors);
+    }
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
 function serializePayload(
   payload: Readonly<Record<string, unknown>> | undefined,
 ): string {
@@ -74,22 +260,26 @@ function serializePayload(
     throw new OutboxEventInputError("Outbox payload must be a JSON object.");
   }
 
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) {
-    throw new OutboxEventInputError(
-      "Outbox payload must be a plain JSON object.",
-    );
-  }
-
   try {
+    validateJsonValue(value, 0, new WeakSet<object>());
     const serialized = JSON.stringify(value);
     if (typeof serialized !== "string") {
-      throw new Error("Payload did not serialize to JSON.");
+      throw new OutboxEventInputError(
+        "Outbox payload must serialize to a JSON object.",
+      );
+    }
+    if (new TextEncoder().encode(serialized).byteLength > MAX_PAYLOAD_BYTES) {
+      throw new OutboxEventInputError(
+        `Outbox payload must not exceed ${MAX_PAYLOAD_BYTES} UTF-8 bytes.`,
+      );
     }
     return serialized;
-  } catch {
+  } catch (error) {
+    if (error instanceof OutboxEventInputError) {
+      throw error;
+    }
     throw new OutboxEventInputError(
-      "Outbox payload must be serializable JSON.",
+      "Outbox payload must contain only supported JSON values.",
     );
   }
 }
@@ -101,6 +291,8 @@ function serializePayload(
  * Callers must use the same transaction client for the domain mutation, audit
  * event and outbox event so all records commit or roll back together. The
  * database tenant policy independently rejects a mismatched organization ID.
+ * Payloads are bounded and reject fields commonly used for secrets, direct
+ * contact/identity data, payment credentials and private storage locators.
  */
 export async function insertOutboxEvent(
   client: TenantTransactionClient,
