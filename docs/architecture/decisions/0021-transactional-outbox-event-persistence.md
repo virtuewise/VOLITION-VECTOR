@@ -33,7 +33,7 @@ Event payloads are internal integration data, not a place to copy source records
 - The serialized UTF-8 JSON object is limited to 16 KiB.
 - Nesting is limited to 8 levels; each object is limited to 64 properties; each array is limited to 100 items; each string is limited to 4,096 characters.
 - Values must be finite JSON primitives, arrays or plain objects. Cycles, accessors, symbols, functions, bigint values, dates/class instances, sparse arrays and non-finite numbers are rejected.
-- Field names commonly associated with credentials, direct contact/identity attributes, sensitive personal attributes (including health, biometric, demographic, religious and political attributes), payment card/bank details, raw provider payloads, private evidence locators and signed URLs are rejected at any nesting level.
+- Field names commonly associated with credentials, direct contact/identity attributes, sensitive personal attributes (including health, biometric, demographic, religious and political attributes), payment card/bank details, raw provider payloads, private evidence locators and signed URLs are rejected at any nesting level. Common all-uppercase compounds and abbreviations such as `APIKEY`, `FIRSTNAME`, `FULLNAME` and `ACCOUNTNO` are also rejected.
 - Validation enforces aggregate node and serialized-byte budgets during traversal, before the final JSON serialization, so shared object graphs cannot expand without bound during validation.
 - Producers should send stable internal identifiers and the minimum state needed by a consumer. Sensitive source data remains in its authoritative protected record and is retrieved only through a separately authorized path.
 

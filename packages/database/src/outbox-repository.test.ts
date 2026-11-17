@@ -165,6 +165,10 @@ describe("insertOutboxEvent", () => {
       { ethnicity: "restricted" },
       { politicalOpinion: "restricted" },
       { religiousBelief: "restricted" },
+      { EMAILADDRESS: "person@example.test" },
+      { GENDERIDENTITY: "restricted" },
+      { HEALTHSTATUS: "restricted" },
+      { POLITICALOPINION: "restricted" },
     ];
 
     for (const payload of payloads) {
@@ -177,7 +181,18 @@ describe("insertOutboxEvent", () => {
   });
 
   it("rejects acronym and delimiter variants of restricted keys", async () => {
-    const fieldNames = ["APIKey", "ApiKey", "api_key", "api-key", "api.key"];
+    const fieldNames = [
+      "APIKey",
+      "ApiKey",
+      "api_key",
+      "api-key",
+      "api.key",
+      "APIKEY",
+      "FIRSTNAME",
+      "FULLNAME",
+      "ACCOUNTNO",
+      "accountNo",
+    ];
     for (const fieldName of fieldNames) {
       const client = new FakeClient();
       const payload = { [fieldName]: "not-for-events" };

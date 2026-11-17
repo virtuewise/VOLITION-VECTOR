@@ -100,6 +100,7 @@ const RESTRICTED_FIELD_TOKENS = new Set([
 
 const RESTRICTED_FIELD_PAIRS = [
   ["access", "key"],
+  ["account", "no"],
   ["account", "number"],
   ["api", "key"],
   ["bank", "account"],
@@ -154,6 +155,75 @@ const RESTRICTED_FIELD_PAIRS = [
   ["zip", "code"],
 ] as const;
 
+const RESTRICTED_FIELD_COMPOUNDS = new Set([
+  "accountno",
+  "accountnumber",
+  "accesskey",
+  "accesstoken",
+  "apikey",
+  "bankaccount",
+  "beneficiaryname",
+  "biometrictemplate",
+  "birthdate",
+  "cardnumber",
+  "citizenshipstatus",
+  "clientsecret",
+  "contactname",
+  "customername",
+  "dateofbirth",
+  "disabilitystatus",
+  "displayname",
+  "emailaddress",
+  "emergencycontact",
+  "ethnicorigin",
+  "familyname",
+  "fathername",
+  "firstname",
+  "fullname",
+  "genderidentity",
+  "geneticdata",
+  "givenname",
+  "governmentid",
+  "guardianname",
+  "healthstatus",
+  "homeaddress",
+  "identitydocument",
+  "identitynumber",
+  "immigrationstatus",
+  "lastname",
+  "legalname",
+  "maidenname",
+  "medicalcondition",
+  "middlename",
+  "mobilenumber",
+  "mothername",
+  "nationalid",
+  "nationalinsurance",
+  "passwordhash",
+  "personname",
+  "personaldata",
+  "phonenumber",
+  "politicalopinion",
+  "postaladdress",
+  "postalcode",
+  "preferredname",
+  "privatekey",
+  "recipientname",
+  "religiousbelief",
+  "residentialaddress",
+  "routingnumber",
+  "sexualorientation",
+  "signedurl",
+  "socialsecurity",
+  "sortcode",
+  "streetaddress",
+  "taxid",
+  "taxnumber",
+  "telephonenumber",
+  "webhookbody",
+  "zipcode",
+]);
+
 export class OutboxEventInputError extends Error {
   constructor(message: string) {
     super(message);
@@ -192,6 +262,11 @@ function isRestrictedPayloadField(fieldName: string): boolean {
     .replace(/[^a-zA-Z0-9]+/g, "_")
     .toLowerCase();
   const tokens = new Set(normalized.split("_").filter(Boolean));
+  const compound = normalized.replace(/_/g, "");
+
+  if (RESTRICTED_FIELD_COMPOUNDS.has(compound)) {
+    return true;
+  }
 
   if ([...tokens].some((token) => RESTRICTED_FIELD_TOKENS.has(token))) {
     return true;
