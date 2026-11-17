@@ -96,13 +96,7 @@ jobs:
       - name: Security audit
         run: pnpm audit --audit-level=moderate
       - name: Formatting
-        run: |
-          pnpm exec prettier --write packages/localization/src/index.ts packages/localization/src/index.test.ts
-          echo "----- LOCALIZATION SOURCE -----"
-          cat packages/localization/src/index.ts
-          echo "----- LOCALIZATION TESTS -----"
-          cat packages/localization/src/index.test.ts
-          pnpm format:check
+        run: pnpm format:check
       - name: Lint
         run: pnpm lint
       - name: Typecheck
