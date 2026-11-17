@@ -21,15 +21,15 @@ confirms:
   `@typescript-eslint/typescript-estree@8.72.2`; the Next ESLint config also
   retains `typescript-estree@8.72.1`, which resolves minimatch 11.0.8 through
   the workspace override.
-- `@expo/fingerprint@0.21.9` retains its declared compatible
-  `glob@13.0.6` and `minimatch@10.2.6` path. Its nested glob 13 path also
+- `@expo/fingerprint@0.21.9` retains its declared compatible 13.x/10.x ranges,
+  resolved to `glob@13.0.6` and `minimatch@10.2.6`. Its nested glob 13 path also
   retains minimatch 10.2.6. This is the only intended remaining 13.x/10.x
   exception.
 - `minimatch@3.1.5` remains on an older transitive path; the reviewed
   advisories' patched ranges include that version.
 
 The lockfile snapshot confirms that `@expo/fingerprint@0.21.9` alone retains
-`glob@13.0.6) and `minimatch@10.2.6`; the other reviewed glob/minimatch
+`glob@13.0.6` and `minimatch@10.2.6`; the other reviewed glob/minimatch
 paths resolve to the 14.x/11.x lines. The security workflow now emits
 recursive and production-only `pnpm why` output. That output must be inspected
 before merge; if a retained path is in a production dependency graph, the
