@@ -163,7 +163,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  glob@^13.0.0: 14.0.6
   minimatch@^10.0.0: 11.0.8
   minimatch@^11.0.4: 11.0.8
   '@expo/fingerprint>minimatch': 10.2.6
