@@ -95,18 +95,24 @@ describe("locale-aware formatting", () => {
     const options = { dateStyle: "medium", timeStyle: "short" } as const;
     const dateOnly = "2026-11-17";
     const offsetDateTime = "2026-11-17T10:00:00+02:00";
+    const dateOnlyExpected = formatDateTime(
+      new Date(dateOnly),
+      "en-US",
+      "UTC",
+      options,
+    );
+    const offsetExpected = formatDateTime(
+      new Date(offsetDateTime),
+      "en-US",
+      "UTC",
+      options,
+    );
 
     expect(formatDateTime(dateOnly, "en-US", "UTC", options)).toBe(
-      new Intl.DateTimeFormat("en-US", {
-        ...options,
-        timeZone: "UTC",
-      }).format(new Date(dateOnly)),
+      dateOnlyExpected,
     );
     expect(formatDateTime(offsetDateTime, "en-US", "UTC", options)).toBe(
-      new Intl.DateTimeFormat("en-US", {
-        ...options,
-        timeZone: "UTC",
-      }).format(new Date(offsetDateTime)),
+      offsetExpected,
     );
   });
 
