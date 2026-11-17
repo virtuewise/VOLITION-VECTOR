@@ -107,6 +107,22 @@ describe("locale-aware formatting", () => {
     );
   });
 
+  it("rejects impossible ISO calendar dates and times", () => {
+    expect(() => formatDateTime("2026-02-30", "en-US", "UTC")).toThrow(
+      /calendar date/i,
+    );
+    expect(() =>
+      formatDateTime("2026-02-30T10:00:00Z", "en-US", "UTC"),
+    ).toThrow(/calendar date/i);
+    expect(() =>
+      formatDateTime("2026-11-17T24:00:00Z", "en-US", "UTC"),
+    ).toThrow(/ISO time/i);
+  });
+
+  it("accepts valid leap-day dates", () => {
+    expect(() => formatDateTime("2024-02-29", "en-US", "UTC")).not.toThrow();
+  });
+
   it("rejects timezone-less date-time strings", () => {
     expect(() => formatDateTime("2026-11-17T10:00:00", "en-US", "UTC")).toThrow(
       /explicit UTC offset/i,
