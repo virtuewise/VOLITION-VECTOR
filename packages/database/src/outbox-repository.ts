@@ -223,7 +223,13 @@ function addPayloadBytes(
 }
 
 function serializedStringByteLength(value: string): number {
-  return utf8Encoder.encode(JSON.stringify(value)).byteLength;
+  const serialized = JSON.stringify(value);
+  if (typeof serialized !== "string") {
+    throw new OutboxEventInputError(
+      "Outbox payload must contain plain JSON strings.",
+    );
+  }
+  return utf8Encoder.encode(serialized).byteLength;
 }
 
 function validateJsonValue(
@@ -271,7 +277,13 @@ function validateJsonValue(
         "Outbox payload must contain finite numbers.",
       );
     }
-    addPayloadBytes(budget, JSON.stringify(value).length);
+    const serialized = JSON.stringify(value);
+    if (typeof serialized !== "string") {
+      throw new OutboxEventInputError(
+        "Outbox payload must contain finite numbers.",
+      );
+    }
+    addPayloadBytes(budget, serialized.length);
     return;
   }
 
