@@ -117,14 +117,16 @@ exception must be revisited.
 ## Narrow pnpm audit exceptions
 
 The security workflow fails on moderate or higher findings. The workspace
-therefore ignores only the two GHSA IDs associated with the retained Expo
-fingerprint path:
+pnpm audit and the dependency-review action therefore allow only the two GHSA
+IDs associated with the retained Expo fingerprint path:
 
 - GHSA-3g3m-2fjr-6pw4 (glob 13.0.6).
 - GHSA-g3hv-75wg-m249 (minimatch 10.2.6).
 
-These are not marked resolved. The ignore list is an explicit, reviewable
-risk disposition for the upstream-compatible development-tooling path. It
+These are not marked resolved. The pnpm audit ignore and dependency-review
+allowlist are explicit, reviewable risk dispositions for the
+upstream-compatible development-tooling path. All other moderate/high/critical
+advisories remain subject to the existing gates. It
 must be removed when Expo ships a compatible patched dependency path. The
 security workflow prints recursive and production-only `pnpm why) output
 for glob and minimatch so reviewers can verify that the retained path does
