@@ -80,8 +80,9 @@ exception must be revisited.
 - **GHSA-3g3m-2fjr-6pw4 (Moderate):** affected versions include glob 13.x and
   releases through 14.0.1; 14.0.2 and later are patched. Most consumers move
   to 14.0.6. The Expo fingerprint path remains on 13.0.6 to avoid the
-  upstream-documented major-version break. Disposition: **moderate
-  development-tooling exception**, not resolved.
+  upstream-documented major-version break. Disposition: **moderate Expo fingerprint exception**, not resolved. The
+  path is present in the mobile production dependency graph; upstream says it
+  is tooling-only/not bundled, but bundle exclusion remains unverified.
 - **GHSA-5j98-mcp5-4vw2:** the command-injection advisory affects glob 10.2.0
   through 10.4.5 and 11.0.0 through 11.0.3. The 14.0.6 release line is not
   in either affected range; 13.0.6 is not in these specific ranges.
@@ -100,7 +101,9 @@ exception must be revisited.
 - **GHSA-g3hv-75wg-m249 (Moderate):** the current advisory identifies
   minimatch 10.2.6 as affected and 11.0.1 as patched. The Expo fingerprint
   path intentionally retains 10.2.6 for upstream compatibility. Disposition:
-  **moderate development-tooling exception**, not resolved.
+  **moderate Expo fingerprint exception**, not resolved. The path is present
+  in the mobile production dependency graph; upstream says it is tooling-only,
+  but bundle exclusion remains unverified.
 - **GHSA-cf2h-pxjq-68xw:** the affected 11.x range ends at 11.0.6; 11.0.7 is
   patched. The 11.0.8 resolution is outside the affected range.
 - **GHSA-c859-jr93-m5j4:** the affected 11.x range ends at 11.0.7; 11.0.8 is
