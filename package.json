@@ -14,6 +14,7 @@
     "lint": "turbo lint",
     "test": "vitest run --passWithNoTests",
     "format:check": "prettier --check .",
+    "check:toolchain": "node scripts/check-toolchain.mjs",
     "clean": "turbo clean"
   },
   "devDependencies": {
