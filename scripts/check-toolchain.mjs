@@ -6,9 +6,8 @@ const nvmrc = readFileSync(new URL(".nvmrc", root), "utf8").trim();
 const packageJson = JSON.parse(
   readFileSync(new URL("package.json", root), "utf8"),
 );
-const engineRange = /^>=(\d+) <(\d+)$/.exec(
-  packageJson.engines?.node ?? "",
-);
+const nodeEngine = packageJson.engines?.node ?? "";
+const engineRange = /^>=(\d+) <(\d+)$/.exec(nodeEngine);
 
 assert.match(nvmrc, /^\d+$/, ".nvmrc must contain one Node major.");
 assert.ok(engineRange, "engines.node must use the >=N <N+1 form.");
