@@ -91,10 +91,10 @@ jobs:
           NODE
       - name: Install pnpm
         run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Verify Node toolchain contract
+        run: pnpm check:toolchain
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Security audit
-        run: pnpm audit --audit-level=moderate
       - name: Formatting
         run: pnpm format:check
       - name: Lint
@@ -105,3 +105,5 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
+      - name: Security audit
+        run: pnpm audit --audit-level=moderate
