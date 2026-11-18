@@ -91,6 +91,8 @@ jobs:
           NODE
       - name: Install pnpm
         run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
+      - name: Verify Node toolchain contract
+        run: pnpm check:toolchain
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Security audit
