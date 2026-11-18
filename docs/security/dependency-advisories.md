@@ -1,6 +1,6 @@
 # Dependency advisory remediation record
 
-Last reviewed: 2026-11-17
+Last reviewed: 2026-11-18
 
 This record captures package-version review and explicitly accepted residual
 findings for the workspace lockfile. It does not state that GitHub Dependabot
@@ -27,13 +27,12 @@ the unused glob override, then committed
   `^10.2.4`; this is an intentional major override described below.
 - `@expo/fingerprint@0.21.10` no longer depends on glob and retains only
   `minimatch@10.2.6`.
-- The mobile app is aligned with Expo SDK 58.0.25:
-  `expo@58.0.25`, `expo-router@58.0.31` and
-  `react-native@0.88.1`.
 - The generated lockfile contains no resolved glob 9.x, 10.x, 11.x, 13.x
   or 14.x package. Remaining glob entries are 2.x, 3.x and 4.x paths.
 - `minimatch@3.1.5` remains on an older transitive path; the reviewed
   advisories' patched ranges include that version.
+- `picomatch@2.3.2` and `picomatch@4.0.7` remain in the lockfile. Both are
+  within the newly reviewed GHSA-fc5q-39xc-vjpf affected range.
 
 The Expo SDK 58.0.24 patch updated the SDK 58 package set, including
 `@expo/fingerprint@0.21.10`. Its changelog records that this fingerprint
@@ -137,11 +136,44 @@ dependency path is absent or that the remaining advisory is resolved.
   retain the stale prose discrepancy as an upstream documentation issue.
   Do not infer that a live Dependabot alert has been dismissed.
 
+### picomatch — new high-severity finding (18 November 2026)
+
+- **GHSA-fc5q-39xc-vjpf / CVE-2026-112366 (High):** the advisory states that
+  picomatch versions through 4.0.7 are affected by ReDoS through
+  single-branch repeated extglob patterns. The workspace lockfile currently
+  resolves `picomatch@2.3.2` and `picomatch@4.0.7`; both are within the
+  stated affected range.
+- The current GitHub Advisory Database page has no package/fixed-version
+  metadata and states that Dependabot alerts are not supported for this
+  advisory because no supported affected-and-fixed package range is listed.
+  The public advisory record does not name a fixed version. As of this review,
+  the npm dependency audit reports the high finding and the repository's
+  `pnpm audit --audit-level=moderate` quality/security gates fail.
+- The 18 November CI audit reported 200 dependency paths, including
+  Next.js ESLint tooling through `fast-glob > micromatch > picomatch` and
+  Expo/Metro tooling through `metro-file-map > jest-worker > jest-util > picomatch`.
+  A recursive and production-only `pnpm why picomatch` report is still
+  required before asserting that all paths are build-time-only or unreachable
+  from untrusted patterns.
+- Upstream discussion in [Nx issue #37696](https://github.com/nrwl/nx/issues/37696)
+  records that Nx maintainers consider their own glob-pattern inputs
+  workspace configuration and not user-controlled; this is not proof about
+  Volition Vector's own dependency paths.
+- Do not bump to 4.0.7 as a remediation: it is the latest version named by
+  the advisory as affected. Do not add a high-severity pnpm audit or
+  dependency-review ignore, or vendor an unmerged upstream patch, without
+  security-owner review and an explicit threat assessment.
+- Disposition: **unresolved high-severity external dependency blocker; no
+  patched stable version identified**. Track in
+  [issue #78](https://github.com/virtuewise/VOLITION-VECTOR/issues/78).
+  Reassess on an upstream fixed release and verify the production dependency
+  paths before claiming mitigation.
+
 ## Narrow pnpm audit and dependency-review exceptions
 
-The security workflow fails on moderate or higher findings. The workspace
-pnpm audit and dependency-review action therefore allow only this one GHSA
-ID associated with the retained Expo fingerprint path:
+The workspace pnpm audit and dependency-review allowlists currently contain
+only this one moderate GHSA ID associated with the retained Expo fingerprint
+path:
 
 - GHSA-g3hv-75wg-m249 (minimatch 10.2.6).
 
@@ -152,8 +184,7 @@ graph. Expo's maintainer assesses the package as build-time tooling and says
 it is not shipped in production apps, but this repository has not independently
 verified bundle exclusion. A human reviewer must explicitly accept or reject
 this moderate residual risk before merge. Remove the ignore when Expo ships
-a compatible patched dependency path. All other moderate, high and critical
-advisories remain subject to the existing gates.
+a compatible patched dependency path. No high-severity advisory is ignored.
 
 ## Lockfile regeneration and required checks
 
@@ -164,8 +195,10 @@ runner with pinned `pnpm@12.18.0`, using
 
 The refreshed head must pass frozen installation, formatting, lint, strict
 typecheck, tests, build, dependency review (with only the one documented
-GHSA exception), pnpm audit (with only the one documented GHSA exception),
-secret scanning, CodeQL and PostgreSQL tenant integration where applicable.
+moderate GHSA exception), pnpm audit (with only the one documented moderate
+GHSA exception), secret scanning, CodeQL and PostgreSQL tenant integration
+where applicable. The new picomatch high finding currently prevents the
+audit gate from passing.
 
 ## Alert visibility limitation
 
@@ -182,6 +215,7 @@ after merge. No alert is marked dismissed or resolved by this document.
 - https://github.com/isaacs/minimatch/security/advisories/GHSA-3ppc-4f35-3m26
 - https://github.com/isaacs/minimatch/security/advisories/GHSA-g3hv-75wg-m249
 - https://github.com/isaacs/node-glob/security/advisories/GHSA-3g3m-2fjr-6pw4
+- https://github.com/micromatch/picomatch/security/advisories/GHSA-fc5q-39xc-vjpf
 - https://github.com/expo/expo/issues/52735
 - https://github.com/expo/expo/tree/sdk-58/packages/%40expo/fingerprint
 - https://github.com/eslint/eslint/issues/21463
