@@ -31,6 +31,4 @@ assert.equal(
   "Current Node runtime must match .nvmrc.",
 );
 
-console.log(
-  `Node ${runtimeMajor} matches .nvmrc and package.json engines.node.`,
-);
+console.log(`Node ${runtimeMajor} matches .nvmrc and package.json engines.node.`);
