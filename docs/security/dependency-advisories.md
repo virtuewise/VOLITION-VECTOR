@@ -149,12 +149,28 @@ dependency path is absent or that the remaining advisory is resolved.
   The public advisory record does not name a fixed version. As of this review,
   the npm dependency audit reports the high finding and the repository's
   `pnpm audit --audit-level=moderate` quality/security gates fail.
-- The 18 November CI audit reported 200 dependency paths, including
-  Next.js ESLint tooling through `fast-glob > micromatch > picomatch` and
-  Expo/Metro tooling through `metro-file-map > jest-worker > jest-util > picomatch`.
-  A recursive and production-only `pnpm why picomatch` report is still
-  required before asserting that all paths are build-time-only or unreachable
-  from untrusted patterns.
+- The 18 November CI audit on PR #77 reported 200 paths; the PR #71
+  audit on this branch reported 203 paths. The updated security workflow
+  recorded both recursive and production-only `pnpm why picomatch` output
+  on PR #71 HEAD `278cab47e4c47a914f0306e4d9d232bd48741ca2`
+  ([run 44265048888](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44265048888)).
+- The production-only dependency report found both `picomatch@2.3.2` and
+  `picomatch@4.0.7` under `@volition/mobile@0.1.0 (dependencies)`, through
+  Expo/Expo CLI and Metro/Jest utility paths. This confirms presence in the
+  mobile workspace's production dependency graph; it does **not** by itself
+  prove that the picomatch implementation is included in the generated app
+  bundle or invoked with attacker-controlled patterns.
+- The recursive report also found development-only paths through
+  `eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch`
+  and `@nestjs/cli > @angular-devkit`. GitHub code search on `main` returned
+  no direct source references to `picomatch`, `micromatch` or
+  `fast-glob`; transitive execution through Expo/Metro remains to be
+  assessed.
+- The app bundle has not yet been independently exported and inspected, and
+  no end-to-end review has established whether any user-controlled pattern
+  reaches these transitive packages. Do not classify the finding as
+  build-time-only or not exploitable based solely on the upstream Expo/Nx
+  statements.
 - Upstream discussion in [Nx issue #37696](https://github.com/nrwl/nx/issues/37696)
   records that Nx maintainers consider their own glob-pattern inputs
   workspace configuration and not user-controlled; this is not proof about
