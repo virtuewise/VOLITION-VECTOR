@@ -1,39 +1,37 @@
+import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const nvmrc = readFileSync(new URL("../.nvmrc", import.meta.url), "utf8").trim();
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
-const engineRange = packageJson.engines?.node;
-const rangeMatch =
-  typeof engineRange === "string" ? /^>=\s*(\d+)\s+<\s*(\d+)$/.exec(engineRange) : null;
+const engineRange = /^>=(\d+) <(\d+)$/.exec(packageJson.engines?.node ?? "");
 
-function fail(message) {
-  console.error(`Node toolchain contract failed: ${message}`);
-  process.exitCode = 1;
-}
+assert.match(nvmrc, /^\d+$/, ".nvmrc must contain one Node major version.");
+assert.ok(
+  engineRange,
+  `package.json engines.node must use ">=N <N+1"; received "${packageJson.engines?.node}".`,
+);
 
-if (!/^\d+$/.test(nvmrc)) {
-  fail(`.nvmrc must contain one major version, received "${nvmrc}".`);
-} else if (!rangeMatch) {
-  fail(`package.json engines.node must use the supported ">=N <N+1" form, received "${engineRange}".`);
-} else {
-  const pinnedMajor = Number(nvmrc);
-  const minimumMajor = Number(rangeMatch[1]);
-  const exclusiveMaximumMajor = Number(rangeMatch[2]);
-  const runtimeMajor = Number(process.versions.node.split(".")[0]);
+const pinnedMajor = Number(nvmrc);
+const runtimeMajor = Number(process.versions.node.split(".")[0]);
 
-  if (minimumMajor !== pinnedMajor || exclusiveMaximumMajor !== pinnedMajor + 1) {
-    fail(`.nvmrc (${pinnedMajor}) does not match package.json engines.node ("${engineRange}").`);
-  }
+assert.equal(
+  Number(engineRange[1]),
+  pinnedMajor,
+  ".nvmrc must match the minimum Node major in package.json engines.node.",
+);
+assert.equal(
+  Number(engineRange[2]),
+  pinnedMajor + 1,
+  "package.json engines.node must cap the pinned major at the next major.",
+);
+assert.equal(
+  runtimeMajor,
+  pinnedMajor,
+  `CI/local runtime must use Node ${pinnedMajor} from .nvmrc.`,
+);
 
-  if (runtimeMajor !== pinnedMajor) {
-    fail(`running Node ${runtimeMajor}; expected Node ${pinnedMajor} from .nvmrc.`);
-  }
-
-  if (process.exitCode !== 1) {
-    console.log(
-      `Node toolchain contract verified: Node ${runtimeMajor} satisfies .nvmrc and package.json engines.node.`,
-    );
-  }
-}
+console.log(
+  `Node toolchain contract verified: Node ${runtimeMajor} satisfies .nvmrc and package.json engines.node.`,
+);
