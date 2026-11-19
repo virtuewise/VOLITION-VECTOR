@@ -1,10 +1,41 @@
 # Dependency advisory remediation record
 
-Last reviewed: 2026-11-18
+Last reviewed: 2026-11-19
 
 This record captures package-version review and explicitly accepted residual
 findings for the workspace lockfile. It does not state that GitHub Dependabot
 alerts have been dismissed or that the repository has no other vulnerabilities.
+
+## Advisory status correction — 2026-11-19
+
+The previous section below records the 18 November audit failure, but its
+classification as an active high-severity finding is superseded by the
+publisher's subsequent withdrawal.
+
+- The [GitHub Advisory Database record](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
+  now labels GHSA-fc5q-39xc-vjpf / CVE-2026-112366 **Withdrawn** and states
+  that it was withdrawn on 2026-11-18. The page retains the original affected
+  version range as historical metadata; it no longer presents the advisory as
+  active.
+- The upstream [picomatch PR #235](https://github.com/micromatch/picomatch/pull/235)
+  was closed without merge on 2026-10-21. The maintainer's comment says not to
+  use the disputed glob pattern and not to let untrusted users define regular
+  expressions. A later contributor reported submitting a further dispute to
+  the CVE Numbering Authorities on 2026-11-17; the GitHub advisory page now
+  records withdrawal the following day.
+- This is an **advisory withdrawal**, not a patched picomatch release. The
+  lockfile still contains the same picomatch package versions; no version
+  upgrade, vendor patch, override, or audit suppression is claimed.
+- The failing CI runs recorded below were executed before the withdrawal was
+  reflected in the advisory database. A fresh registry-enabled run of the
+  pinned pnpm 12.18.0 audit is required on the updated PR head. If it passes,
+  record the new exact-head evidence and close issue #78 as withdrawn. If it
+  still fails, treat that as stale or inconsistent registry/audit metadata
+  and investigate the source; do not add an ignore to force a green result.
+- Until that fresh audit completes, PR #71 and PR #77 remain draft. The
+  production dependency-path report remains factual package-manager graph
+  evidence, but the withdrawn advisory is no longer counted as an active
+  high-severity security finding.
 
 ## Generated dependency tree
 
