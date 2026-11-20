@@ -1,6 +1,6 @@
 # Dependency advisory remediation record
 
-Last reviewed: 2026-11-19
+Last reviewed: 2026-11-20
 
 This record captures package-version review and explicitly accepted residual
 findings for the workspace lockfile. It does not state that GitHub Dependabot
@@ -26,16 +26,22 @@ publisher's subsequent withdrawal.
 - This is an **advisory withdrawal**, not a patched picomatch release. The
   lockfile still contains the same picomatch package versions; no version
   upgrade, vendor patch, override, or audit suppression is claimed.
-- The failing CI runs recorded below were executed before the withdrawal was
-  reflected in the advisory database. A fresh registry-enabled run of the
-  pinned pnpm 12.18.0 audit is required on the updated PR head. If it passes,
-  record the new exact-head evidence and close issue #78 as withdrawn. If it
-  still fails, treat that as stale or inconsistent registry/audit metadata
-  and investigate the source; do not add an ignore to force a green result.
-- Until that fresh audit completes, PR #71 and PR #77 remain draft. The
-  production dependency-path report remains factual package-manager graph
-  evidence, but the withdrawn advisory is no longer counted as an active
-  high-severity security finding.
+- The pre-withdrawal failed runs remain historical evidence only. Fresh
+  pinned pnpm 12.18.0 validation completed after the withdrawal:
+  - PR #71 head `1c25865670ddfbc7fba0933890278a25f04ad1bd`: Quality gates
+    [run 44485371439](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44485371439)
+    and Security scanning
+    [run 44485371414](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44485371414)
+    both pass.
+  - PR #77 head `9f13ac0b96560f133263d7469a8e10f47fdc2959`: Quality gates
+    [run 44265783576](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44265783576)
+    and Security scanning
+    [run 44265783628](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44265783628)
+    both pass.
+- The withdrawn GHSA no longer blocks those audit gates. This does not
+  establish that all repository advisories or live Dependabot alerts are
+  resolved; the documented moderate Expo minimatch path remains a separate
+  human-review item.
 
 ## Generated dependency tree
 
@@ -62,8 +68,9 @@ the unused glob override, then committed
   or 14.x package. Remaining glob entries are 2.x, 3.x and 4.x paths.
 - `minimatch@3.1.5` remains on an older transitive path; the reviewed
   advisories' patched ranges include that version.
-- `picomatch@2.3.2` and `picomatch@4.0.7` remain in the lockfile. Both are
-  within the newly reviewed GHSA-fc5q-39xc-vjpf affected range.
+- `picomatch@2.3.2` and `picomatch@4.0.7` remain in the lockfile. The
+  advisory was subsequently withdrawn; this is not a package patch or a
+  claim that the resolved versions changed.
 
 The Expo SDK 58.0.24 patch updated the SDK 58 package set, including
 `@expo/fingerprint@0.21.10`. Its changelog records that this fingerprint
@@ -167,54 +174,26 @@ dependency path is absent or that the remaining advisory is resolved.
   retain the stale prose discrepancy as an upstream documentation issue.
   Do not infer that a live Dependabot alert has been dismissed.
 
-### picomatch — new high-severity finding (18 November 2026)
+### picomatch — withdrawn advisory (2026-11-18)
 
-- **GHSA-fc5q-39xc-vjpf / CVE-2026-112366 (High):** the advisory states that
-  picomatch versions through 4.0.7 are affected by ReDoS through
-  single-branch repeated extglob patterns. The workspace lockfile currently
-  resolves `picomatch@2.3.2` and `picomatch@4.0.7`; both are within the
-  stated affected range.
-- The current GitHub Advisory Database page has no package/fixed-version
-  metadata and states that Dependabot alerts are not supported for this
-  advisory because no supported affected-and-fixed package range is listed.
-  The public advisory record does not name a fixed version. As of this review,
-  the npm dependency audit reports the high finding and the repository's
-  `pnpm audit --audit-level=moderate` quality/security gates fail.
-- The 18 November CI audit on PR #77 reported 200 paths; the PR #71
-  audit on this branch reported 203 paths. The updated security workflow
-  recorded both recursive and production-only `pnpm why picomatch` output
-  on PR #71 HEAD `278cab47e4c47a914f0306e4d9d232bd48741ca2`
-  ([run 44265048888](https://github.com/virtuewise/VOLITION-VECTOR/actions/runs/44265048888)).
-- The production-only dependency report found both `picomatch@2.3.2` and
-  `picomatch@4.0.7` under `@volition/mobile@0.1.0 (dependencies)`, through
-  Expo/Expo CLI and Metro/Jest utility paths. This confirms presence in the
-  mobile workspace's production dependency graph; it does **not** by itself
-  prove that the picomatch implementation is included in the generated app
-  bundle or invoked with attacker-controlled patterns.
-- The recursive report also found development-only paths through
-  `eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch`
-  and `@nestjs/cli > @angular-devkit`. GitHub code search on `main` returned
-  no direct source references to `picomatch`, `micromatch` or
-  `fast-glob`; transitive execution through Expo/Metro remains to be
-  assessed.
-- The app bundle has not yet been independently exported and inspected, and
-  no end-to-end review has established whether any user-controlled pattern
-  reaches these transitive packages. Do not classify the finding as
-  build-time-only or not exploitable based solely on the upstream Expo/Nx
-  statements.
-- Upstream discussion in [Nx issue #37696](https://github.com/nrwl/nx/issues/37696)
-  records that Nx maintainers consider their own glob-pattern inputs
-  workspace configuration and not user-controlled; this is not proof about
-  Volition Vector's own dependency paths.
-- Do not bump to 4.0.7 as a remediation: it is the latest version named by
-  the advisory as affected. Do not add a high-severity pnpm audit or
-  dependency-review ignore, or vendor an unmerged upstream patch, without
-  security-owner review and an explicit threat assessment.
-- Disposition: **unresolved high-severity external dependency blocker; no
-  patched stable version identified**. Track in
-  [issue #78](https://github.com/virtuewise/VOLITION-VECTOR/issues/78).
-  Reassess on an upstream fixed release and verify the production dependency
-  paths before claiming mitigation.
+- **GHSA-fc5q-39xc-vjpf / CVE-2026-112366:** the GitHub Advisory Database
+  now labels this record **Withdrawn** and records 2026-11-18 as the
+  withdrawal date. The former affected-version metadata is historical and
+  must not be presented as a currently active advisory.
+- The lockfile still resolves `picomatch@2.3.2` and `picomatch@4.0.7`.
+  Neither package version was upgraded or patched by this disposition.
+- The historical production-only `pnpm why picomatch` report found both
+  versions under the mobile workspace dependency graph through Expo/Metro
+  paths. That graph evidence does not establish that picomatch code is
+  included in a generated application bundle or invoked with
+  attacker-controlled patterns.
+- No bundle export/inspection is claimed. Do not describe the package path
+  as patched, absent, or independently proven harmless.
+- Disposition: **withdrawn advisory; no active high-severity finding remains
+  for this GHSA**. Issue #78 was closed as not planned because the publisher
+  withdrew the advisory. Reopen assessment only if a new active advisory or
+  distinct vulnerability is published. Do not add an audit ignore or vendor
+  an unmerged patch for this withdrawn record.
 
 ## Narrow pnpm audit and dependency-review exceptions
 
@@ -244,8 +223,9 @@ The refreshed head must pass frozen installation, formatting, lint, strict
 typecheck, tests, build, dependency review (with only the one documented
 moderate GHSA exception), pnpm audit (with only the one documented moderate
 GHSA exception), secret scanning, CodeQL and PostgreSQL tenant integration
-where applicable. The new picomatch high finding currently prevents the
-audit gate from passing.
+where applicable. The withdrawn picomatch advisory does not block the current audit. The
+only documented audit exception is the moderate Expo minimatch finding
+GHSA-g3hv-75wg-m249, which remains a human-review item.
 
 ## Alert visibility limitation
 
