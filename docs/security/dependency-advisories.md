@@ -64,8 +64,9 @@ the unused glob override, then committed
   `^10.2.4`; this is an intentional major override described below.
 - `@expo/fingerprint@0.21.10` no longer depends on glob and retains only
   `minimatch@10.2.6`.
-- The generated lockfile contains no resolved glob 9.x, 10.x, 11.x, 13.x
-  or 14.x package. Remaining glob entries are 2.x, 3.x and 4.x paths.
+- The generated lockfile contains no package named `glob` at any version.
+  It retains `fast-glob@3.3.1` and `is-glob@4.0.3`; these are distinct
+  packages and are not the `glob` package covered by GHSA-3g3m or GHSA-5j98.
 - `minimatch@3.1.5` remains on an older transitive path; the reviewed
   advisories' patched ranges include that version.
 - `picomatch@2.3.2` and `picomatch@4.0.7` remain in the lockfile. The
