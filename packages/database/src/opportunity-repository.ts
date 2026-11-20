@@ -741,7 +741,9 @@ export class PostgresOpportunityRepository {
          WHERE ($1::text IS NULL OR opportunity_type = $1)
            AND ($2::text IS NULL OR search_document @@ plainto_tsquery('simple', $2))
            AND (expires_at IS NULL OR expires_at > clock_timestamp())
-         ORDER BY published_at DESC, id
+         ORDER BY CASE WHEN $2::text IS NULL THEN 0::real ELSE ts_rank_cd(search_document, plainto_tsquery('simple', $2)) END DESC,
+           published_at DESC,
+           id
          LIMIT $3 OFFSET $4`,
         [input.opportunityType ?? null, query, limit, offset],
       );
