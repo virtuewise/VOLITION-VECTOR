@@ -19,6 +19,7 @@
   "devDependencies": {
     "@types/node": "24.10.0",
     "@types/react": "19.2.2",
+    "@typescript-eslint/parser": "8.72.2",
     "eslint": "10.14.0",
     "eslint-config-next": "16.4.5",
     "prettier": "3.9.10",

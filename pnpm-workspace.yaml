@@ -6,8 +6,19 @@ packages:
   - "packages/*"
 
 overrides:
-  "glob@^13.0.0": "14.0.2"
-  "minimatch@^10.0.0": "11.0.1"
+  "minimatch@^10.0.0": "11.0.8"
+  "minimatch@^11.0.4": "11.0.8"
+  # Expo SDK 58.0.25's fingerprint package drops glob. Keep its declared
+  # minimatch 10.x major until Expo's compatibility boundary changes.
+  "@expo/fingerprint>minimatch": "10.2.6"
+
+# One moderate finding remains on Expo's build-time fingerprint dependency.
+# Expo retains minimatch 10.x for compatibility and states it is not shipped
+# in production app bundles. The package graph still includes it; see the
+# advisory record. Remove this ignore when Expo provides a compatible fix.
+audit:
+  ignore:
+    - GHSA-g3hv-75wg-m249
 
 # Explicitly approve only the native build scripts required by this workspace.
 allowBuilds:
