@@ -720,8 +720,8 @@ public_opportunity_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT count(*) FROM public_opportunities;"
 )"
-if [[ "$public_opportunity_count" != "2" ]]; then
-  echo "Expected two published public opportunities without tenant context; got $public_opportunity_count" >&2
+if [[ "$public_opportunity_count" != "3" ]]; then
+  echo "Expected three published public opportunities without tenant context; got $public_opportunity_count" >&2
   exit 1
 fi
 public_service_count="$(
