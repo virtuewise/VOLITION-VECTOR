@@ -31,4 +31,4 @@ Semantic/vector retrieval, field-level match explanations, user feedback control
 
 ## Validation
 
-Unit tests assert that the public repository uses the same parameterized full-text query for filtering and ranking, with publication time and ID as deterministic tie-breakers. Existing PostgreSQL RLS and public-view integration coverage remains the security boundary; this change adds no schema or policy migration.
+Unit tests assert that the public repository uses the same parameterized full-text query for filtering and ranking, with publication time and ID as deterministic tie-breakers. The PostgreSQL integration fixture verifies that an older listing with stronger lexical relevance outranks a newer listing with one query-term occurrence, while query-free discovery retains publication-time ordering. Existing PostgreSQL RLS and public-view integration coverage remains the security boundary; this change adds no schema or policy migration.
