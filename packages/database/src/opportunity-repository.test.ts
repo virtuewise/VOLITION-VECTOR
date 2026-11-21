@@ -219,6 +219,9 @@ describe("PostgresOpportunityRepository", () => {
 
     expect(query.mock.calls[0]?.[0]).toContain("FROM public_opportunities");
     expect(query.mock.calls[0]?.[0]).toContain("search_document @@");
+    expect(query.mock.calls[0]?.[0]).toContain(
+      "ORDER BY CASE WHEN $2::text IS NULL THEN 0::real ELSE ts_rank_cd(search_document, plainto_tsquery('simple', $2)) END DESC,\n           published_at DESC,\n           id",
+    );
     expect(query.mock.calls[0]?.[1]).toEqual([
       "employment",
       "senior engineer",
