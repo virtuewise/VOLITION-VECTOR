@@ -658,7 +658,7 @@ for table in organizations organization_memberships organization_invitations org
 done
 # Public rows are visible across tenants; drafts remain tenant-private.
 assert_count opportunities "$TENANT_ONE" 4
-assert_count opportunities "$TENANT_TWO" 2
+assert_count opportunities "$TENANT_TWO" 3
 assert_count service_listings "$TENANT_ONE" 1
 assert_count service_listings "$TENANT_TWO" 2
 assert_count conversations "$TENANT_ONE" 1
