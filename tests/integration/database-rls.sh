@@ -864,8 +864,7 @@ fi
 # A more relevant older listing must outrank a newer listing with only one
 # occurrence of the query term. This exercises ts_rank_cd against real
 # PostgreSQL tsvectors, not merely the SQL string emitted by the repository.
-relevant_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \\
-  -c "SELECT slug FROM public_opportunities
+relevant_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 -c "SELECT slug FROM public_opportunities
       WHERE search_document @@ plainto_tsquery('simple', 'project')
         AND (expires_at IS NULL OR expires_at > clock_timestamp())
       ORDER BY CASE WHEN 'project'::text IS NULL THEN 0::real
@@ -881,8 +880,7 @@ fi
 
 # With no query, the CASE expression must collapse to zero and preserve the
 # existing newest-publication-first behavior.
-recent_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \\
-  -c "SELECT slug FROM public_opportunities
+recent_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 -c "SELECT slug FROM public_opportunities
       WHERE expires_at IS NULL OR expires_at > clock_timestamp()
       ORDER BY CASE WHEN NULL::text IS NULL THEN 0::real
                     ELSE ts_rank_cd(search_document, plainto_tsquery('simple', NULL::text))
