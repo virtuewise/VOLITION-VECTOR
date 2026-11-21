@@ -209,6 +209,18 @@ VALUES
   (
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     '11111111-1111-4111-8111-111111111111',
+    'tenant-one-recent-project',
+    'Project',
+    'Recent listing',
+    'A short role description',
+    'employment',
+    'published',
+    'public',
+    now() + interval '1 day'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '11111111-1111-4111-8111-111111111111',
     'tenant-one-private-draft',
     'Tenant One Private Draft',
     'Draft must not be publicly discoverable',
@@ -846,6 +858,40 @@ private_public_count="$(
 )"
 if [[ "$private_public_count" != "0" ]]; then
   echo "A private draft leaked into the public opportunity view." >&2
+  exit 1
+fi
+
+# A more relevant older listing must outrank a newer listing with only one
+# occurrence of the query term. This exercises ts_rank_cd against real
+# PostgreSQL tsvectors, not merely the SQL string emitted by the repository.
+relevant_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \\
+  -c "SELECT slug FROM public_opportunities
+      WHERE search_document @@ plainto_tsquery('simple', 'project')
+        AND (expires_at IS NULL OR expires_at > clock_timestamp())
+      ORDER BY CASE WHEN 'project'::text IS NULL THEN 0::real
+                    ELSE ts_rank_cd(search_document, plainto_tsquery('simple', 'project'))
+               END DESC,
+               published_at DESC,
+               id
+      LIMIT 1;")"
+if [[ "$relevant_first" != "tenant-two-public" ]]; then
+  echo "Lexical relevance did not outrank publication recency: got $relevant_first." >&2
+  exit 1
+fi
+
+# With no query, the CASE expression must collapse to zero and preserve the
+# existing newest-publication-first behavior.
+recent_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \\
+  -c "SELECT slug FROM public_opportunities
+      WHERE expires_at IS NULL OR expires_at > clock_timestamp()
+      ORDER BY CASE WHEN NULL::text IS NULL THEN 0::real
+                    ELSE ts_rank_cd(search_document, plainto_tsquery('simple', NULL::text))
+               END DESC,
+               published_at DESC,
+               id
+      LIMIT 1;")"
+if [[ "$recent_first" != "tenant-one-recent-project" ]]; then
+  echo "No-query discovery did not preserve publication recency: got $recent_first." >&2
   exit 1
 fi
 
