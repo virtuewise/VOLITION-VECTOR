@@ -58,9 +58,9 @@ snapshots:
       "  eslint@10.14.0:",
       "  another-package@1.0.0:\n    dependencies:\n      minimatch: 10.2.6\n  eslint@10.14.0:",
     );
-    expect(() =>
-      assertScopedMinimatchException(lockfile),
-    ).toThrow(/only as the single @expo\/fingerprint/i);
+    expect(() => assertScopedMinimatchException(lockfile)).toThrow(
+      /only as the single @expo\/fingerprint/i,
+    );
   });
 
   it(
