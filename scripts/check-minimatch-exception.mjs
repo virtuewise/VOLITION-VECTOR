@@ -10,7 +10,9 @@ function readSectionEntries(lockfile, sectionName) {
   const lines = lockfile.split("\n");
   const sectionIndex = lines.lastIndexOf(sectionName + ":");
   if (sectionIndex === -1) {
-    throw new Error("pnpm-lock.yaml is missing the " + sectionName + " section.");
+    throw new Error(
+      "pnpm-lock.yaml is missing the " + sectionName + " section.",
+    );
   }
 
   const entries = [];
@@ -66,7 +68,8 @@ export function assertScopedMinimatchException(lockfile) {
   );
   if (globPackages.length > 0) {
     throw new Error(
-      "The temporary Expo minimatch exception must not introduce a glob package; found: " +
+      "The temporary Expo minimatch exception must not introduce a glob " +
+        "package; found: " +
         globPackages.map((entry) => entry.key).join(", "),
     );
   }
