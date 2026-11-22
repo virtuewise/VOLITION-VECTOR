@@ -51,6 +51,8 @@ jobs:
           pnpm why --recursive --prod minimatch
           pnpm why --recursive --prod glob
           pnpm why --recursive --prod picomatch
+      - name: Verify the documented Expo minimatch exception is the only affected path
+        run: node scripts/check-minimatch-exception.mjs
       - name: Fail on moderate or higher dependency advisories
         run: pnpm audit --audit-level=moderate
 
