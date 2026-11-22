@@ -55,7 +55,7 @@ snapshots:
     );
     expect(() =>
       assertScopedMinimatchException(lockfile),
-    ).toThrow(/only as the single @expo\\/fingerprint/i);
+    ).toThrow(/only as the single @expo\/fingerprint/i);
   });
 
   it(
@@ -71,7 +71,7 @@ snapshots:
   it("rejects reintroduction of the affected glob package", () => {
     const lockfile = safeLockfile.replace(
       "  minimatch@10.2.6:",
-      "  glob@13.0.6:\\n    resolution: {}\\n  minimatch@10.2.6:",
+      "  glob@13.0.6:\n    resolution: {}\\n  minimatch@10.2.6:",
     );
     expect(() =>
       assertScopedMinimatchException(lockfile),
