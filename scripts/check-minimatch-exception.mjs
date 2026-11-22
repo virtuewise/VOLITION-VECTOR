@@ -8,7 +8,7 @@ function unquote(value) {
 
 function readSectionEntries(lockfile, sectionName) {
   const lines = lockfile.split("\n");
-  const sectionIndex = lines.findIndex((line) => line === sectionName + ":");
+  const sectionIndex = lines.lastIndexOf(sectionName + ":");
   if (sectionIndex === -1) {
     throw new Error("pnpm-lock.yaml is missing the " + sectionName + " section.");
   }
