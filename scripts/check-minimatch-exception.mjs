@@ -55,7 +55,7 @@ function snapshotDependency(entry, packageName) {
 }
 
 /**
- * pnpm's audit.ignore is advisory-wide, not dependency-path scoped.
+ * pnpm's auditConfig.ignoreGhsas entry is advisory-wide, not dependency-path scoped.
  * Keep the GHSA-g3hv-75wg-m249 exception safe by asserting the exact lockfile
  * consumer and version that currently require it.
  */
