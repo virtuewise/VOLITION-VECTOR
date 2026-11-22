@@ -13,9 +13,10 @@ overrides:
   "@expo/fingerprint>minimatch": "10.2.6"
 
 # One moderate finding remains on Expo's build-time fingerprint dependency.
-# Expo retains minimatch 10.x for compatibility and states it is not shipped
-# in production app bundles. The package graph still includes it; see the
-# advisory record. Remove this ignore when Expo provides a compatible fix.
+# pnpm's GHSA ignore is global by advisory ID, not path-scoped. The lockfile
+# guard in scripts/check-minimatch-exception.mjs asserts that the only affected
+# copy is @expo/fingerprint>minimatch@10.2.6. Remove the ignore and guard when
+# Expo provides a compatible patched dependency.
 audit:
   ignore:
     - GHSA-g3hv-75wg-m249
