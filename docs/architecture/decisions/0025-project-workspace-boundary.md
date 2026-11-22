@@ -1,6 +1,7 @@
-# ADR 0017: Project workspace and milestone boundaries
+# ADR 0025: Project workspace and milestone boundaries
 
 - Status: Proposed
+- Renumbered: 2026-11-22 (the original ADR 0017 number was shared with the Trust evidence intake decision; decision content is unchanged).
 - Date: 2026-11-06
 - Decision owners: Project and platform engineering
 
