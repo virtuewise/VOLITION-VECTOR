@@ -78,9 +78,9 @@ snapshots:
       "  minimatch@10.2.6:",
       "  glob@13.0.6:\n    resolution: {}\n  minimatch@10.2.6:",
     );
-    expect(() =>
-      assertScopedMinimatchException(lockfile),
-    ).toThrow(/must not introduce a glob package/i);
+    expect(() => assertScopedMinimatchException(lockfile)).toThrow(
+      /must not introduce a glob package/i,
+    );
   });
 
   it("fails closed when the lockfile has no snapshots section", () => {
