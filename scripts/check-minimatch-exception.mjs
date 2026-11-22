@@ -18,9 +18,9 @@ function readSectionEntries(lockfile, sectionName) {
 
   for (let index = sectionIndex + 1; index < lines.length; index += 1) {
     const line = lines[index];
-    if (line.length > 0 && !/^\\s/.test(line)) break;
+    if (line.length > 0 && !/^\s/.test(line)) break;
 
-    const entryHeader = /^  (\\S.*):$/.exec(line);
+    const entryHeader = /^  (\S.*):$/.exec(line);
     if (entryHeader) {
       if (current) entries.push(current);
       current = { key: unquote(entryHeader[1]), lines: [] };
