@@ -25,3 +25,24 @@ If the owner later elects to manage CodeQL through version-controlled advanced c
 ## Scope and limitations
 
 CodeQL static analysis does not replace dependency vulnerability monitoring, secret scanning, container/IaC scanning, penetration testing, threat modeling or human review. It does not establish compliance or production readiness. Security findings and alert availability depend on repository settings and GitHub feature entitlement; verify those in the repository UI.
+
+## Temporary Expo minimatch compatibility exception
+
+The dependency-remediation PR retains `minimatch@10.2.6` only through
+`@expo/fingerprint@0.21.10` because the current Expo compatibility boundary
+does not accept the patched minimatch 11 major. GHSA-g3hv-75wg-m249 remains a
+moderate advisory for that copy; this is not a vulnerability-resolution claim
+or formal risk acceptance.
+
+Important: `pnpm-workspace.yaml`'s `auditConfig.ignoreGhsas` entry is global
+by GHSA identifier, not path-scoped. The security workflow therefore runs
+`scripts/check-minimatch-exception.mjs` after frozen installation. That guard
+fails if the lockfile adds another affected minimatch consumer, an affected
+11.0.3–11.0.7 release, or any `glob` package. The only permitted affected
+path is the current Expo fingerprint build-time dependency.
+
+Disposition: temporary compatibility exception pending human security review.
+A maintainer must assign the risk owner and review date before merge. Remove
+the ignore and guard when Expo publishes a compatible patched dependency or
+when the mobile toolchain is upgraded. Production-bundle exclusion has not
+been independently verified by this repository.

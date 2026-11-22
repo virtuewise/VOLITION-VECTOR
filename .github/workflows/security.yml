@@ -25,6 +25,7 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
         with:
           fail-on-severity: moderate
+          allow-ghsas: GHSA-g3hv-75wg-m249
 
   dependency-audit:
     name: Audit resolved pnpm dependency tree
@@ -42,6 +43,16 @@ jobs:
         run: npm install --global --allow-scripts=pnpm pnpm@12.18.0
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
+      - name: Report reviewed dependency paths
+        run: |
+          pnpm why --recursive minimatch
+          pnpm why --recursive glob
+          pnpm why --recursive picomatch
+          pnpm why --recursive --prod minimatch
+          pnpm why --recursive --prod glob
+          pnpm why --recursive --prod picomatch
+      - name: Verify the documented Expo minimatch exception is the only affected path
+        run: node scripts/check-minimatch-exception.mjs
       - name: Fail on moderate or higher dependency advisories
         run: pnpm audit --audit-level=moderate
 
