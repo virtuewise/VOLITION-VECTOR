@@ -34,8 +34,8 @@ does not accept the patched minimatch 11 major. GHSA-g3hv-75wg-m249 remains a
 moderate advisory for that copy; this is not a vulnerability-resolution claim
 or formal risk acceptance.
 
-Important: pnpm's `audit.ignore` entry is global by GHSA identifier, not
-path-scoped. The security workflow therefore runs
+Important: `pnpm-workspace.yaml`'s `auditConfig.ignoreGhsas` entry is global
+by GHSA identifier, not path-scoped. The security workflow therefore runs
 `scripts/check-minimatch-exception.mjs` after frozen installation. That guard
 fails if the lockfile adds another affected minimatch consumer, an affected
 11.0.3–11.0.7 release, or any `glob` package. The only permitted affected
