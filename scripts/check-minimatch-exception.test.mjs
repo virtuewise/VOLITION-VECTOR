@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { assertScopedMinimatchException } from "./check-minimatch-exception.mjs";
+import {
+  assertScopedMinimatchException,
+} from "./check-minimatch-exception.mjs";
 
 const safeLockfile = `lockfileVersion: '9.0'
 
@@ -21,11 +23,14 @@ snapshots:
 `;
 
 describe("scoped Expo minimatch exception guard", () => {
-  it("accepts the single documented Expo fingerprint compatibility path", () => {
+  it(
+    "accepts the single documented Expo fingerprint compatibility path",
+    () => {
     expect(assertScopedMinimatchException(safeLockfile)).toMatchObject({
       allowedPath:
         "@expo/fingerprint@0.21.10(supports-color@8.1.1) -> minimatch@10.2.6",
-    });
+    },
+  );
   });
 
   it(
