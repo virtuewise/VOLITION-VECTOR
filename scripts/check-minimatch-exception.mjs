@@ -103,9 +103,7 @@ export function assertScopedMinimatchException(lockfile) {
 
   if (
     vulnerableConsumers.length !== 1 ||
-    !vulnerableConsumers[0].key.startsWith(
-      "@expo/fingerprint@0.21.10(",
-    )
+    !vulnerableConsumers[0].key.startsWith("@expo/fingerprint@0.21.10(")
   ) {
     throw new Error(
       "minimatch@10.2.6 is allowed only as the single " +
