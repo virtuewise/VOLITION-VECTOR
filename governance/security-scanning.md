@@ -26,7 +26,6 @@ If the owner later elects to manage CodeQL through version-controlled advanced c
 
 CodeQL static analysis does not replace dependency vulnerability monitoring, secret scanning, container/IaC scanning, penetration testing, threat modeling or human review. It does not establish compliance or production readiness. Security findings and alert availability depend on repository settings and GitHub feature entitlement; verify those in the repository UI.
 
-
 ## Temporary Expo minimatch compatibility exception
 
 The dependency-remediation PR retains `minimatch@10.2.6` only through
