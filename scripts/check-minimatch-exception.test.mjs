@@ -26,12 +26,12 @@ describe("scoped Expo minimatch exception guard", () => {
   it(
     "accepts the single documented Expo fingerprint compatibility path",
     () => {
-    expect(assertScopedMinimatchException(safeLockfile)).toMatchObject({
-      allowedPath:
-        "@expo/fingerprint@0.21.10(supports-color@8.1.1) -> minimatch@10.2.6",
+      expect(assertScopedMinimatchException(safeLockfile)).toMatchObject({
+        allowedPath:
+          "@expo/fingerprint@0.21.10(supports-color@8.1.1) -> minimatch@10.2.6",
+      });
     },
   );
-  });
 
   it(
     "uses the final lockfile document when pnpm emits a bootstrap document first",
@@ -60,7 +60,7 @@ snapshots:
     );
     expect(() =>
       assertScopedMinimatchException(lockfile),
-    ).toThrow(/only as the single @expo\/fingerprint/i);
+    ).toThrow(/only as the single @expo\\/fingerprint/i);
   });
 
   it(
@@ -76,7 +76,7 @@ snapshots:
   it("rejects reintroduction of the affected glob package", () => {
     const lockfile = safeLockfile.replace(
       "  minimatch@10.2.6:",
-      "  glob@13.0.6:\n    resolution: {}\n  minimatch@10.2.6:",
+      "  glob@13.0.6:\\n    resolution: {}\\n  minimatch@10.2.6:",
     );
     expect(() =>
       assertScopedMinimatchException(lockfile),
