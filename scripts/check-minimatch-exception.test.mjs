@@ -28,6 +28,23 @@ describe("scoped Expo minimatch exception guard", () => {
     });
   });
 
+  it("uses the final lockfile document when pnpm emits a bootstrap document first", () => {
+    const lockfile = `lockfileVersion: '9.0'
+
+packages:
+  minimatch@11.0.4:
+    resolution: {}
+snapshots:
+  bootstrap@1.0.0: {}
+
+---
+
+` + safeLockfile;
+    expect(assertScopedMinimatchException(lockfile).allowedPath).toContain(
+      "@expo/fingerprint@0.21.10",
+    );
+  });
+
   it("rejects another consumer of the affected minimatch 10.x line", () => {
     const lockfile = safeLockfile.replace(
       "  eslint@10.14.0:",
