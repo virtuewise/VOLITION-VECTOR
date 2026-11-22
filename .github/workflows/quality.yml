@@ -95,8 +95,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Security audit
         run: pnpm audit --audit-level=moderate
-      - name: Show Prettier output for dependency exception tests
-        run: pnpm exec prettier scripts/check-minimatch-exception.test.mjs
       - name: Formatting
         run: pnpm format:check
       - name: Lint
