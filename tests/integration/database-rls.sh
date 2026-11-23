@@ -878,8 +878,26 @@ if [[ "$relevant_first" != "tenant-two-public" ]]; then
   exit 1
 fi
 
-# With no query, the CASE expression must collapse to zero and preserve the
-# existing newest-publication-first behavior.
+# Callers can retain the same query filter but explicitly choose recency
+# instead of lexical relevance. This is a user-controlled ordering preference,
+# not a change to visibility or suitability.
+recent_first_for_query="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 -c "SELECT slug FROM public_opportunities
+      WHERE search_document @@ plainto_tsquery('simple', 'project')
+        AND (expires_at IS NULL OR expires_at > clock_timestamp())
+      ORDER BY CASE WHEN 'recent'::text = 'relevance'
+                    THEN ts_rank_cd(search_document, plainto_tsquery('simple', 'project'))
+                    ELSE 0::real
+               END DESC,
+               published_at DESC,
+               id
+      LIMIT 1;")"
+if [[ "$recent_first_for_query" != "tenant-one-recent-project" ]]; then
+  echo "Explicit recent sorting did not prioritize the newest matching listing: got $recent_first_for_query." >&2
+  exit 1
+fi
+
+# With no query, the default is also recent ordering and the rank expression
+# collapses to zero, preserving newest-publication-first behavior.
 recent_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 -c "SELECT slug FROM public_opportunities
       WHERE expires_at IS NULL OR expires_at > clock_timestamp()
       ORDER BY CASE WHEN NULL::text IS NULL THEN 0::real
