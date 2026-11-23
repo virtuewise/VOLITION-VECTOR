@@ -8,6 +8,7 @@ import {
 
 export type OpportunityType =
   "employment" | "project" | "tender" | "partnership" | "volunteering";
+export type OpportunitySort = "relevance" | "recent";
 export type OpportunityStatus =
   "draft" | "published" | "paused" | "closed" | "archived";
 export type OpportunityVisibility = "public" | "organization";
@@ -140,6 +141,7 @@ function mapPublicOpportunity(
 export interface PublicOpportunitySearchInput {
   readonly query?: string;
   readonly opportunityType?: OpportunityType;
+  readonly sort?: OpportunitySort;
   readonly limit?: number;
   readonly offset?: number;
 }
@@ -703,6 +705,7 @@ export class PostgresOpportunityRepository {
     const limit = input.limit ?? 20;
     const offset = input.offset ?? 0;
     const query = input.query?.trim() || null;
+    const sort = input.sort ?? (query === null ? "recent" : "relevance");
     if (
       !Number.isInteger(limit) ||
       limit < 1 ||
@@ -711,6 +714,8 @@ export class PostgresOpportunityRepository {
       offset < 0 ||
       offset > 10_000 ||
       (query !== null && query.length > 200) ||
+      (sort !== "relevance" && sort !== "recent") ||
+      (sort === "relevance" && query === null) ||
       (input.opportunityType !== undefined &&
         !isOpportunityType(input.opportunityType))
     ) {
@@ -741,11 +746,11 @@ export class PostgresOpportunityRepository {
          WHERE ($1::text IS NULL OR opportunity_type = $1)
            AND ($2::text IS NULL OR search_document @@ plainto_tsquery('simple', $2))
            AND (expires_at IS NULL OR expires_at > clock_timestamp())
-         ORDER BY CASE WHEN $2::text IS NULL THEN 0::real ELSE ts_rank_cd(search_document, plainto_tsquery('simple', $2)) END DESC,
+         ORDER BY CASE WHEN $5::text = 'relevance' THEN ts_rank_cd(search_document, plainto_tsquery('simple', $2)) ELSE 0::real END DESC,
            published_at DESC,
            id
          LIMIT $3 OFFSET $4`,
-        [input.opportunityType ?? null, query, limit, offset],
+        [input.opportunityType ?? null, query, limit, offset, sort],
       );
       return (result.rows as readonly PublicOpportunityRow[]).map(
         mapPublicOpportunity,
