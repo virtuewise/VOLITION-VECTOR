@@ -209,6 +209,18 @@ VALUES
   (
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     '11111111-1111-4111-8111-111111111111',
+    'tenant-one-recent-project',
+    'Project',
+    'Recent listing',
+    'A short role description',
+    'employment',
+    'published',
+    'public',
+    now() + interval '1 day'
+  ),
+  (
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    '11111111-1111-4111-8111-111111111111',
     'tenant-one-private-draft',
     'Tenant One Private Draft',
     'Draft must not be publicly discoverable',
@@ -645,8 +657,8 @@ for table in organizations organization_memberships organization_invitations org
   assert_count "$table" "$TENANT_TWO" 1
 done
 # Public rows are visible across tenants; drafts remain tenant-private.
-assert_count opportunities "$TENANT_ONE" 3
-assert_count opportunities "$TENANT_TWO" 2
+assert_count opportunities "$TENANT_ONE" 4
+assert_count opportunities "$TENANT_TWO" 3
 assert_count service_listings "$TENANT_ONE" 1
 assert_count service_listings "$TENANT_TWO" 2
 assert_count conversations "$TENANT_ONE" 1
@@ -708,8 +720,8 @@ public_opportunity_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT count(*) FROM public_opportunities;"
 )"
-if [[ "$public_opportunity_count" != "2" ]]; then
-  echo "Expected two published public opportunities without tenant context; got $public_opportunity_count" >&2
+if [[ "$public_opportunity_count" != "3" ]]; then
+  echo "Expected three published public opportunities without tenant context; got $public_opportunity_count" >&2
   exit 1
 fi
 public_service_count="$(
@@ -846,6 +858,56 @@ private_public_count="$(
 )"
 if [[ "$private_public_count" != "0" ]]; then
   echo "A private draft leaked into the public opportunity view." >&2
+  exit 1
+fi
+
+# A more relevant older listing must outrank a newer listing with only one
+# occurrence of the query term. This exercises ts_rank_cd against real
+# PostgreSQL tsvectors, not merely the SQL string emitted by the repository.
+relevant_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 -c "SELECT slug FROM public_opportunities
+      WHERE search_document @@ plainto_tsquery('simple', 'project')
+        AND (expires_at IS NULL OR expires_at > clock_timestamp())
+      ORDER BY CASE WHEN 'project'::text IS NULL THEN 0::real
+                    ELSE ts_rank_cd(search_document, plainto_tsquery('simple', 'project'))
+               END DESC,
+               published_at DESC,
+               id
+      LIMIT 1;")"
+if [[ "$relevant_first" != "tenant-two-public" ]]; then
+  echo "Lexical relevance did not outrank publication recency: got $relevant_first." >&2
+  exit 1
+fi
+
+# Callers can retain the same query filter but explicitly choose recency
+# instead of lexical relevance. This is a user-controlled ordering preference,
+# not a change to visibility or suitability.
+recent_first_for_query="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 -c "SELECT slug FROM public_opportunities
+      WHERE search_document @@ plainto_tsquery('simple', 'project')
+        AND (expires_at IS NULL OR expires_at > clock_timestamp())
+      ORDER BY CASE WHEN 'recent'::text = 'relevance'
+                    THEN ts_rank_cd(search_document, plainto_tsquery('simple', 'project'))
+                    ELSE 0::real
+               END DESC,
+               published_at DESC,
+               id
+      LIMIT 1;")"
+if [[ "$recent_first_for_query" != "tenant-one-recent-project" ]]; then
+  echo "Explicit recent sorting did not prioritize the newest matching listing: got $recent_first_for_query." >&2
+  exit 1
+fi
+
+# With no query, the default is also recent ordering and the rank expression
+# collapses to zero, preserving newest-publication-first behavior.
+recent_first="$(psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 -c "SELECT slug FROM public_opportunities
+      WHERE expires_at IS NULL OR expires_at > clock_timestamp()
+      ORDER BY CASE WHEN NULL::text IS NULL THEN 0::real
+                    ELSE ts_rank_cd(search_document, plainto_tsquery('simple', NULL::text))
+               END DESC,
+               published_at DESC,
+               id
+      LIMIT 1;")"
+if [[ "$recent_first" != "tenant-one-recent-project" ]]; then
+  echo "No-query discovery did not preserve publication recency: got $recent_first." >&2
   exit 1
 fi
 

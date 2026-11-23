@@ -5,6 +5,8 @@ export type OpportunityId = string & {
 export type OpportunityType =
   "employment" | "project" | "tender" | "partnership" | "volunteering";
 
+export type OpportunitySort = "relevance" | "recent";
+
 export type OpportunityStatus =
   "draft" | "published" | "paused" | "closed" | "archived";
 
@@ -29,6 +31,7 @@ export interface PublicOpportunity {
 export interface PublicOpportunitySearch {
   readonly query?: string;
   readonly opportunityType?: OpportunityType;
+  readonly sort?: OpportunitySort;
   readonly limit?: number;
   readonly offset?: number;
 }
