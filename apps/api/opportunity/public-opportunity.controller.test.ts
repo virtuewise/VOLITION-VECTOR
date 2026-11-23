@@ -26,12 +26,14 @@ describe("PublicOpportunityController", () => {
         type: "employment",
         limit: "10",
         offset: "20",
+        sort: "relevance",
       }),
     ).resolves.toEqual([]);
 
     expect(repository.listPublic).toHaveBeenCalledWith({
       query: "software engineer",
       opportunityType: "employment",
+      sort: "relevance",
       limit: 10,
       offset: 20,
     });
@@ -55,6 +57,31 @@ describe("PublicOpportunityController", () => {
     await expect(controller.list({ limit: "10items" })).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    await expect(controller.list({ sort: "popular" })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it("forwards recent sorting while retaining the search filter", async () => {
+    const repository: OpportunityRepositoryPort = {
+      createDraft: vi.fn(),
+      updateDraft: vi.fn(),
+      publish: vi.fn(),
+      pause: vi.fn(),
+      close: vi.fn(),
+      archive: vi.fn(),
+      listPublic: vi.fn().mockResolvedValue([]),
+    };
+    const controller = new PublicOpportunityController(repository);
+
+    await controller.list({ q: "climate", sort: "recent" });
+
+    expect(repository.listPublic).toHaveBeenCalledWith({
+      query: "climate",
+      sort: "recent",
+      limit: 20,
+      offset: 0,
+    });
   });
 
   it("maps repository search validation to HTTP 400", async () => {
