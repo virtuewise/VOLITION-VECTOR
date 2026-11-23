@@ -41,6 +41,7 @@ export type {
   OpportunityAuthorizationInput,
   OpportunityRecord,
   OpportunityStatus,
+  OpportunitySort,
   OpportunityType,
   OpportunityVisibility,
   PublicOpportunityRecord,
