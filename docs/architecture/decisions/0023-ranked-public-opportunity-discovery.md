@@ -12,9 +12,10 @@ The Vector Intelligence engine is planned to provide search, matching and explan
 
 ## Decision
 
-- When a non-empty text query is supplied, order public opportunity results by PostgreSQL `ts_rank_cd` against the existing generated `search_document` and the same `plainto_tsquery('simple', ...)` used by the filter.
-- Use publication time descending and opportunity ID as stable tie-breakers.
-- When no query is supplied, the rank expression is zero for every row, preserving the existing publication-time ordering and stable ID tie-break.
+- When a non-empty text query is supplied, default to `sort=relevance` and order public opportunity results by PostgreSQL `ts_rank_cd` against the existing generated `search_document` and the same `plainto_tsquery('simple', ...)` used by the filter.
+- Accept an explicit `sort=recent` option that keeps the same query filter but orders by publication time descending, followed by opportunity ID. This lets the caller prefer freshness without changing which public records are eligible.
+- When no query is supplied, default to `sort=recent`; an explicit `sort=relevance` without a non-empty query is rejected as invalid.
+- Use publication time descending and opportunity ID as stable tie-breakers for equal relevance.
 - Keep all query input parameterized and retain the existing bounded query length, pagination, expiry filter and `public_opportunities` invoker-security view.
 - Do not expose raw ranking scores as an assessment of a person, organization or opportunity quality.
 
@@ -27,8 +28,8 @@ The Vector Intelligence engine is planned to provide search, matching and explan
 
 ## Deferred work
 
-Semantic/vector retrieval, field-level match explanations, user feedback controls, offline relevance evaluation, abuse controls for query traffic and any personalized matching require separate reviewed designs, privacy analysis, tests and explicit governance. They are not implemented by this ADR.
+Semantic/vector retrieval, field-level match explanations, user feedback controls, offline relevance evaluation, abuse controls for query traffic and any personalized matching require separate reviewed designs, privacy analysis, tests and explicit governance. They are not implemented by this ADR. The `sort` parameter is only an ordering preference; it is not a match explanation or a personalized recommendation.
 
 ## Validation
 
-Unit tests assert that the public repository uses the same parameterized full-text query for filtering and ranking, with publication time and ID as deterministic tie-breakers. The PostgreSQL integration fixture verifies that an older listing with stronger lexical relevance outranks a newer listing with one query-term occurrence, while query-free discovery retains publication-time ordering. Existing PostgreSQL RLS and public-view integration coverage remains the security boundary; this change adds no schema or policy migration.
+Unit tests assert that the public repository uses the same parameterized full-text query for filtering and ranking, with publication time and ID as deterministic tie-breakers, and that explicit recent sorting retains the filter. The PostgreSQL integration fixture verifies both relevance-first and recent-first ordering, while query-free discovery retains publication-time ordering. Existing PostgreSQL RLS and public-view integration coverage remains the security boundary; this change adds no schema or policy migration.
