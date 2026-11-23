@@ -220,15 +220,50 @@ describe("PostgresOpportunityRepository", () => {
     expect(query.mock.calls[0]?.[0]).toContain("FROM public_opportunities");
     expect(query.mock.calls[0]?.[0]).toContain("search_document @@");
     expect(query.mock.calls[0]?.[0]).toContain(
-      "ORDER BY CASE WHEN $2::text IS NULL THEN 0::real ELSE ts_rank_cd(search_document, plainto_tsquery('simple', $2)) END DESC,\n           published_at DESC,\n           id",
+      "ORDER BY CASE WHEN $5::text = 'relevance' THEN ts_rank_cd(search_document, plainto_tsquery('simple', $2)) ELSE 0::real END DESC,\n           published_at DESC,\n           id",
     );
     expect(query.mock.calls[0]?.[1]).toEqual([
       "employment",
       "senior engineer",
       10,
       0,
+      "relevance",
     ]);
     expect(release).toHaveBeenCalledOnce();
+  });
+
+  it("allows recent ordering for a filtered query", async () => {
+    const query = vi.fn().mockResolvedValue({ rows: [] });
+    const connection: TenantConnection = { query, release: vi.fn() };
+    const pool: TenantConnectionPool = {
+      connect: vi.fn(async () => connection),
+    };
+    const repository = new PostgresOpportunityRepository(pool, () => true);
+
+    await expect(
+      repository.listPublic({ query: "climate", sort: "recent" }),
+    ).resolves.toEqual([]);
+
+    expect(query.mock.calls[0]?.[0]).toContain(
+      "CASE WHEN $5::text = 'relevance'",
+    );
+    expect(query.mock.calls[0]?.[1]).toEqual([
+      null,
+      "climate",
+      20,
+      0,
+      "recent",
+    ]);
+  });
+
+  it("rejects relevance ordering without a search query before connecting", async () => {
+    const { pool, connect } = createTransactionalPool([]);
+    const repository = new PostgresOpportunityRepository(pool, () => true);
+
+    await expect(
+      repository.listPublic({ sort: "relevance" }),
+    ).rejects.toBeInstanceOf(OpportunityInputError);
+    expect(connect).not.toHaveBeenCalled();
   });
 
   it("rejects invalid pagination before acquiring a connection", async () => {
