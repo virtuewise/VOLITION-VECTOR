@@ -232,6 +232,19 @@ describe("PostgresOpportunityRepository", () => {
     expect(release).toHaveBeenCalledOnce();
   });
 
+  it("defaults to recent ordering when no query is supplied", async () => {
+    const query = vi.fn().mockResolvedValue({ rows: [] });
+    const connection: TenantConnection = { query, release: vi.fn() };
+    const pool: TenantConnectionPool = {
+      connect: vi.fn(async () => connection),
+    };
+    const repository = new PostgresOpportunityRepository(pool, () => true);
+
+    await expect(repository.listPublic()).resolves.toEqual([]);
+
+    expect(query.mock.calls[0]?.[1]).toEqual([null, null, 20, 0, "recent"]);
+  });
+
   it("allows recent ordering for a filtered query", async () => {
     const query = vi.fn().mockResolvedValue({ rows: [] });
     const connection: TenantConnection = { query, release: vi.fn() };
