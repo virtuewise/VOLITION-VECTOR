@@ -47,8 +47,10 @@ A future explanation must be generated from the same versioned factor evaluation
 - The source and last-updated time for that evidence.
 - A direction such as supports, needs_attention or not_evaluated.
 - A short factual explanation that does not overstate certainty.
+- The evaluator/factor-contract version and the user-visible effect (for example, why the item was surfaced or which ordering preference was applied).
+- A confidence estimate only when its meaning and calibration have been validated for the stated use; otherwise omit confidence rather than displaying raw model confidence or an uncalibrated probability.
 
-not_evaluated is mandatory when required evidence is absent, stale, inaccessible or not consented for this purpose. Missing information must not be rendered as a negative match. The interface must distinguish a confirmed mismatch from an unknown or unverified factor.
+not_evaluated is mandatory when required evidence is absent, stale, inaccessible or not consented for this purpose. Missing information must not be rendered as a negative match. The interface must distinguish a confirmed mismatch from an unknown or unverified factor. Audit metadata must not duplicate restricted profile evidence or retain raw sensitive inputs merely to explain a result.
 
 Do not expose raw model logits, vector distances, PostgreSQL rank values or an unexplained aggregate score as a person's suitability. If a summary score is eventually approved, its meaning, calibration, limitations and contribution of each factor must be disclosed and independently evaluated before release.
 
