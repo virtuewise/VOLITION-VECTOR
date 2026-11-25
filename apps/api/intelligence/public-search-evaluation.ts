@@ -23,8 +23,7 @@ function assertIdentifier(value: string, label: string): void {
 
 function discountedCumulativeGain(grades: readonly number[]): number {
   return grades.reduce(
-    (total, grade, index) =>
-      total + (2 ** grade - 1) / Math.log2(index + 2),
+    (total, grade, index) => total + (2 ** grade - 1) / Math.log2(index + 2),
     0,
   );
 }
