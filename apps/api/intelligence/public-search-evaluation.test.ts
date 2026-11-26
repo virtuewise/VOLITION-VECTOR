@@ -109,9 +109,7 @@ describe("evaluatePublicSearchRanking", () => {
 });
 
 describe("evaluatePublicSearchBenchmark", () => {
-  it(
-    "reports macro metrics and keeps no-relevance cases visible in coverage counts",
-    () => {
+  it("aggregates macro metrics and reports evaluable-query counts", () => {
       const benchmark = evaluatePublicSearchBenchmark(
         [
           {
@@ -145,9 +143,8 @@ describe("evaluatePublicSearchBenchmark", () => {
         ndcgEvaluableQueryCount: 1,
       });
       expect(benchmark.perQuery).toHaveLength(2);
-      expect(benchmark.perQuery[1]?.metrics.recallAtK).toBeNull();
-    },
-  );
+    expect(benchmark.perQuery[1]?.metrics.recallAtK).toBeNull();
+  });
 
   it("returns null macro metrics for an empty benchmark", () => {
     expect(evaluatePublicSearchBenchmark([])).toEqual({
