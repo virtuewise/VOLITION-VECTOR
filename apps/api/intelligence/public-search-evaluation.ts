@@ -183,9 +183,7 @@ export function evaluatePublicSearchBenchmark(
   );
   const ndcgValues = perQuery
     .filter(({ metrics }) => metrics.relevantJudgmentCount > 0)
-    .map(
-      ({ metrics }) => metrics.normalizedDiscountedCumulativeGainAtK,
-    );
+    .map(({ metrics }) => metrics.normalizedDiscountedCumulativeGainAtK);
 
   return {
     cutoff,
