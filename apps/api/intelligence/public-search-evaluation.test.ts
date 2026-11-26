@@ -173,9 +173,9 @@ describe("evaluatePublicSearchBenchmark", () => {
       judgments: [{ opportunityId: "opportunity-a", grade: 1 as const }],
     };
 
-    expect(() =>
-      evaluatePublicSearchBenchmark([validCase, validCase]),
-    ).toThrow(/evaluation query IDs must be unique/i);
+    expect(() => evaluatePublicSearchBenchmark([validCase, validCase])).toThrow(
+      /evaluation query IDs must be unique/i,
+    );
     expect(() =>
       evaluatePublicSearchBenchmark([{ ...validCase, queryId: " " }]),
     ).toThrow(/query ID must be a non-empty string/i);
