@@ -23,6 +23,18 @@ The pure helper in `apps/api/intelligence/public-search-evaluation.ts` computes:
 
 The helper rejects duplicate result IDs, duplicate judgment IDs, blank identifiers, invalid relevance grades and invalid cutoffs. It does not fetch data, persist judgments, call providers or participate in request handling.
 
+## Macro benchmark aggregation
+
+The same module exposes `evaluatePublicSearchBenchmark` for a caller-supplied set of query cases. It returns per-query metrics and macro averages without loading or storing a dataset.
+
+- Macro precision and reciprocal rank include every supplied query case.
+- Macro recall includes only cases with at least one positively judged listing; `recallEvaluableQueryCount` reports that denominator.
+- Macro NDCG includes only cases with at least one positively judged listing; `ndcgEvaluableQueryCount` reports that denominator.
+- An empty benchmark returns `null` macro metrics rather than implying zero quality.
+- Query IDs must be non-empty and unique. The cutoff is validated even for an empty benchmark.
+
+Cases with no positive judgments remain in `perQuery`, contribute zero to precision and reciprocal rank, and are excluded only from recall and NDCG denominators. Consumers must display the evaluable counts alongside macro metrics. The aggregation is descriptive; it does not define a release threshold or claim statistical representativeness.
+
 ## Evaluation data boundary
 
 - Use synthetic fixtures or curated judgments over public opportunity identifiers and public listing attributes only.

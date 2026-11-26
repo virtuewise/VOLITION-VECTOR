@@ -15,9 +15,36 @@ export interface PublicSearchEvaluationMetrics {
   readonly retrievedRelevantCount: number;
 }
 
+export interface PublicSearchEvaluationCase {
+  readonly queryId: string;
+  readonly rankedOpportunityIds: readonly string[];
+  readonly judgments: readonly PublicSearchRelevanceJudgment[];
+}
+
+export interface PublicSearchBenchmarkMetrics {
+  readonly cutoff: number;
+  readonly queryCount: number;
+  readonly macroPrecisionAtK: number | null;
+  readonly macroRecallAtK: number | null;
+  readonly macroReciprocalRank: number | null;
+  readonly macroNormalizedDiscountedCumulativeGainAtK: number | null;
+  readonly recallEvaluableQueryCount: number;
+  readonly ndcgEvaluableQueryCount: number;
+  readonly perQuery: readonly {
+    readonly queryId: string;
+    readonly metrics: PublicSearchEvaluationMetrics;
+  }[];
+}
+
 function assertIdentifier(value: string, label: string): void {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new TypeError(label + " must be a non-empty string.");
+  }
+}
+
+function assertCutoff(cutoff: number): void {
+  if (!Number.isSafeInteger(cutoff) || cutoff < 1) {
+    throw new RangeError("cutoff must be a positive safe integer.");
   }
 }
 
@@ -26,6 +53,11 @@ function discountedCumulativeGain(grades: readonly number[]): number {
     (total, grade, index) => total + (2 ** grade - 1) / Math.log2(index + 2),
     0,
   );
+}
+
+function average(values: readonly number[]): number | null {
+  if (values.length === 0) return null;
+  return values.reduce((total, value) => total + value, 0) / values.length;
 }
 
 /**
@@ -40,9 +72,7 @@ export function evaluatePublicSearchRanking(
   judgments: readonly PublicSearchRelevanceJudgment[],
   cutoff = 10,
 ): PublicSearchEvaluationMetrics {
-  if (!Number.isSafeInteger(cutoff) || cutoff < 1) {
-    throw new RangeError("cutoff must be a positive safe integer.");
-  }
+  assertCutoff(cutoff);
 
   const rankedIds = new Set<string>();
   for (const opportunityId of rankedOpportunityIds) {
@@ -100,5 +130,76 @@ export function evaluatePublicSearchRanking(
       idealGain === 0 ? 0 : actualGain / idealGain,
     relevantJudgmentCount,
     retrievedRelevantCount,
+  };
+}
+
+/**
+ * Aggregate public-search metrics across a versioned set of query cases.
+ *
+ * Precision and reciprocal rank include every case. Recall and NDCG include
+ * only cases with at least one positive relevance judgment; their explicit
+ * evaluable-query counts prevent empty-judgment cases from being hidden.
+ */
+export function evaluatePublicSearchBenchmark(
+  cases: readonly PublicSearchEvaluationCase[],
+  cutoff = 10,
+): PublicSearchBenchmarkMetrics {
+  assertCutoff(cutoff);
+  if (!Array.isArray(cases)) {
+    throw new TypeError("Evaluation cases must be an array.");
+  }
+
+  const queryIds = new Set<string>();
+  const perQuery = cases.map((evaluationCase) => {
+    if (typeof evaluationCase !== "object" || evaluationCase === null) {
+      throw new TypeError("Evaluation cases must be objects.");
+    }
+    assertIdentifier(evaluationCase.queryId, "Query ID");
+    if (queryIds.has(evaluationCase.queryId)) {
+      throw new TypeError("Evaluation query IDs must be unique.");
+    }
+    queryIds.add(evaluationCase.queryId);
+    if (
+      !Array.isArray(evaluationCase.rankedOpportunityIds) ||
+      !Array.isArray(evaluationCase.judgments)
+    ) {
+      throw new TypeError(
+        "Each evaluation case must include ranked IDs and judgments arrays.",
+      );
+    }
+
+    return {
+      queryId: evaluationCase.queryId,
+      metrics: evaluatePublicSearchRanking(
+        evaluationCase.rankedOpportunityIds,
+        evaluationCase.judgments,
+        cutoff,
+      ),
+    };
+  });
+
+  const recallValues = perQuery.flatMap(({ metrics }) =>
+    metrics.recallAtK === null ? [] : [metrics.recallAtK],
+  );
+  const ndcgValues = perQuery
+    .filter(({ metrics }) => metrics.relevantJudgmentCount > 0)
+    .map(
+      ({ metrics }) => metrics.normalizedDiscountedCumulativeGainAtK,
+    );
+
+  return {
+    cutoff,
+    queryCount: perQuery.length,
+    macroPrecisionAtK: average(
+      perQuery.map(({ metrics }) => metrics.precisionAtK),
+    ),
+    macroRecallAtK: average(recallValues),
+    macroReciprocalRank: average(
+      perQuery.map(({ metrics }) => metrics.reciprocalRank),
+    ),
+    macroNormalizedDiscountedCumulativeGainAtK: average(ndcgValues),
+    recallEvaluableQueryCount: recallValues.length,
+    ndcgEvaluableQueryCount: ndcgValues.length,
+    perQuery,
   };
 }
