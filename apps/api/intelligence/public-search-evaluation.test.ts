@@ -110,39 +110,39 @@ describe("evaluatePublicSearchRanking", () => {
 
 describe("evaluatePublicSearchBenchmark", () => {
   it("aggregates macro metrics and reports evaluable-query counts", () => {
-      const benchmark = evaluatePublicSearchBenchmark(
-        [
-          {
-            queryId: "query-relevant",
-            rankedOpportunityIds: ["opportunity-a", "opportunity-b"],
-            judgments: [
-              { opportunityId: "opportunity-a", grade: 3 },
-              { opportunityId: "opportunity-b", grade: 1 },
-            ],
-          },
-          {
-            queryId: "query-no-positive-judgments",
-            rankedOpportunityIds: ["opportunity-c", "opportunity-d"],
-            judgments: [
-              { opportunityId: "opportunity-c", grade: 0 },
-              { opportunityId: "opportunity-d", grade: 0 },
-            ],
-          },
-        ],
-        2,
-      );
+    const benchmark = evaluatePublicSearchBenchmark(
+      [
+        {
+          queryId: "query-relevant",
+          rankedOpportunityIds: ["opportunity-a", "opportunity-b"],
+          judgments: [
+            { opportunityId: "opportunity-a", grade: 3 },
+            { opportunityId: "opportunity-b", grade: 1 },
+          ],
+        },
+        {
+          queryId: "query-no-positive-judgments",
+          rankedOpportunityIds: ["opportunity-c", "opportunity-d"],
+          judgments: [
+            { opportunityId: "opportunity-c", grade: 0 },
+            { opportunityId: "opportunity-d", grade: 0 },
+          ],
+        },
+      ],
+      2,
+    );
 
-      expect(benchmark).toMatchObject({
-        cutoff: 2,
-        queryCount: 2,
-        macroPrecisionAtK: 0.5,
-        macroRecallAtK: 1,
-        macroReciprocalRank: 0.5,
-        macroNormalizedDiscountedCumulativeGainAtK: 1,
-        recallEvaluableQueryCount: 1,
-        ndcgEvaluableQueryCount: 1,
-      });
-      expect(benchmark.perQuery).toHaveLength(2);
+    expect(benchmark).toMatchObject({
+      cutoff: 2,
+      queryCount: 2,
+      macroPrecisionAtK: 0.5,
+      macroRecallAtK: 1,
+      macroReciprocalRank: 0.5,
+      macroNormalizedDiscountedCumulativeGainAtK: 1,
+      recallEvaluableQueryCount: 1,
+      ndcgEvaluableQueryCount: 1,
+    });
+    expect(benchmark.perQuery).toHaveLength(2);
     expect(benchmark.perQuery[1]?.metrics.recallAtK).toBeNull();
   });
 
