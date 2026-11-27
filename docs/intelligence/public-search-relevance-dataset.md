@@ -9,7 +9,7 @@
 
 This contract describes a small, versioned, offline evaluation dataset for the public opportunity discovery endpoint. It is designed to be consumed by the offline metric helper proposed in ADR 0027. It is not a production API payload, a user-search history export or a participant-matching dataset.
 
-The current public endpoint accepts `q` and an optional opportunity `type` filter. The contract intentionally mirrors only those supported query inputs. It does not invent category, geography, profile, organization or demographic filters that the endpoint does not implement.
+The current public endpoint accepts `q`, optional `type`, `sort`, `limit` and `offset`. The contract records the curated `q` and optional `type`, fixes `sort` to `relevance`, maps `cutoff` to `limit`, and fixes `offset` to zero so every benchmark evaluates the first ranked page. It does not invent category, geography, profile, organization or demographic filters that the endpoint does not implement.
 
 ## Dataset fields
 
