@@ -13,20 +13,20 @@ The current public endpoint accepts `q` and an optional opportunity `type` filte
 
 ## Dataset fields
 
-| Field | Requirement | Meaning |
-|---|---|---|
-| `schemaVersion` | Required; `1.0.0` | Dataset format version |
-| `datasetId` | Required | Stable lowercase kebab-case identifier |
-| `createdAt` | Required | Canonical UTC creation timestamp |
-| `corpusSnapshotAt` | Required | Time of the public listing corpus snapshot being judged |
-| `cutoff` | Required; 1–50 | Fixed evaluation cutoff, bounded by the public search API maximum |
-| `sourcePolicy` | Required constant | `public-opportunity-projection-only` |
-| `rubricVersion` | Required constant | `public-opportunity-relevance-v1` |
-| `reviewStatus` | Required | `draft` or `reviewed` |
-| `reviewedAt` | Required when reviewed | Review completion timestamp |
-| `reviewRecordId` | Required when reviewed | Opaque UUID reference to a separately access-controlled governance record |
-| `limitations` | Required, 1–20 | Known coverage and methodology limitations |
-| `queries` | Required, 1–250 | Curated public-intent query cases |
+| Field              | Requirement            | Meaning                                                                   |
+| ------------------ | ---------------------- | ------------------------------------------------------------------------- |
+| `schemaVersion`    | Required; `1.0.0`      | Dataset format version                                                    |
+| `datasetId`        | Required               | Stable lowercase kebab-case identifier                                    |
+| `createdAt`        | Required               | Canonical UTC creation timestamp                                          |
+| `corpusSnapshotAt` | Required               | Time of the public listing corpus snapshot being judged                   |
+| `cutoff`           | Required; 1–50         | Fixed evaluation cutoff, bounded by the public search API maximum         |
+| `sourcePolicy`     | Required constant      | `public-opportunity-projection-only`                                      |
+| `rubricVersion`    | Required constant      | `public-opportunity-relevance-v1`                                         |
+| `reviewStatus`     | Required               | `draft` or `reviewed`                                                     |
+| `reviewedAt`       | Required when reviewed | Review completion timestamp                                               |
+| `reviewRecordId`   | Required when reviewed | Opaque UUID reference to a separately access-controlled governance record |
+| `limitations`      | Required, 1–20         | Known coverage and methodology limitations                                |
+| `queries`          | Required, 1–250        | Curated public-intent query cases                                         |
 
 Each query case has a stable `queryId`, a curated `q` string of at most 200 characters, an optional supported opportunity `type`, and 1–500 judgments. Each judgment contains only a public opportunity identifier and a grade from 0 to 3. A dataset is capped at 25,000 total judgments by the runtime validator.
 
@@ -34,12 +34,12 @@ The machine-readable JSON Schema is the interchange contract. The API-side valid
 
 ## Relevance rubric
 
-| Grade | Meaning |
-|---:|---|
-| 0 | Not relevant to the stated public query intent |
-| 1 | Marginal relationship; a weak or incidental fit |
-| 2 | Relevant; the public listing substantially addresses the query intent |
-| 3 | Highly relevant; the public listing directly addresses the query intent |
+| Grade | Meaning                                                                 |
+| ----: | ----------------------------------------------------------------------- |
+|     0 | Not relevant to the stated public query intent                          |
+|     1 | Marginal relationship; a weak or incidental fit                         |
+|     2 | Relevant; the public listing substantially addresses the query intent   |
+|     3 | Highly relevant; the public listing directly addresses the query intent |
 
 Judgments are assessments of the relationship between a public query and a public listing at the recorded corpus snapshot. They are not judgments about an applicant, organization, provider or person's worth, eligibility, trustworthiness or likely success.
 
