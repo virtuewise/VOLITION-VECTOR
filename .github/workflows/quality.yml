@@ -100,6 +100,9 @@ jobs:
           files=(
             apps/api/intelligence/public-search-dataset.ts
             apps/api/intelligence/public-search-dataset.test.ts
+            docs/architecture/decisions/0028-public-search-relevance-dataset.md
+            docs/intelligence/public-search-relevance-dataset.md
+            docs/intelligence/public-search-relevance-dataset.schema.json
           )
           pnpm exec prettier --write "${files[@]}"
           for file in "${files[@]}"; do
