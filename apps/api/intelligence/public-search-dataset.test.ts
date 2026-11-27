@@ -183,6 +183,13 @@ describe("validatePublicSearchRelevanceDataset", () => {
     const input = validDataset();
 
     expect(() =>
+      validatePublicSearchRelevanceDataset({
+        ...input,
+        corpusSnapshotId: "not-a-uuid",
+      }),
+    ).toThrow(/opaque UUID/i);
+
+    expect(() =>
       validatePublicSearchRelevanceDataset({ ...input, cutoff: 51 }),
     ).toThrow(/cutoff must be an integer from 1 to 50/i);
 
@@ -245,13 +252,19 @@ describe("validatePublicSearchRelevanceDataset", () => {
       additionalProperties: boolean;
       properties: Record<
         string,
-        { const?: string | number; enum?: readonly unknown[]; format?: string }
+        {
+          const?: string | number;
+          enum?: readonly unknown[];
+          format?: string;
+          $ref?: string;
+        }
       >;
       $defs: Record<
         string,
         {
           additionalProperties?: boolean;
           properties?: Record<string, { enum?: readonly unknown[] }>;
+          format?: string;
         }
       >;
     };
@@ -261,7 +274,9 @@ describe("validatePublicSearchRelevanceDataset", () => {
     expect(schema.properties["sourcePolicy"]?.const).toBe(
       "public-opportunity-projection-only",
     );
-    expect(schema.properties["corpusSnapshotId"]?.format).toBe("uuid");
+    expect(schema.properties["corpusSnapshotId"]?.$ref).toBe("#/$defs/uuid");
+    expect(schema.properties["reviewRecordId"]?.$ref).toBe("#/$defs/uuid");
+    expect(schema.$defs["uuid"]?.format).toBe("uuid");
     expect(schema.properties["sort"]?.const).toBe("relevance");
     expect(schema.properties["offset"]?.const).toBe(0);
     expect(schema.$defs["queryCase"]?.additionalProperties).toBe(false);
