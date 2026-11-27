@@ -230,9 +230,13 @@ export function validatePublicSearchRelevanceDataset(
       );
     }
     reviewedAt = readTimestamp(dataset.reviewedAt, "Dataset reviewedAt");
-    reviewRecordId = readString(dataset.reviewRecordId, "Review record ID", 1, 128);
-    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(reviewRecordId)) {
-      throw new TypeError("Review record ID must be an opaque reference.");
+    reviewRecordId = readString(dataset.reviewRecordId, "Review record ID", 36, 36);
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        reviewRecordId,
+      )
+    ) {
+      throw new TypeError("Review record ID must be an opaque UUID.");
     }
     if (Date.parse(reviewedAt) < Date.parse(createdAt)) {
       throw new RangeError("Dataset review cannot predate dataset creation.");
