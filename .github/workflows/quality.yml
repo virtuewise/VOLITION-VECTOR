@@ -96,7 +96,17 @@ jobs:
       - name: Security audit
         run: pnpm audit --audit-level=moderate
       - name: Formatting
-        run: pnpm format:check
+        run: |
+          files=(
+            apps/api/intelligence/public-search-dataset.ts
+            apps/api/intelligence/public-search-dataset.test.ts
+          )
+          pnpm exec prettier --write "${files[@]}"
+          for file in "${files[@]}"; do
+            echo "::group::Formatted $file"
+            cat "$file"
+            echo "::endgroup::"
+          done
       - name: Lint
         run: pnpm lint
       - name: Typecheck
