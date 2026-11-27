@@ -9,6 +9,7 @@
     "datasetId",
     "createdAt",
     "corpusSnapshotAt",
+    "corpusSnapshotId",
     "cutoff",
     "sort",
     "offset",
@@ -27,6 +28,7 @@
     },
     "createdAt": { "$ref": "#/$defs/utcTimestamp" },
     "corpusSnapshotAt": { "$ref": "#/$defs/utcTimestamp" },
+    "corpusSnapshotId": { "$ref": "#/$defs/uuid" },
     "cutoff": { "type": "integer", "minimum": 1, "maximum": 50 },
     "sort": { "const": "relevance" },
     "offset": { "const": 0 },
@@ -77,6 +79,12 @@
     }
   ],
   "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "maxLength": 36
+    },
     "utcTimestamp": {
       "type": "string",
       "format": "date-time",
