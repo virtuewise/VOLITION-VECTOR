@@ -18,7 +18,7 @@ The current public endpoint accepts `q`, optional `type`, `sort`, `limit` and `o
 | `schemaVersion`    | Required; `1.0.0`      | Dataset format version                                                    |
 | `datasetId`        | Required               | Stable lowercase kebab-case identifier                                    |
 | `createdAt`        | Required               | Canonical UTC creation timestamp                                          |
-| `corpusSnapshotAt` | Required               | Time of the public listing corpus snapshot being judged                   |
+| `corpusSnapshotAt` | Required               | Time of the public listing corpus snapshot being judged                   |\n| `corpusSnapshotId` | Required UUID          | Opaque reference to the immutable public-only corpus snapshot             |
 | `cutoff`           | Required; 1–50         | Fixed evaluation cutoff, passed as the API `limit`                        |
 | `sort`             | Required constant      | `relevance`, so ranking quality rather than recency is measured           |
 | `offset`           | Required constant      | `0`, so each case evaluates the first ranked page                          |
@@ -48,7 +48,7 @@ Judgments are assessments of the relationship between a public query and a publi
 ## Curation and review procedure
 
 1. Write synthetic or curator-authored public-intent queries. Do not copy raw production search strings, support conversations or user histories.
-2. Resolve each judgment identifier against the public opportunity projection at `corpusSnapshotAt`. Exclude drafts, expired listings and organization-only records.
+2. Resolve each judgment identifier against the immutable public opportunity snapshot referenced by `corpusSnapshotId` and timestamped by `corpusSnapshotAt`. Exclude drafts, expired listings and organization-only records.
 3. Judge only public listing attributes available in that public projection. Do not consult account profiles, private organization records, applications, messages, identity evidence, trust/dispute data or financial records.
 4. Use the rubric consistently. Include grade 0 judgments for reviewed candidates that were considered and found not relevant; do not silently omit them.
 5. Record dataset scope, coverage, limitations and review provenance. Keep reviewer identity, deliberation and source evidence in the separately access-controlled governance record referenced by `reviewRecordId`, not in the dataset file or test fixtures.
@@ -59,7 +59,7 @@ The validator checks structure and strict field allowlists. It cannot determine 
 
 ## Comparison rules
 
-- Compare candidate ranking implementations against the same dataset version, corpus snapshot and cutoff.
+- Compare candidate ranking implementations against the same dataset version, corpus snapshot ID and cutoff.
 - Report query count, per-query metrics, macro metrics and the evaluable-query counts for recall and NDCG.
 - Publish limitations and coverage with the results. Do not present a metric without its denominator.
 - Do not establish release thresholds until a reviewed dataset has adequate, documented coverage and a baseline.
