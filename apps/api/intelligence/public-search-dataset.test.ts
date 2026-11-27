@@ -72,6 +72,13 @@ describe("validatePublicSearchRelevanceDataset", () => {
 
     expect(dataset.reviewStatus).toBe("reviewed");
     expect(dataset.reviewRecordId).toBe("8f4b6b6e-3e70-4f1b-9a15-2a6d1a3c8f20");
+
+    expect(() =>
+      validatePublicSearchRelevanceDataset({
+        ...input,
+        reviewRecordId: "reviewer-name",
+      }),
+    ).toThrow(/opaque UUID/i);
   });
 
   it("rejects private, personal and unrecognized metadata instead of retaining it", () => {
@@ -125,7 +132,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
 
   it("rejects unsupported grades, opportunity types and query text", () => {
     const input = validDataset();
-    const first = (input.queries as Record<string, unknown>[])[0];
+    const first = (input.queries as Record<string, unknown>[])[0]!;
 
     expect(() =>
       validatePublicSearchRelevanceDataset({
@@ -185,7 +192,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
 
   it("requires explicit judgments and known limitations", () => {
     const input = validDataset();
-    const first = (input.queries as Record<string, unknown>[])[0];
+    const first = (input.queries as Record<string, unknown>[])[0]!;
 
     expect(() =>
       validatePublicSearchRelevanceDataset({
