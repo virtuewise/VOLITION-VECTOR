@@ -16,7 +16,7 @@ Define a versioned, machine-readable public-search relevance dataset contract at
 
 Version 1.0.0 contains:
 
-- A stable dataset ID, creation time, public corpus snapshot time and opaque UUID reference to an immutable public-only corpus snapshot.
+- A stable dataset ID, creation time, `corpusSnapshotAt` timestamp and opaque UUID `corpusSnapshotId` reference to an immutable public-only corpus snapshot.
 - A fixed cutoff bounded by the public search API maximum of 50, passed as `limit`.
 - `sort: relevance` and `offset: 0` so each benchmark evaluates the first relevance-ranked page.
 - A fixed public-projection source policy and relevance-rubric version.
