@@ -5,11 +5,7 @@ export const PUBLIC_SEARCH_DATASET_RUBRIC_VERSION =
   "public-opportunity-relevance-v1" as const;
 
 export type PublicSearchOpportunityType =
-  | "employment"
-  | "project"
-  | "tender"
-  | "partnership"
-  | "volunteering";
+  "employment" | "project" | "tender" | "partnership" | "volunteering";
 
 export type PublicSearchDatasetReviewStatus = "draft" | "reviewed";
 export type PublicSearchDatasetRelevanceGrade = 0 | 1 | 2 | 3;
@@ -183,7 +179,9 @@ export function validatePublicSearchRelevanceDataset(
     throw new TypeError("Unsupported public-search dataset schema version.");
   }
   if (dataset.sourcePolicy !== PUBLIC_SEARCH_DATASET_SOURCE_POLICY) {
-    throw new TypeError("Dataset source policy must use the public projection.");
+    throw new TypeError(
+      "Dataset source policy must use the public projection.",
+    );
   }
   if (dataset.rubricVersion !== PUBLIC_SEARCH_DATASET_RUBRIC_VERSION) {
     throw new TypeError("Unsupported public-search relevance rubric version.");
@@ -196,7 +194,9 @@ export function validatePublicSearchRelevanceDataset(
     "Corpus snapshot timestamp",
   );
   if (Date.parse(corpusSnapshotAt) > Date.parse(createdAt)) {
-    throw new RangeError("Corpus snapshot cannot be later than dataset creation.");
+    throw new RangeError(
+      "Corpus snapshot cannot be later than dataset creation.",
+    );
   }
 
   if (
@@ -230,7 +230,12 @@ export function validatePublicSearchRelevanceDataset(
       );
     }
     reviewedAt = readTimestamp(dataset.reviewedAt, "Dataset reviewedAt");
-    reviewRecordId = readString(dataset.reviewRecordId, "Review record ID", 36, 36);
+    reviewRecordId = readString(
+      dataset.reviewRecordId,
+      "Review record ID",
+      36,
+      36,
+    );
     if (
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
         reviewRecordId,
@@ -290,10 +295,7 @@ export function validatePublicSearchRelevanceDataset(
       opportunityType = query.opportunityType;
     }
 
-    const judgmentValues = readArray(
-      query.judgments,
-      "Query judgments",
-    );
+    const judgmentValues = readArray(query.judgments, "Query judgments");
     if (
       judgmentValues.length < 1 ||
       judgmentValues.length > MAX_JUDGMENTS_PER_QUERY
@@ -307,15 +309,8 @@ export function validatePublicSearchRelevanceDataset(
 
     const opportunityIds = new Set<string>();
     const judgments = judgmentValues.map((judgmentValue, judgmentIndex) => {
-      const judgment = asRecord(
-        judgmentValue,
-        "Judgment " + judgmentIndex,
-      );
-      assertOnlyKeys(
-        judgment,
-        ["opportunityId", "grade"],
-        "Judgment",
-      );
+      const judgment = asRecord(judgmentValue, "Judgment " + judgmentIndex);
+      assertOnlyKeys(judgment, ["opportunityId", "grade"], "Judgment");
 
       const opportunityId = readOpportunityId(
         judgment.opportunityId,
