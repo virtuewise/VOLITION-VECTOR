@@ -13,6 +13,8 @@ function validDataset(): Record<string, unknown> {
     createdAt: "2026-11-27T08:00:00.000Z",
     corpusSnapshotAt: "2026-11-26T12:00:00.000Z",
     cutoff: 10,
+    sort: "relevance",
+    offset: 0,
     sourcePolicy: "public-opportunity-projection-only",
     rubricVersion: "public-opportunity-relevance-v1",
     reviewStatus: "draft",
@@ -43,6 +45,8 @@ describe("validatePublicSearchRelevanceDataset", () => {
       schemaVersion: "1.0.0",
       datasetId: "public-opportunity-baseline-v1",
       cutoff: 10,
+      sort: "relevance",
+      offset: 0,
       reviewStatus: "draft",
       queries: [
         {
@@ -57,6 +61,17 @@ describe("validatePublicSearchRelevanceDataset", () => {
         },
       ],
     });
+  });
+
+  it("pins relevance sorting and the first page for ranking evaluation", () => {
+    const input = validDataset();
+
+    expect(() =>
+      validatePublicSearchRelevanceDataset({ ...input, sort: "recent" }),
+    ).toThrow(/sort must be relevance/i);
+    expect(() =>
+      validatePublicSearchRelevanceDataset({ ...input, offset: 1 }),
+    ).toThrow(/offset must be zero/i);
   });
 
   it("requires an opaque governance reference and date for reviewed datasets", () => {
@@ -77,7 +92,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
     expect(() =>
       validatePublicSearchRelevanceDataset({
         ...input,
-        reviewRecordId: "reviewer-name",
+        reviewRecordId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
       }),
     ).toThrow(/opaque UUID/i);
   });
@@ -221,11 +236,12 @@ describe("validatePublicSearchRelevanceDataset", () => {
         "../../docs/intelligence/public-search-relevance-dataset.schema.json",
       ),
     ].find(existsSync);
-    if (!schemaPath) throw new Error("Public-search dataset schema was not found.");
+    if (!schemaPath)
+      throw new Error("Public-search dataset schema was not found.");
 
     const schema = JSON.parse(readFileSync(schemaPath, "utf8")) as {
       additionalProperties: boolean;
-      properties: Record<string, { const?: string; enum?: readonly unknown[] }>;
+      properties: Record<string, { const?: string | number; enum?: readonly unknown[] }>;
       $defs: Record<
         string,
         {
@@ -240,6 +256,8 @@ describe("validatePublicSearchRelevanceDataset", () => {
     expect(schema.properties["sourcePolicy"]?.const).toBe(
       "public-opportunity-projection-only",
     );
+    expect(schema.properties["sort"]?.const).toBe("relevance");
+    expect(schema.properties["offset"]?.const).toBe(0);
     expect(schema.$defs["queryCase"]?.additionalProperties).toBe(false);
     expect(schema.$defs["judgment"]?.additionalProperties).toBe(false);
     expect(schema.$defs["judgment"]?.properties?.["grade"]?.enum).toEqual([
