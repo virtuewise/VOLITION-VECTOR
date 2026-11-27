@@ -36,12 +36,7 @@
     "rubricVersion": { "const": "public-opportunity-relevance-v1" },
     "reviewStatus": { "enum": ["draft", "reviewed"] },
     "reviewedAt": { "$ref": "#/$defs/utcTimestamp" },
-    "reviewRecordId": {
-      "type": "string",
-      "format": "uuid",
-      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
-      "maxLength": 36
-    },
+    "reviewRecordId": { "$ref": "#/$defs/uuid" },
     "limitations": {
       "type": "array",
       "minItems": 1,
