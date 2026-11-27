@@ -63,7 +63,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
       ...validDataset(),
       reviewStatus: "reviewed",
       reviewedAt: "2026-11-27T09:00:00.000Z",
-      reviewRecordId: "governance-review-2026-11-27-001",
+      reviewRecordId: "8f4b6b6e-3e70-4f1b-9a15-2a6d1a3c8f20",
     };
 
     const dataset = validatePublicSearchRelevanceDataset(
@@ -71,7 +71,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
     ) as PublicSearchRelevanceDataset;
 
     expect(dataset.reviewStatus).toBe("reviewed");
-    expect(dataset.reviewRecordId).toBe("governance-review-2026-11-27-001");
+    expect(dataset.reviewRecordId).toBe("8f4b6b6e-3e70-4f1b-9a15-2a6d1a3c8f20");
   });
 
   it("rejects private, personal and unrecognized metadata instead of retaining it", () => {
@@ -86,7 +86,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
     );
 
     const queryInput = validDataset();
-    const query = (queryInput.queries as Record<string, unknown>[])[0];
+    const query = (queryInput.queries as Record<string, unknown>[])[0]!;
     query.profileText = "private profile data";
 
     expect(() => validatePublicSearchRelevanceDataset(queryInput)).toThrow(
@@ -96,7 +96,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
 
   it("rejects duplicate query IDs and duplicate opportunity judgments", () => {
     const input = validDataset();
-    const first = (input.queries as Record<string, unknown>[])[0];
+    const first = (input.queries as Record<string, unknown>[])[0]!;
 
     expect(() =>
       validatePublicSearchRelevanceDataset({
