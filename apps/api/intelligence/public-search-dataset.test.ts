@@ -12,6 +12,7 @@ function validDataset(): Record<string, unknown> {
     datasetId: "public-opportunity-baseline-v1",
     createdAt: "2026-11-27T08:00:00.000Z",
     corpusSnapshotAt: "2026-11-26T12:00:00.000Z",
+    corpusSnapshotId: "9a7d5e3c-1b42-4f10-8c6d-2e5f7a9b0c31",
     cutoff: 10,
     sort: "relevance",
     offset: 0,
@@ -44,6 +45,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
     expect(dataset).toMatchObject({
       schemaVersion: "1.0.0",
       datasetId: "public-opportunity-baseline-v1",
+      corpusSnapshotId: "9a7d5e3c-1b42-4f10-8c6d-2e5f7a9b0c31",
       cutoff: 10,
       sort: "relevance",
       offset: 0,
@@ -241,7 +243,10 @@ describe("validatePublicSearchRelevanceDataset", () => {
 
     const schema = JSON.parse(readFileSync(schemaPath, "utf8")) as {
       additionalProperties: boolean;
-      properties: Record<string, { const?: string | number; enum?: readonly unknown[] }>;
+      properties: Record<
+        string,
+        { const?: string | number; enum?: readonly unknown[]; format?: string }
+      >;
       $defs: Record<
         string,
         {
@@ -256,6 +261,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
     expect(schema.properties["sourcePolicy"]?.const).toBe(
       "public-opportunity-projection-only",
     );
+    expect(schema.properties["corpusSnapshotId"]?.format).toBe("uuid");
     expect(schema.properties["sort"]?.const).toBe("relevance");
     expect(schema.properties["offset"]?.const).toBe(0);
     expect(schema.$defs["queryCase"]?.additionalProperties).toBe(false);
