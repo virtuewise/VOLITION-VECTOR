@@ -28,6 +28,8 @@ export interface PublicSearchRelevanceDataset {
   readonly createdAt: string;
   readonly corpusSnapshotAt: string;
   readonly cutoff: number;
+  readonly sort: "relevance";
+  readonly offset: 0;
   readonly sourcePolicy: typeof PUBLIC_SEARCH_DATASET_SOURCE_POLICY;
   readonly rubricVersion: typeof PUBLIC_SEARCH_DATASET_RUBRIC_VERSION;
   readonly reviewStatus: PublicSearchDatasetReviewStatus;
@@ -164,6 +166,8 @@ export function validatePublicSearchRelevanceDataset(
       "createdAt",
       "corpusSnapshotAt",
       "cutoff",
+      "sort",
+      "offset",
       "sourcePolicy",
       "rubricVersion",
       "reviewStatus",
@@ -208,7 +212,17 @@ export function validatePublicSearchRelevanceDataset(
     throw new RangeError("Dataset cutoff must be an integer from 1 to 50.");
   }
 
-  if (dataset["reviewStatus"] !== "draft" && dataset["reviewStatus"] !== "reviewed") {
+  if (dataset["sort"] !== "relevance") {
+    throw new TypeError("Dataset sort must be relevance.");
+  }
+  if (dataset["offset"] !== 0) {
+    throw new TypeError("Dataset offset must be zero.");
+  }
+
+  if (
+    dataset["reviewStatus"] !== "draft" &&
+    dataset["reviewStatus"] !== "reviewed"
+  ) {
     throw new TypeError("Dataset reviewStatus must be draft or reviewed.");
   }
 
@@ -352,6 +366,8 @@ export function validatePublicSearchRelevanceDataset(
     createdAt,
     corpusSnapshotAt,
     cutoff: dataset["cutoff"],
+    sort: "relevance",
+    offset: 0,
     sourcePolicy: PUBLIC_SEARCH_DATASET_SOURCE_POLICY,
     rubricVersion: PUBLIC_SEARCH_DATASET_RUBRIC_VERSION,
     reviewStatus: dataset["reviewStatus"],
