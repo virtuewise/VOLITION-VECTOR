@@ -21,7 +21,7 @@ Version 1.0.0 contains:
 - Curated query text and only the currently supported opportunity-type filter.
 - Public opportunity identifiers with integer relevance grades from 0 to 3.
 - Explicit methodology limitations and draft/reviewed status.
-- An opaque governance-record reference and review timestamp for reviewed datasets.
+- An opaque UUID governance-record reference and review timestamp for reviewed datasets.
 
 The validator rejects unknown fields at dataset, query and judgment levels. It enforces canonical UTC timestamps and cross-field ordering, unique query IDs, unique opportunity IDs within each query, the supported opportunity types and relevance grades, bounded query/judgment counts and the reviewed/draft metadata rules.
 
