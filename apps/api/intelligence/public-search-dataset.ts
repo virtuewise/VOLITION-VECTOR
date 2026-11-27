@@ -175,22 +175,22 @@ export function validatePublicSearchRelevanceDataset(
     "Dataset",
   );
 
-  if (dataset.schemaVersion !== PUBLIC_SEARCH_DATASET_SCHEMA_VERSION) {
+  if (dataset["schemaVersion"] !== PUBLIC_SEARCH_DATASET_SCHEMA_VERSION) {
     throw new TypeError("Unsupported public-search dataset schema version.");
   }
-  if (dataset.sourcePolicy !== PUBLIC_SEARCH_DATASET_SOURCE_POLICY) {
+  if (dataset["sourcePolicy"] !== PUBLIC_SEARCH_DATASET_SOURCE_POLICY) {
     throw new TypeError(
       "Dataset source policy must use the public projection.",
     );
   }
-  if (dataset.rubricVersion !== PUBLIC_SEARCH_DATASET_RUBRIC_VERSION) {
+  if (dataset["rubricVersion"] !== PUBLIC_SEARCH_DATASET_RUBRIC_VERSION) {
     throw new TypeError("Unsupported public-search relevance rubric version.");
   }
 
-  const datasetId = readSlug(dataset.datasetId, "Dataset ID");
-  const createdAt = readTimestamp(dataset.createdAt, "Dataset createdAt");
+  const datasetId = readSlug(dataset["datasetId"], "Dataset ID");
+  const createdAt = readTimestamp(dataset["createdAt"], "Dataset createdAt");
   const corpusSnapshotAt = readTimestamp(
-    dataset.corpusSnapshotAt,
+    dataset["corpusSnapshotAt"],
     "Corpus snapshot timestamp",
   );
   if (Date.parse(corpusSnapshotAt) > Date.parse(createdAt)) {
@@ -200,15 +200,15 @@ export function validatePublicSearchRelevanceDataset(
   }
 
   if (
-    typeof dataset.cutoff !== "number" ||
-    !Number.isSafeInteger(dataset.cutoff) ||
-    dataset.cutoff < 1 ||
-    dataset.cutoff > MAX_CUTOFF
+    typeof dataset["cutoff"] !== "number" ||
+    !Number.isSafeInteger(dataset["cutoff"]) ||
+    dataset["cutoff"] < 1 ||
+    dataset["cutoff"] > MAX_CUTOFF
   ) {
     throw new RangeError("Dataset cutoff must be an integer from 1 to 50.");
   }
 
-  if (dataset.reviewStatus !== "draft" && dataset.reviewStatus !== "reviewed") {
+  if (dataset["reviewStatus"] !== "draft" && dataset["reviewStatus"] !== "reviewed") {
     throw new TypeError("Dataset reviewStatus must be draft or reviewed.");
   }
 
@@ -223,15 +223,15 @@ export function validatePublicSearchRelevanceDataset(
     "reviewRecordId",
   );
 
-  if (dataset.reviewStatus === "reviewed") {
+  if (dataset["reviewStatus"] === "reviewed") {
     if (!hasReviewedAt || !hasReviewRecordId) {
       throw new TypeError(
         "Reviewed datasets require reviewedAt and reviewRecordId.",
       );
     }
-    reviewedAt = readTimestamp(dataset.reviewedAt, "Dataset reviewedAt");
+    reviewedAt = readTimestamp(dataset["reviewedAt"], "Dataset reviewedAt");
     reviewRecordId = readString(
-      dataset.reviewRecordId,
+      dataset["reviewRecordId"],
       "Review record ID",
       36,
       36,
@@ -252,7 +252,7 @@ export function validatePublicSearchRelevanceDataset(
     );
   }
 
-  const limitations = readArray(dataset.limitations, "Dataset limitations");
+  const limitations = readArray(dataset["limitations"], "Dataset limitations");
   if (limitations.length < 1 || limitations.length > MAX_LIMITATIONS) {
     throw new RangeError("Dataset must include 1 to 20 limitations.");
   }
@@ -265,7 +265,7 @@ export function validatePublicSearchRelevanceDataset(
     ),
   );
 
-  const queryCases = readArray(dataset.queries, "Dataset queries");
+  const queryCases = readArray(dataset["queries"], "Dataset queries");
   if (queryCases.length < 1 || queryCases.length > MAX_QUERY_COUNT) {
     throw new RangeError("Dataset must include 1 to 250 query cases.");
   }
@@ -280,22 +280,22 @@ export function validatePublicSearchRelevanceDataset(
       "Query case",
     );
 
-    const queryId = readSlug(query.queryId, "Query ID");
+    const queryId = readSlug(query["queryId"], "Query ID");
     if (queryIds.has(queryId)) {
       throw new TypeError("Dataset query IDs must be unique.");
     }
     queryIds.add(queryId);
 
-    const q = readString(query.q, "Search query", 1, MAX_QUERY_LENGTH);
+    const q = readString(query["q"], "Search query", 1, MAX_QUERY_LENGTH);
     let opportunityType: PublicSearchOpportunityType | undefined;
-    if (query.opportunityType !== undefined) {
-      if (!isOpportunityType(query.opportunityType)) {
+    if (query["opportunityType"] !== undefined) {
+      if (!isOpportunityType(query["opportunityType"])) {
         throw new TypeError("Query opportunityType is unsupported.");
       }
-      opportunityType = query.opportunityType;
+      opportunityType = query["opportunityType"];
     }
 
-    const judgmentValues = readArray(query.judgments, "Query judgments");
+    const judgmentValues = readArray(query["judgments"], "Query judgments");
     if (
       judgmentValues.length < 1 ||
       judgmentValues.length > MAX_JUDGMENTS_PER_QUERY
@@ -313,7 +313,7 @@ export function validatePublicSearchRelevanceDataset(
       assertOnlyKeys(judgment, ["opportunityId", "grade"], "Judgment");
 
       const opportunityId = readOpportunityId(
-        judgment.opportunityId,
+        judgment["opportunityId"],
         "Judgment opportunity ID",
       );
       if (opportunityIds.has(opportunityId)) {
@@ -324,17 +324,17 @@ export function validatePublicSearchRelevanceDataset(
       opportunityIds.add(opportunityId);
 
       if (
-        typeof judgment.grade !== "number" ||
-        !Number.isInteger(judgment.grade) ||
-        judgment.grade < 0 ||
-        judgment.grade > 3
+        typeof judgment["grade"] !== "number" ||
+        !Number.isInteger(judgment["grade"]) ||
+        judgment["grade"] < 0 ||
+        judgment["grade"] > 3
       ) {
         throw new RangeError("Judgment grade must be an integer from 0 to 3.");
       }
 
       return {
         opportunityId,
-        grade: judgment.grade as PublicSearchDatasetRelevanceGrade,
+        grade: judgment["grade"] as PublicSearchDatasetRelevanceGrade,
       };
     });
 
@@ -351,10 +351,10 @@ export function validatePublicSearchRelevanceDataset(
     datasetId,
     createdAt,
     corpusSnapshotAt,
-    cutoff: dataset.cutoff,
+    cutoff: dataset["cutoff"],
     sourcePolicy: PUBLIC_SEARCH_DATASET_SOURCE_POLICY,
     rubricVersion: PUBLIC_SEARCH_DATASET_RUBRIC_VERSION,
-    reviewStatus: dataset.reviewStatus,
+    reviewStatus: dataset["reviewStatus"],
     ...(reviewedAt === undefined ? {} : { reviewedAt }),
     ...(reviewRecordId === undefined ? {} : { reviewRecordId }),
     limitations: validatedLimitations,
