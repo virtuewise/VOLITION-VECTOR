@@ -242,7 +242,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
     );
     expect(schema.$defs["queryCase"]?.additionalProperties).toBe(false);
     expect(schema.$defs["judgment"]?.additionalProperties).toBe(false);
-    expect(schema.$defs["judgment"]?.properties?.grade?.enum).toEqual([
+    expect(schema.$defs["judgment"]?.properties?.["grade"]?.enum).toEqual([
       0, 1, 2, 3,
     ]);
   });
