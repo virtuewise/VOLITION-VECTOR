@@ -15,6 +15,7 @@ The public opportunity endpoint currently supports a bounded `q` search string a
 Define a versioned, machine-readable public-search relevance dataset contract at `docs/intelligence/public-search-relevance-dataset.schema.json`, with a strict runtime validator in `apps/api/intelligence/public-search-dataset.ts`.
 
 Version 1.0.0 contains:
+
 - A stable dataset ID, creation time and public corpus snapshot time.
 - A fixed cutoff bounded by the public search API maximum of 50.
 - A fixed public-projection source policy and relevance-rubric version.
