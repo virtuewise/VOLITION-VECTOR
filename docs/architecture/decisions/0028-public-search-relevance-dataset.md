@@ -16,7 +16,7 @@ Define a versioned, machine-readable public-search relevance dataset contract at
 
 Version 1.0.0 contains:
 
-- A stable dataset ID, creation time and public corpus snapshot time.
+- A stable dataset ID, creation time, public corpus snapshot time and opaque UUID reference to an immutable public-only corpus snapshot.
 - A fixed cutoff bounded by the public search API maximum of 50, passed as `limit`.
 - `sort: relevance` and `offset: 0` so each benchmark evaluates the first relevance-ranked page.
 - A fixed public-projection source policy and relevance-rubric version.
@@ -39,7 +39,7 @@ The validator enforces the data shape and allowlist, not the truth of a judgment
 
 ## Consequences
 
-The project now has a stable interchange contract and a dependency-free validator that can reject accidental private-field expansion. No database table, migration, endpoint, worker, external provider, user telemetry or sample relevance dataset is added.
+The project now has a stable interchange contract and a dependency-free validator that can reject accidental private-field expansion. No database table, migration, endpoint, worker, external provider, user telemetry, corpus-snapshot store or sample relevance dataset is added. Snapshot creation and retention remain deferred.
 
 The contract does not establish representativeness or search quality. A separately reviewed dataset and reproducible baseline remain future work. No release threshold is approved by this ADR.
 
@@ -48,5 +48,5 @@ The contract does not establish representativeness or search quality. A separate
 - [ADR 0023: ranked public opportunity discovery](https://github.com/virtuewise/VOLITION-VECTOR/pull/79)
 - [ADR 0026: explainable opportunity matching contract](https://github.com/virtuewise/VOLITION-VECTOR/pull/81)
 - [ADR 0027: offline public-search evaluation](https://github.com/virtuewise/VOLITION-VECTOR/pull/82)
-- [90-day delivery plan](../roadmap/90-day-plan.md)
-- [Engines and capabilities](../product/engines-and-capabilities.md)
+- [90-day delivery plan](../../roadmap/90-day-plan.md)
+- [Engines and capabilities](../../product/engines-and-capabilities.md)
