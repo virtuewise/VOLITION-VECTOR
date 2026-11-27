@@ -18,7 +18,8 @@ The current public endpoint accepts `q`, optional `type`, `sort`, `limit` and `o
 | `schemaVersion`    | Required; `1.0.0`      | Dataset format version                                                    |
 | `datasetId`        | Required               | Stable lowercase kebab-case identifier                                    |
 | `createdAt`        | Required               | Canonical UTC creation timestamp                                          |
-| `corpusSnapshotAt` | Required               | Time of the public listing corpus snapshot being judged                   |\n| `corpusSnapshotId` | Required UUID          | Opaque reference to the immutable public-only corpus snapshot             |
+| `corpusSnapshotAt` | Required               | Time of the public listing corpus snapshot being judged                   |
+| `corpusSnapshotId` | Required UUID          | Opaque reference to the immutable public-only corpus snapshot             |
 | `cutoff`           | Required; 1–50         | Fixed evaluation cutoff, passed as the API `limit`                        |
 | `sort`             | Required constant      | `relevance`, so ranking quality rather than recency is measured           |
 | `offset`           | Required constant      | `0`, so each case evaluates the first ranked page                          |
