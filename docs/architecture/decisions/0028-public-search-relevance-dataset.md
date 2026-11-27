@@ -8,7 +8,7 @@
 
 ADR 0027 defines deterministic offline metrics for public opportunity ranking but deliberately does not supply a relevance dataset. A baseline cannot be evaluated responsibly until the query and judgment format, corpus snapshot, rubric, provenance and privacy boundary are explicit.
 
-The public opportunity endpoint currently supports a bounded `q` search string and an optional opportunity `type` filter. The dataset contract must not imply support for filters or data sources that the endpoint does not implement.
+The public opportunity endpoint supports bounded `q`, optional `type`, `sort`, `limit` and `offset` parameters. The dataset records `q` and optional `type`, fixes `sort` to `relevance`, maps its cutoff to `limit`, and fixes `offset` to zero. It must not imply support for filters or data sources the endpoint does not implement.
 
 ## Decision
 
@@ -17,7 +17,8 @@ Define a versioned, machine-readable public-search relevance dataset contract at
 Version 1.0.0 contains:
 
 - A stable dataset ID, creation time and public corpus snapshot time.
-- A fixed cutoff bounded by the public search API maximum of 50.
+- A fixed cutoff bounded by the public search API maximum of 50, passed as `limit`.
+- `sort: relevance` and `offset: 0` so each benchmark evaluates the first relevance-ranked page.
 - A fixed public-projection source policy and relevance-rubric version.
 - Curated query text and only the currently supported opportunity-type filter.
 - Public opportunity identifiers with integer relevance grades from 0 to 3.
