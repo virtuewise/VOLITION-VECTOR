@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   validatePublicSearchRelevanceDataset,
@@ -93,8 +94,8 @@ describe("validatePublicSearchRelevanceDataset", () => {
     );
 
     const queryInput = validDataset();
-    const query = (queryInput.queries as Record<string, unknown>[])[0]!;
-    query.profileText = "private profile data";
+    const query = (queryInput["queries"] as Record<string, unknown>[])[0]!;
+    query["profileText"] = "private profile data";
 
     expect(() => validatePublicSearchRelevanceDataset(queryInput)).toThrow(
       /unsupported field/i,
@@ -103,7 +104,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
 
   it("rejects duplicate query IDs and duplicate opportunity judgments", () => {
     const input = validDataset();
-    const first = (input.queries as Record<string, unknown>[])[0]!;
+    const first = (input["queries"] as Record<string, unknown>[])[0]!;
 
     expect(() =>
       validatePublicSearchRelevanceDataset({
@@ -132,7 +133,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
 
   it("rejects unsupported grades, opportunity types and query text", () => {
     const input = validDataset();
-    const first = (input.queries as Record<string, unknown>[])[0]!;
+    const first = (input["queries"] as Record<string, unknown>[])[0]!;
 
     expect(() =>
       validatePublicSearchRelevanceDataset({
@@ -192,7 +193,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
 
   it("requires explicit judgments and known limitations", () => {
     const input = validDataset();
-    const first = (input.queries as Record<string, unknown>[])[0]!;
+    const first = (input["queries"] as Record<string, unknown>[])[0]!;
 
     expect(() =>
       validatePublicSearchRelevanceDataset({
@@ -210,11 +211,19 @@ describe("validatePublicSearchRelevanceDataset", () => {
   });
 
   it("keeps the machine-readable schema strict and version-aligned", () => {
-    const schemaUrl = new URL(
-      "../../../docs/intelligence/public-search-relevance-dataset.schema.json",
-      import.meta.url,
-    );
-    const schema = JSON.parse(readFileSync(schemaUrl, "utf8")) as {
+    const schemaPath = [
+      resolve(
+        process.cwd(),
+        "docs/intelligence/public-search-relevance-dataset.schema.json",
+      ),
+      resolve(
+        process.cwd(),
+        "../../docs/intelligence/public-search-relevance-dataset.schema.json",
+      ),
+    ].find(existsSync);
+    if (!schemaPath) throw new Error("Public-search dataset schema was not found.");
+
+    const schema = JSON.parse(readFileSync(schemaPath, "utf8")) as {
       additionalProperties: boolean;
       properties: Record<string, { const?: string; enum?: readonly unknown[] }>;
       $defs: Record<
@@ -227,12 +236,14 @@ describe("validatePublicSearchRelevanceDataset", () => {
     };
 
     expect(schema.additionalProperties).toBe(false);
-    expect(schema.properties.schemaVersion?.const).toBe("1.0.0");
-    expect(schema.properties.sourcePolicy?.const).toBe(
+    expect(schema.properties["schemaVersion"]?.const).toBe("1.0.0");
+    expect(schema.properties["sourcePolicy"]?.const).toBe(
       "public-opportunity-projection-only",
     );
-    expect(schema.$defs.queryCase?.additionalProperties).toBe(false);
-    expect(schema.$defs.judgment?.additionalProperties).toBe(false);
-    expect(schema.$defs.judgment?.properties?.grade?.enum).toEqual([0, 1, 2, 3]);
+    expect(schema.$defs["queryCase"]?.additionalProperties).toBe(false);
+    expect(schema.$defs["judgment"]?.additionalProperties).toBe(false);
+    expect(schema.$defs["judgment"]?.properties?.grade?.enum).toEqual([
+      0, 1, 2, 3,
+    ]);
   });
 });
