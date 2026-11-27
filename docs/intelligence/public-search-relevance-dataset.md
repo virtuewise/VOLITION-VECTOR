@@ -22,7 +22,7 @@ The current public endpoint accepts `q`, optional `type`, `sort`, `limit` and `o
 | `corpusSnapshotId` | Required UUID          | Opaque reference to the immutable public-only corpus snapshot             |
 | `cutoff`           | Required; 1–50         | Fixed evaluation cutoff, passed as the API `limit`                        |
 | `sort`             | Required constant      | `relevance`, so ranking quality rather than recency is measured           |
-| `offset`           | Required constant      | `0`, so each case evaluates the first ranked page                          |
+| `offset`           | Required constant      | `0`, so each case evaluates the first ranked page                         |
 | `sourcePolicy`     | Required constant      | `public-opportunity-projection-only`                                      |
 | `rubricVersion`    | Required constant      | `public-opportunity-relevance-v1`                                         |
 | `reviewStatus`     | Required               | `draft` or `reviewed`                                                     |
