@@ -27,6 +27,7 @@ export interface PublicSearchRelevanceDataset {
   readonly datasetId: string;
   readonly createdAt: string;
   readonly corpusSnapshotAt: string;
+  readonly corpusSnapshotId: string;
   readonly cutoff: number;
   readonly sort: "relevance";
   readonly offset: 0;
@@ -111,6 +112,18 @@ function readOpportunityId(value: unknown, label: string): string {
   return result;
 }
 
+function readUuid(value: unknown, label: string): string {
+  const result = readString(value, label, 36, 36);
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      result,
+    )
+  ) {
+    throw new TypeError(label + " must be an opaque UUID.");
+  }
+  return result;
+}
+
 function readTimestamp(value: unknown, label: string): string {
   const result = readString(value, label, 24, 24);
   if (
@@ -165,6 +178,7 @@ export function validatePublicSearchRelevanceDataset(
       "datasetId",
       "createdAt",
       "corpusSnapshotAt",
+      "corpusSnapshotId",
       "cutoff",
       "sort",
       "offset",
@@ -196,6 +210,10 @@ export function validatePublicSearchRelevanceDataset(
   const corpusSnapshotAt = readTimestamp(
     dataset["corpusSnapshotAt"],
     "Corpus snapshot timestamp",
+  );
+  const corpusSnapshotId = readUuid(
+    dataset["corpusSnapshotId"],
+    "Corpus snapshot ID",
   );
   if (Date.parse(corpusSnapshotAt) > Date.parse(createdAt)) {
     throw new RangeError(
@@ -244,19 +262,7 @@ export function validatePublicSearchRelevanceDataset(
       );
     }
     reviewedAt = readTimestamp(dataset["reviewedAt"], "Dataset reviewedAt");
-    reviewRecordId = readString(
-      dataset["reviewRecordId"],
-      "Review record ID",
-      36,
-      36,
-    );
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        reviewRecordId,
-      )
-    ) {
-      throw new TypeError("Review record ID must be an opaque UUID.");
-    }
+    reviewRecordId = readUuid(dataset["reviewRecordId"], "Review record ID");
     if (Date.parse(reviewedAt) < Date.parse(createdAt)) {
       throw new RangeError("Dataset review cannot predate dataset creation.");
     }
@@ -365,6 +371,7 @@ export function validatePublicSearchRelevanceDataset(
     datasetId,
     createdAt,
     corpusSnapshotAt,
+    corpusSnapshotId,
     cutoff: dataset["cutoff"],
     sort: "relevance",
     offset: 0,
