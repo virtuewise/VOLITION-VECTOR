@@ -185,7 +185,7 @@ describe("validatePublicSearchRelevanceDataset", () => {
     expect(() =>
       validatePublicSearchRelevanceDataset({
         ...input,
-        corpusSnapshotId: "not-a-uuid",
+        corpusSnapshotId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
       }),
     ).toThrow(/opaque UUID/i);
 
