@@ -437,7 +437,7 @@ describe("PostgresOpportunityRepository", () => {
 
     expect(query.mock.calls.map(([statement]) => statement)).toEqual([
       "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
-      "SELECT transaction_timestamp() AS captured_at",
+      "SELECT statement_timestamp() AS captured_at",
       expect.stringContaining("FROM public_opportunities"),
       "ROLLBACK",
     ]);
