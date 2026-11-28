@@ -39,15 +39,15 @@ the existing PostgreSQL connection-pool startup guard.
 
 ## Artifact fields
 
-| Field | Meaning |
-| --- | --- |
-| `schemaVersion` | Snapshot artifact version, currently `1.0.0` |
-| `corpusSnapshotId` | Newly generated opaque UUID |
-| `corpusSnapshotAt` | UTC timestamp captured by the first statement |
-| `sourcePolicy` | `public-opportunity-projection-only` |
-| `recordCount` | Number of complete records in the artifact |
-| `sha256` | SHA-256 digest of the canonical JSON record array |
-| `records` | Public listing fields required for offline curation |
+| Field              | Meaning                                             |
+| ------------------ | --------------------------------------------------- |
+| `schemaVersion`    | Snapshot artifact version, currently `1.0.0`        |
+| `corpusSnapshotId` | Newly generated opaque UUID                         |
+| `corpusSnapshotAt` | UTC timestamp captured by the first statement       |
+| `sourcePolicy`     | `public-opportunity-projection-only`                |
+| `recordCount`      | Number of complete records in the artifact          |
+| `sha256`           | SHA-256 digest of the canonical JSON record array   |
+| `records`          | Public listing fields required for offline curation |
 
 Each record contains the public opportunity ID, slug, title, summary, type,
 location label, remote flag, public compensation fields, publication time and
