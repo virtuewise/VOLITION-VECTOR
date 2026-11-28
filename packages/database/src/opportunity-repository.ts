@@ -131,7 +131,6 @@ export interface PublicOpportunityCorpusSnapshot {
 const PUBLIC_SNAPSHOT_PAGE_SIZE = 100;
 const MAX_PUBLIC_SNAPSHOT_RECORDS = 10_000;
 
-
 interface PublicOpportunityRow {
   readonly id: string;
   readonly organization_id: string;
@@ -196,7 +195,6 @@ function mapPublicOpportunitySnapshotRecord(
         : toSnapshotTimestamp(row.expires_at, "expiresAt"),
   };
 }
-
 
 export interface PublicOpportunitySearchInput {
   readonly query?: string;
@@ -842,12 +840,12 @@ export class PostgresOpportunityRepository {
   async createPublicCorpusSnapshot(): Promise<PublicOpportunityCorpusSnapshot> {
     return withReadOnlyRepeatableReadTransaction(this.pool, async (client) => {
       const timestampRow = firstRow<{ captured_at: Date }>(
-        await client.query(
-          "SELECT statement_timestamp() AS captured_at",
-        ),
+        await client.query("SELECT statement_timestamp() AS captured_at"),
       );
       if (!timestampRow) {
-        throw new Error("Public opportunity snapshot timestamp is unavailable.");
+        throw new Error(
+          "Public opportunity snapshot timestamp is unavailable.",
+        );
       }
 
       const capturedAt = toSnapshotTimestamp(
