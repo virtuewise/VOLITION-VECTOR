@@ -497,5 +497,4 @@ describe("PostgresOpportunityRepository", () => {
     expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
     expect(release).toHaveBeenCalledWith(undefined);
   });
-
 });
