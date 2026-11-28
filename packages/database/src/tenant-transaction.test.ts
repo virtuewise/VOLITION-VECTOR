@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   withTenantTransaction,
+  withReadOnlyRepeatableReadTransaction,
   type TenantConnection,
   type TenantConnectionPool,
+  type TenantTransactionClient,
 } from "./tenant-transaction.js";
 
 const tenantId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -131,4 +133,79 @@ describe("withTenantTransaction", () => {
     ]);
     expect(release).toHaveBeenCalledWith(rollbackFailure);
   });
+
+  describe("withReadOnlyRepeatableReadTransaction", () => {
+    it("runs work in one repeatable-read read-only transaction", async () => {
+      const { pool, query, release } = createPool();
+      const work = vi.fn(async (client: TenantTransactionClient) => {
+        await client.query("SELECT 1");
+        return "snapshot";
+      });
+
+      await expect(
+        withReadOnlyRepeatableReadTransaction(pool, work),
+      ).resolves.toBe("snapshot");
+
+      expectStatements(query, [
+        "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+        "SELECT 1",
+        "COMMIT",
+      ]);
+      expect(work).toHaveBeenCalledOnce();
+      expect(release).toHaveBeenCalledWith(undefined);
+    });
+
+    it("rolls back failed snapshot work and preserves the operation error", async () => {
+      const { pool, query, release } = createPool();
+      const failure = new Error("snapshot query failed");
+
+      await expect(
+        withReadOnlyRepeatableReadTransaction(pool, async () => {
+          throw failure;
+        }),
+      ).rejects.toBe(failure);
+
+      expectStatements(query, [
+        "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+        "ROLLBACK",
+      ]);
+      expect(release).toHaveBeenCalledWith(undefined);
+    });
+
+    it("discards a connection when read-only BEGIN fails", async () => {
+      const { pool, query, release } = createPool();
+      const failure = new Error("connection lost during snapshot BEGIN");
+      query.mockRejectedValueOnce(failure);
+
+      await expect(
+        withReadOnlyRepeatableReadTransaction(pool, async () => "unused"),
+      ).rejects.toBe(failure);
+
+      expectStatements(query, [
+        "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+      ]);
+      expect(release).toHaveBeenCalledWith(failure);
+    });
+
+    it("discards a connection when snapshot rollback fails", async () => {
+      const { pool, query, release } = createPool();
+      const operationFailure = new Error("snapshot query failed");
+      const rollbackFailure = new Error("connection lost during rollback");
+      query.mockResolvedValueOnce({ rows: [] });
+      query.mockRejectedValueOnce(rollbackFailure);
+
+      await expect(
+        withReadOnlyRepeatableReadTransaction(pool, async () => {
+          throw operationFailure;
+        }),
+      ).rejects.toBe(operationFailure);
+
+      expectStatements(query, [
+        "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+        "ROLLBACK",
+      ]);
+      expect(release).toHaveBeenCalledWith(rollbackFailure);
+    });
+  });
+
 });
