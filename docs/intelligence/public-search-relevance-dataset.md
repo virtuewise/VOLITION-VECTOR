@@ -60,7 +60,10 @@ The validator checks structure and strict field allowlists. It cannot determine 
 
 ## Comparison rules
 
-- Run comparisons only against an endpoint revision that implements the declared relevance ordering; record that implementation commit with the evaluation artifact. Compare candidate ranking implementations against the same dataset version, corpus snapshot ID and cutoff.
+- Run comparisons only against an endpoint revision that implements the declared
+  relevance ordering; record that implementation commit with the evaluation
+  artifact. Compare candidate ranking implementations against the same dataset
+  version, corpus snapshot ID and cutoff.
 - Report query count, per-query metrics, macro metrics and the evaluable-query counts for recall and NDCG.
 - Publish limitations and coverage with the results. Do not present a metric without its denominator.
 - Do not establish release thresholds until a reviewed dataset has adequate, documented coverage and a baseline.
