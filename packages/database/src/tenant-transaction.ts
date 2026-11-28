@@ -88,7 +88,7 @@ export async function withTenantTransaction<T>(
  * This deliberately does not set app.tenant_id. Callers must use a
  * security-invoker public projection whose RLS policy grants only public rows.
  */
-export async function withReadOnlyRepeatableReadTransaction<T>(
+export async function withPublicReadOnlyRepeatableReadTransaction<T>(
   pool: TenantConnectionPool,
   work: (client: TenantTransactionClient) => Promise<T>,
 ): Promise<T> {
