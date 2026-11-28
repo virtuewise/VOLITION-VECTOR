@@ -843,7 +843,7 @@ export class PostgresOpportunityRepository {
     return withReadOnlyRepeatableReadTransaction(this.pool, async (client) => {
       const timestampRow = firstRow<{ captured_at: Date }>(
         await client.query(
-          "SELECT transaction_timestamp() AS captured_at",
+          "SELECT statement_timestamp() AS captured_at",
         ),
       );
       if (!timestampRow) {
