@@ -403,7 +403,7 @@ describe("PostgresOpportunityRepository", () => {
     expect(query.mock.calls[0]?.[0]).toBe(
       "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
     );
-    expect(query.mock.calls[1]?.[0]).toContain("transaction_timestamp()");
+    expect(query.mock.calls[1]?.[0]).toContain("statement_timestamp()");
     expect(query.mock.calls[2]?.[0]).toContain("FROM public_opportunities");
     expect(query.mock.calls[2]?.[0]).toContain("ORDER BY id ASC");
     expect(query.mock.calls[2]?.[0]).toContain("expires_at > $1");
