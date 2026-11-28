@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Volition Vector public-search relevance dataset",
+  "description": "A versioned, reviewable set of judgments over public opportunity listings. It must never contain participant, account, tenant-private or protected-trait data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "datasetId",
+    "createdAt",
+    "corpusSnapshotAt",
+    "corpusSnapshotId",
+    "cutoff",
+    "sort",
+    "offset",
+    "sourcePolicy",
+    "rubricVersion",
+    "reviewStatus",
+    "limitations",
+    "queries"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0.0" },
+    "datasetId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 96
+    },
+    "createdAt": { "$ref": "#/$defs/utcTimestamp" },
+    "corpusSnapshotAt": { "$ref": "#/$defs/utcTimestamp" },
+    "corpusSnapshotId": { "$ref": "#/$defs/uuid" },
+    "cutoff": { "type": "integer", "minimum": 1, "maximum": 50 },
+    "sort": { "const": "relevance" },
+    "offset": { "const": 0 },
+    "sourcePolicy": { "const": "public-opportunity-projection-only" },
+    "rubricVersion": { "const": "public-opportunity-relevance-v1" },
+    "reviewStatus": { "enum": ["draft", "reviewed"] },
+    "reviewedAt": { "$ref": "#/$defs/utcTimestamp" },
+    "reviewRecordId": { "$ref": "#/$defs/uuid" },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/limitation" }
+    },
+    "queries": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 250,
+      "items": { "$ref": "#/$defs/queryCase" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "reviewStatus": { "const": "reviewed" } },
+        "required": ["reviewStatus"]
+      },
+      "then": { "required": ["reviewedAt", "reviewRecordId"] }
+    },
+    {
+      "if": {
+        "properties": { "reviewStatus": { "const": "draft" } },
+        "required": ["reviewStatus"]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            { "required": ["reviewedAt"] },
+            { "required": ["reviewRecordId"] }
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "maxLength": 36
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 96
+    },
+    "opportunityId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "maxLength": 128
+    },
+    "limitation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "judgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["opportunityId", "grade"],
+      "properties": {
+        "opportunityId": { "$ref": "#/$defs/opportunityId" },
+        "grade": { "type": "integer", "enum": [0, 1, 2, 3] }
+      }
+    },
+    "queryCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["queryId", "q", "judgments"],
+      "properties": {
+        "queryId": { "$ref": "#/$defs/identifier" },
+        "q": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+        },
+        "opportunityType": {
+          "enum": [
+            "employment",
+            "project",
+            "tender",
+            "partnership",
+            "volunteering"
+          ]
+        },
+        "judgments": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 500,
+          "items": { "$ref": "#/$defs/judgment" }
+        }
+      }
+    }
+  }
+}
