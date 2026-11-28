@@ -207,5 +207,4 @@ describe("withTenantTransaction", () => {
       expect(release).toHaveBeenCalledWith(rollbackFailure);
     });
   });
-
 });
