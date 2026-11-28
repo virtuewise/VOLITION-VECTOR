@@ -3,6 +3,7 @@ export type DatabaseHealth = "unknown" | "healthy" | "unhealthy";
 
 export { normalizeTenantId } from "./tenant-context.js";
 export { withTenantTransaction } from "./tenant-transaction.js";
+export { withPublicReadOnlyRepeatableReadTransaction } from "./tenant-transaction.js";
 export { PostgresMembershipRepository } from "./membership-repository.js";
 export { PostgresInvitationRepository } from "./invitation-repository.js";
 export type {
@@ -43,7 +44,9 @@ export type {
   OpportunityStatus,
   OpportunityType,
   OpportunityVisibility,
+  PublicOpportunityCorpusSnapshot,
   PublicOpportunityRecord,
+  PublicOpportunitySnapshotRecord,
   PublicOpportunitySearchInput,
   PublishOpportunityInput,
   UpdateOpportunityDraftInput,

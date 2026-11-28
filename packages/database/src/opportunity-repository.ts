@@ -1,6 +1,7 @@
 import { normalizeTenantId } from "./tenant-context.js";
 import {
   withTenantTransaction,
+  withPublicReadOnlyRepeatableReadTransaction,
   type TenantConnectionPool,
   type TenantQueryResult,
   type TenantTransactionClient,
@@ -101,6 +102,34 @@ export interface PublicOpportunityRecord {
   readonly expiresAt: Date | null;
 }
 
+export interface PublicOpportunitySnapshotRecord {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly opportunityType: OpportunityType;
+  readonly locationLabel: string | null;
+  readonly isRemote: boolean;
+  readonly compensationMin: string | null;
+  readonly compensationMax: string | null;
+  readonly compensationCurrency: string | null;
+  readonly publishedAt: string;
+  readonly expiresAt: string | null;
+}
+
+export interface PublicOpportunityCorpusSnapshot {
+  readonly schemaVersion: "1.0.0";
+  readonly corpusSnapshotId: string;
+  readonly corpusSnapshotAt: string;
+  readonly sourcePolicy: "public-opportunity-projection-only";
+  readonly recordCount: number;
+  readonly sha256: string;
+  readonly records: readonly PublicOpportunitySnapshotRecord[];
+}
+
+const PUBLIC_SNAPSHOT_PAGE_SIZE = 100;
+const MAX_PUBLIC_SNAPSHOT_RECORDS = 10_000;
+
 interface PublicOpportunityRow {
   readonly id: string;
   readonly organization_id: string;
@@ -137,6 +166,35 @@ function mapPublicOpportunity(
   };
 }
 
+function toSnapshotTimestamp(value: Date, field: string): string {
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) {
+    throw new Error("Public opportunity snapshot " + field + " is invalid.");
+  }
+  return value.toISOString();
+}
+
+function mapPublicOpportunitySnapshotRecord(
+  row: PublicOpportunitySnapshotRow,
+): PublicOpportunitySnapshotRecord {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    summary: row.summary,
+    opportunityType: row.opportunity_type,
+    locationLabel: row.location_label,
+    isRemote: row.is_remote,
+    compensationMin: row.compensation_min,
+    compensationMax: row.compensation_max,
+    compensationCurrency: row.compensation_currency,
+    publishedAt: toSnapshotTimestamp(row.published_at, "publishedAt"),
+    expiresAt:
+      row.expires_at === null
+        ? null
+        : toSnapshotTimestamp(row.expires_at, "expiresAt"),
+  };
+}
+
 export interface PublicOpportunitySearchInput {
   readonly query?: string;
   readonly opportunityType?: OpportunityType;
@@ -163,6 +221,21 @@ export class OpportunityTransitionError extends Error {
     super("Opportunity cannot transition from its current state.");
     this.name = "OpportunityTransitionError";
   }
+}
+
+interface PublicOpportunitySnapshotRow {
+  readonly id: string;
+  readonly slug: string;
+  readonly title: string;
+  readonly summary: string;
+  readonly opportunity_type: OpportunityType;
+  readonly location_label: string | null;
+  readonly is_remote: boolean;
+  readonly compensation_min: string | null;
+  readonly compensation_max: string | null;
+  readonly compensation_currency: string | null;
+  readonly published_at: Date;
+  readonly expires_at: Date | null;
 }
 
 interface MembershipRow {
@@ -757,5 +830,88 @@ export class PostgresOpportunityRepository {
     } finally {
       connection.release(releaseError);
     }
+  }
+
+  /**
+   * Export a bounded, point-in-time artifact from the invoker-security public
+   * view. No tenant context or private opportunity columns are read.
+   */
+  async createPublicCorpusSnapshot(): Promise<PublicOpportunityCorpusSnapshot> {
+    const snapshot = await withPublicReadOnlyRepeatableReadTransaction(
+      this.pool,
+      async (client) => {
+        const timestampRow = firstRow<{ captured_at: Date }>(
+          await client.query("SELECT statement_timestamp() AS captured_at"),
+        );
+        if (!timestampRow) {
+          throw new Error(
+            "Public opportunity snapshot timestamp is unavailable.",
+          );
+        }
+
+        const capturedAt = toSnapshotTimestamp(
+          timestampRow.captured_at,
+          "capturedAt",
+        );
+        const records: PublicOpportunitySnapshotRecord[] = [];
+        let offset = 0;
+
+        while (true) {
+          const remaining = MAX_PUBLIC_SNAPSHOT_RECORDS - records.length;
+          const limit = Math.min(PUBLIC_SNAPSHOT_PAGE_SIZE, remaining + 1);
+          const result = await client.query(
+            `SELECT
+               id,
+               slug,
+               title,
+               summary,
+               opportunity_type,
+               location_label,
+               is_remote,
+               compensation_min,
+               compensation_max,
+               compensation_currency,
+               published_at,
+               expires_at
+             FROM public_opportunities
+             WHERE expires_at IS NULL OR expires_at > $1
+             ORDER BY id ASC
+             LIMIT $2 OFFSET $3`,
+            [timestampRow.captured_at, limit, offset],
+          );
+          const rows = result.rows as readonly PublicOpportunitySnapshotRow[];
+
+          if (rows.length > remaining) {
+            throw new RangeError(
+              "Public opportunity snapshot exceeds the 10000-record limit.",
+            );
+          }
+
+          records.push(...rows.map(mapPublicOpportunitySnapshotRecord));
+          offset += rows.length;
+          if (rows.length < limit) break;
+        }
+
+        return { capturedAt, records };
+      },
+    );
+
+    const digest = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(JSON.stringify(snapshot.records)),
+    );
+    const sha256 = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+
+    return {
+      schemaVersion: "1.0.0",
+      corpusSnapshotId: globalThis.crypto.randomUUID(),
+      corpusSnapshotAt: snapshot.capturedAt,
+      sourcePolicy: "public-opportunity-projection-only",
+      recordCount: snapshot.records.length,
+      sha256,
+      records: snapshot.records,
+    };
   }
 }

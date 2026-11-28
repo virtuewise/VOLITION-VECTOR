@@ -712,6 +712,20 @@ if [[ "$public_opportunity_count" != "2" ]]; then
   echo "Expected two published public opportunities without tenant context; got $public_opportunity_count" >&2
   exit 1
 fi
+
+public_snapshot_count="$(
+  psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 <<'SQL'
+BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SELECT count(*)
+FROM public_opportunities
+WHERE expires_at IS NULL OR expires_at > statement_timestamp();
+COMMIT;
+SQL
+)"
+if [[ "$public_snapshot_count" != "2" ]]; then
+  echo "Expected two active public opportunities in a read-only snapshot; got $public_snapshot_count" >&2
+  exit 1
+fi
 public_service_count="$(
   psql "$RUNTIME_DATABASE_URL" -X -Atq -v ON_ERROR_STOP=1 \
     -c "SELECT count(*) FROM public_service_listings;"

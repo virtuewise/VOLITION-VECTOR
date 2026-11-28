@@ -81,3 +81,51 @@ export async function withTenantTransaction<T>(
     client.release(releaseError);
   }
 }
+
+/**
+ * Run public read-only work against one stable PostgreSQL MVCC snapshot.
+ *
+ * This deliberately does not set app.tenant_id. Callers must use a
+ * security-invoker public projection whose RLS policy grants only public rows.
+ */
+export async function withPublicReadOnlyRepeatableReadTransaction<T>(
+  pool: TenantConnectionPool,
+  work: (client: TenantTransactionClient) => Promise<T>,
+): Promise<T> {
+  const client = await pool.connect();
+  let transactionStarted = false;
+  let releaseError: Error | undefined;
+
+  try {
+    try {
+      await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
+      transactionStarted = true;
+    } catch (error) {
+      // BEGIN may have reached PostgreSQL even if its response was lost.
+      releaseError =
+        error instanceof Error
+          ? error
+          : new Error("Failed to establish read-only snapshot transaction.");
+      throw error;
+    }
+
+    const result = await work(client);
+    await client.query("COMMIT");
+    transactionStarted = false;
+    return result;
+  } catch (error) {
+    if (transactionStarted) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        releaseError =
+          rollbackError instanceof Error
+            ? rollbackError
+            : new Error("Failed to roll back read-only snapshot transaction.");
+      }
+    }
+    throw error;
+  } finally {
+    client.release(releaseError);
+  }
+}

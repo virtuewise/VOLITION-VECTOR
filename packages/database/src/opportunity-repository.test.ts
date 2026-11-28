@@ -337,4 +337,168 @@ describe("PostgresOpportunityRepository", () => {
       expect(query.mock.calls[7]?.[0]).toBe("COMMIT");
     },
   );
+
+  it("exports a bounded snapshot from the public projection in one read-only transaction", async () => {
+    const capturedAt = new Date("2026-11-28T08:00:00.000Z");
+    const rows = [
+      {
+        id: opportunityId,
+        slug: "senior-engineer",
+        title: "Senior Engineer",
+        summary: "Build reliable software",
+        opportunity_type: "employment",
+        location_label: "Johannesburg",
+        is_remote: true,
+        compensation_min: "90000.00",
+        compensation_max: "120000.00",
+        compensation_currency: "ZAR",
+        published_at: createdAt,
+        expires_at: null,
+      },
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        slug: "community-solar",
+        title: "Community Solar Project",
+        summary: "Develop local solar capacity",
+        opportunity_type: "project",
+        location_label: null,
+        is_remote: false,
+        compensation_min: null,
+        compensation_max: null,
+        compensation_currency: null,
+        published_at: createdAt,
+        expires_at: new Date("2026-12-01T00:00:00.000Z"),
+      },
+    ];
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ captured_at: capturedAt }] })
+      .mockResolvedValueOnce({ rows });
+    const release = vi.fn();
+    const connection: TenantConnection = { query, release };
+    const pool: TenantConnectionPool = {
+      connect: vi.fn(async () => connection),
+    };
+    const repository = new PostgresOpportunityRepository(pool, () => true);
+
+    const snapshot = await repository.createPublicCorpusSnapshot();
+
+    expect(snapshot).toMatchObject({
+      schemaVersion: "1.0.0",
+      corpusSnapshotAt: capturedAt.toISOString(),
+      sourcePolicy: "public-opportunity-projection-only",
+      recordCount: 2,
+    });
+    expect(snapshot.corpusSnapshotId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(snapshot.sha256).toMatch(/^[0-9a-f]{64}$/);
+    const digest = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(JSON.stringify(snapshot.records)),
+    );
+    const expectedHash = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    expect(snapshot.sha256).toBe(expectedHash);
+    expect(snapshot.records.map((record) => record.id)).toEqual([
+      opportunityId,
+      "33333333-3333-4333-8333-333333333333",
+    ]);
+    expect(snapshot.records[0]).not.toHaveProperty("organizationId");
+    expect(snapshot.records[0]).not.toHaveProperty("description");
+
+    expect(query.mock.calls[0]?.[0]).toBe(
+      "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+    );
+    expect(query.mock.calls[1]?.[0]).toContain("statement_timestamp()");
+    expect(query.mock.calls[2]?.[0]).toContain("FROM public_opportunities");
+    expect(query.mock.calls[2]?.[0]).toContain("ORDER BY id ASC");
+    expect(query.mock.calls[2]?.[0]).toContain("expires_at > $1");
+    expect(query.mock.calls[2]?.[0]).not.toContain("organization_id");
+    expect(query.mock.calls[2]?.[0]).not.toContain("description");
+    expect(query.mock.calls[2]?.[1]).toEqual([capturedAt, 100, 0]);
+    expect(query.mock.calls[3]?.[0]).toBe("COMMIT");
+    expect(
+      query.mock.calls.some(([statement]) =>
+        statement.includes("set_config('app.tenant_id'"),
+      ),
+    ).toBe(false);
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it("rolls back a failed public corpus page without returning a partial snapshot", async () => {
+    const capturedAt = new Date("2026-11-28T08:00:00.000Z");
+    const failure = new Error("public snapshot page failed");
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ captured_at: capturedAt }] })
+      .mockRejectedValueOnce(failure);
+    const release = vi.fn();
+    const connection: TenantConnection = { query, release };
+    const pool: TenantConnectionPool = {
+      connect: vi.fn(async () => connection),
+    };
+    const repository = new PostgresOpportunityRepository(pool, () => true);
+
+    await expect(repository.createPublicCorpusSnapshot()).rejects.toBe(failure);
+
+    expect(query.mock.calls.map(([statement]) => statement)).toEqual([
+      "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY",
+      "SELECT statement_timestamp() AS captured_at",
+      expect.stringContaining("FROM public_opportunities"),
+      "ROLLBACK",
+    ]);
+    expect(release).toHaveBeenCalledWith(undefined);
+  });
+
+  it("fails closed rather than truncating a public corpus above 10000 records", async () => {
+    const capturedAt = new Date("2026-11-28T08:00:00.000Z");
+    const publicRow = (index: number) => ({
+      id: "00000000-0000-4000-8000-" + index.toString(16).padStart(12, "0"),
+      slug: "public-opportunity-" + index,
+      title: "Public opportunity",
+      summary: "Public summary",
+      opportunity_type: "employment",
+      location_label: null,
+      is_remote: false,
+      compensation_min: null,
+      compensation_max: null,
+      compensation_currency: null,
+      published_at: createdAt,
+      expires_at: null,
+    });
+    const query = vi.fn(
+      async (statement: string, parameters?: readonly unknown[]) => {
+        if (statement.includes("statement_timestamp()")) {
+          return { rows: [{ captured_at: capturedAt }] };
+        }
+        if (statement.includes("FROM public_opportunities")) {
+          const offset = Number(parameters?.[2] ?? 0);
+          const count = offset < 10_000 ? 100 : 1;
+          return {
+            rows: Array.from({ length: count }, (_, index) =>
+              publicRow(offset + index + 1),
+            ),
+          };
+        }
+        return { rows: [] };
+      },
+    );
+    const release = vi.fn();
+    const connection: TenantConnection = { query, release };
+    const pool: TenantConnectionPool = {
+      connect: vi.fn(async () => connection),
+    };
+    const repository = new PostgresOpportunityRepository(pool, () => true);
+
+    await expect(repository.createPublicCorpusSnapshot()).rejects.toThrow(
+      "exceeds the 10000-record limit",
+    );
+
+    expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
+    expect(release).toHaveBeenCalledWith(undefined);
+  });
 });
