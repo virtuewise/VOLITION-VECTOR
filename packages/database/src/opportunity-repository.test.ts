@@ -372,6 +372,7 @@ describe("PostgresOpportunityRepository", () => {
     ];
     const query = vi
       .fn()
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ captured_at: capturedAt }] })
       .mockResolvedValueOnce({ rows });
     const release = vi.fn();
@@ -432,6 +433,7 @@ describe("PostgresOpportunityRepository", () => {
     const failure = new Error("public snapshot page failed");
     const query = vi
       .fn()
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ captured_at: capturedAt }] })
       .mockRejectedValueOnce(failure);
     const release = vi.fn();
