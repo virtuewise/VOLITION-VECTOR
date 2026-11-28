@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   withTenantTransaction,
-  withReadOnlyRepeatableReadTransaction,
+  withPublicReadOnlyRepeatableReadTransaction,
   type TenantConnection,
   type TenantConnectionPool,
   type TenantTransactionClient,
@@ -134,7 +134,7 @@ describe("withTenantTransaction", () => {
     expect(release).toHaveBeenCalledWith(rollbackFailure);
   });
 
-  describe("withReadOnlyRepeatableReadTransaction", () => {
+  describe("withPublicReadOnlyRepeatableReadTransaction", () => {
     it("runs work in one repeatable-read read-only transaction", async () => {
       const { pool, query, release } = createPool();
       const work = vi.fn(async (client: TenantTransactionClient) => {
@@ -143,7 +143,7 @@ describe("withTenantTransaction", () => {
       });
 
       await expect(
-        withReadOnlyRepeatableReadTransaction(pool, work),
+        withPublicReadOnlyRepeatableReadTransaction(pool, work),
       ).resolves.toBe("snapshot");
 
       expectStatements(query, [
@@ -160,7 +160,7 @@ describe("withTenantTransaction", () => {
       const failure = new Error("snapshot query failed");
 
       await expect(
-        withReadOnlyRepeatableReadTransaction(pool, async () => {
+        withPublicReadOnlyRepeatableReadTransaction(pool, async () => {
           throw failure;
         }),
       ).rejects.toBe(failure);
@@ -178,7 +178,7 @@ describe("withTenantTransaction", () => {
       query.mockRejectedValueOnce(failure);
 
       await expect(
-        withReadOnlyRepeatableReadTransaction(pool, async () => "unused"),
+        withPublicReadOnlyRepeatableReadTransaction(pool, async () => "unused"),
       ).rejects.toBe(failure);
 
       expectStatements(query, [
@@ -195,7 +195,7 @@ describe("withTenantTransaction", () => {
       query.mockRejectedValueOnce(rollbackFailure);
 
       await expect(
-        withReadOnlyRepeatableReadTransaction(pool, async () => {
+        withPublicReadOnlyRepeatableReadTransaction(pool, async () => {
           throw operationFailure;
         }),
       ).rejects.toBe(operationFailure);
