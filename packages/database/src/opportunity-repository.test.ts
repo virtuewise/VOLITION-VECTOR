@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type {
   TenantConnection,
   TenantConnectionPool,
@@ -394,11 +393,14 @@ describe("PostgresOpportunityRepository", () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     expect(snapshot.sha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(snapshot.sha256).toBe(
-      createHash("sha256")
-        .update(JSON.stringify(snapshot.records), "utf8")
-        .digest("hex"),
+    const digest = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(JSON.stringify(snapshot.records)),
     );
+    const expectedHash = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    expect(snapshot.sha256).toBe(expectedHash);
     expect(snapshot.records.map((record) => record.id)).toEqual([
       opportunityId,
       "33333333-3333-4333-8333-333333333333",
