@@ -443,5 +443,4 @@ describe("PostgresOpportunityRepository", () => {
     ]);
     expect(release).toHaveBeenCalledWith(undefined);
   });
-
 });
