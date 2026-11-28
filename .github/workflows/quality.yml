@@ -95,6 +95,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Security audit
         run: pnpm audit --audit-level=moderate
+      - name: Print formatted dataset documentation for diagnostics
+        run: pnpm exec prettier docs/intelligence/public-search-relevance-dataset.md
       - name: Formatting
         run: pnpm format:check
       - name: Lint
