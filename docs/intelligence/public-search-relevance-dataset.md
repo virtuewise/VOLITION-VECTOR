@@ -83,4 +83,4 @@ The validator checks structure and strict field allowlists. It cannot determine 
 
 The schema has no fields for account IDs, participant IDs, tenant IDs, reviewer names, profile text, private messages, demographic or protected characteristics, inferred proxies, financial data, trust/dispute evidence, identity documents, raw search logs, ranking scores or model-generated explanations. Strict unknown-field rejection enforces this boundary at validation time.
 
-No dataset is included in this change. The example values in unit tests are synthetic test fixtures and are not relevance judgments or a baseline. Production ingestion, persistence, reporting and external integrations remain deferred.
+No dataset is included in this change. The example values in unit tests are synthetic test fixtures and are not relevance judgments or a baseline. An internal bounded public-corpus export primitive is proposed separately in [PR #84](https://github.com/virtuewise/VOLITION-VECTOR/pull/84); this contract change does not add that implementation or durable persistence, retention, ingestion, reporting or external integrations.
