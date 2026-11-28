@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type {
   TenantConnection,
   TenantConnectionPool,
@@ -393,6 +394,11 @@ describe("PostgresOpportunityRepository", () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
     );
     expect(snapshot.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(snapshot.sha256).toBe(
+      createHash("sha256")
+        .update(JSON.stringify(snapshot.records), "utf8")
+        .digest("hex"),
+    );
     expect(snapshot.records.map((record) => record.id)).toEqual([
       opportunityId,
       "33333333-3333-4333-8333-333333333333",
@@ -443,4 +449,53 @@ describe("PostgresOpportunityRepository", () => {
     ]);
     expect(release).toHaveBeenCalledWith(undefined);
   });
+
+  it("fails closed rather than truncating a public corpus above 10000 records", async () => {
+    const capturedAt = new Date("2026-11-28T08:00:00.000Z");
+    const publicRow = (index: number) => ({
+      id: "00000000-0000-4000-8000-" + index.toString(16).padStart(12, "0"),
+      slug: "public-opportunity-" + index,
+      title: "Public opportunity",
+      summary: "Public summary",
+      opportunity_type: "employment",
+      location_label: null,
+      is_remote: false,
+      compensation_min: null,
+      compensation_max: null,
+      compensation_currency: null,
+      published_at: createdAt,
+      expires_at: null,
+    });
+    const query = vi.fn(
+      async (statement: string, parameters?: readonly unknown[]) => {
+        if (statement.includes("statement_timestamp()")) {
+          return { rows: [{ captured_at: capturedAt }] };
+        }
+        if (statement.includes("FROM public_opportunities")) {
+          const offset = Number(parameters?.[2] ?? 0);
+          const count = offset < 10_000 ? 100 : 1;
+          return {
+            rows: Array.from({ length: count }, (_, index) =>
+              publicRow(offset + index + 1),
+            ),
+          };
+        }
+        return { rows: [] };
+      },
+    );
+    const release = vi.fn();
+    const connection: TenantConnection = { query, release };
+    const pool: TenantConnectionPool = {
+      connect: vi.fn(async () => connection),
+    };
+    const repository = new PostgresOpportunityRepository(pool, () => true);
+
+    await expect(repository.createPublicCorpusSnapshot()).rejects.toThrow(
+      "exceeds the 10000-record limit",
+    );
+
+    expect(query.mock.calls.at(-1)?.[0]).toBe("ROLLBACK");
+    expect(release).toHaveBeenCalledWith(undefined);
+  });
+
 });
