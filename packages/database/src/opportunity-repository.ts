@@ -1,7 +1,7 @@
 import { normalizeTenantId } from "./tenant-context.js";
 import {
   withTenantTransaction,
-  withReadOnlyRepeatableReadTransaction,
+  withPublicReadOnlyRepeatableReadTransaction,
   type TenantConnectionPool,
   type TenantQueryResult,
   type TenantTransactionClient,
@@ -837,7 +837,7 @@ export class PostgresOpportunityRepository {
    * view. No tenant context or private opportunity columns are read.
    */
   async createPublicCorpusSnapshot(): Promise<PublicOpportunityCorpusSnapshot> {
-    const snapshot = await withReadOnlyRepeatableReadTransaction(
+    const snapshot = await withPublicReadOnlyRepeatableReadTransaction(
       this.pool,
       async (client) => {
         const timestampRow = firstRow<{ captured_at: Date }>(
