@@ -837,76 +837,81 @@ export class PostgresOpportunityRepository {
    * view. No tenant context or private opportunity columns are read.
    */
   async createPublicCorpusSnapshot(): Promise<PublicOpportunityCorpusSnapshot> {
-    return withReadOnlyRepeatableReadTransaction(this.pool, async (client) => {
-      const timestampRow = firstRow<{ captured_at: Date }>(
-        await client.query("SELECT statement_timestamp() AS captured_at"),
-      );
-      if (!timestampRow) {
-        throw new Error(
-          "Public opportunity snapshot timestamp is unavailable.",
+    const snapshot = await withReadOnlyRepeatableReadTransaction(
+      this.pool,
+      async (client) => {
+        const timestampRow = firstRow<{ captured_at: Date }>(
+          await client.query("SELECT statement_timestamp() AS captured_at"),
         );
-      }
-
-      const capturedAt = toSnapshotTimestamp(
-        timestampRow.captured_at,
-        "capturedAt",
-      );
-      const records: PublicOpportunitySnapshotRecord[] = [];
-      let offset = 0;
-
-      while (true) {
-        const remaining = MAX_PUBLIC_SNAPSHOT_RECORDS - records.length;
-        const limit = Math.min(PUBLIC_SNAPSHOT_PAGE_SIZE, remaining + 1);
-        const result = await client.query(
-          `SELECT
-             id,
-             slug,
-             title,
-             summary,
-             opportunity_type,
-             location_label,
-             is_remote,
-             compensation_min,
-             compensation_max,
-             compensation_currency,
-             published_at,
-             expires_at
-           FROM public_opportunities
-           WHERE expires_at IS NULL OR expires_at > $1
-           ORDER BY id ASC
-           LIMIT $2 OFFSET $3`,
-          [timestampRow.captured_at, limit, offset],
-        );
-        const rows = result.rows as readonly PublicOpportunitySnapshotRow[];
-
-        if (rows.length > remaining) {
-          throw new RangeError(
-            "Public opportunity snapshot exceeds the 10000-record limit.",
+        if (!timestampRow) {
+          throw new Error(
+            "Public opportunity snapshot timestamp is unavailable.",
           );
         }
 
-        records.push(...rows.map(mapPublicOpportunitySnapshotRecord));
-        offset += rows.length;
-        if (rows.length < limit) break;
-      }
+        const capturedAt = toSnapshotTimestamp(
+          timestampRow.captured_at,
+          "capturedAt",
+        );
+        const records: PublicOpportunitySnapshotRecord[] = [];
+        let offset = 0;
 
-      const digest = await globalThis.crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(JSON.stringify(records)),
-      );
-      const sha256 = Array.from(new Uint8Array(digest), (byte) =>
-        byte.toString(16).padStart(2, "0"),
-      ).join("");
+        while (true) {
+          const remaining = MAX_PUBLIC_SNAPSHOT_RECORDS - records.length;
+          const limit = Math.min(PUBLIC_SNAPSHOT_PAGE_SIZE, remaining + 1);
+          const result = await client.query(
+            `SELECT
+               id,
+               slug,
+               title,
+               summary,
+               opportunity_type,
+               location_label,
+               is_remote,
+               compensation_min,
+               compensation_max,
+               compensation_currency,
+               published_at,
+               expires_at
+             FROM public_opportunities
+             WHERE expires_at IS NULL OR expires_at > $1
+             ORDER BY id ASC
+             LIMIT $2 OFFSET $3`,
+            [timestampRow.captured_at, limit, offset],
+          );
+          const rows = result.rows as readonly PublicOpportunitySnapshotRow[];
 
-      return {
-        schemaVersion: "1.0.0",
-        corpusSnapshotId: globalThis.crypto.randomUUID(),
-        corpusSnapshotAt: capturedAt,
-        sourcePolicy: "public-opportunity-projection-only",
-        recordCount: records.length,
-        sha256,
-        records,
-      };
-    });
+          if (rows.length > remaining) {
+            throw new RangeError(
+              "Public opportunity snapshot exceeds the 10000-record limit.",
+            );
+          }
+
+          records.push(...rows.map(mapPublicOpportunitySnapshotRecord));
+          offset += rows.length;
+          if (rows.length < limit) break;
+        }
+
+        return { capturedAt, records };
+      },
+    );
+
+    const digest = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(JSON.stringify(snapshot.records)),
+    );
+    const sha256 = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+
+    return {
+      schemaVersion: "1.0.0",
+      corpusSnapshotId: globalThis.crypto.randomUUID(),
+      corpusSnapshotAt: snapshot.capturedAt,
+      sourcePolicy: "public-opportunity-projection-only",
+      recordCount: snapshot.records.length,
+      sha256,
+      records: snapshot.records,
+    };
   }
 }
