@@ -9,7 +9,7 @@
 
 This contract describes a small, versioned, offline evaluation dataset for the public opportunity discovery endpoint. It is designed to be consumed by the offline metric helper proposed in ADR 0027. It is not a production API payload, a user-search history export or a participant-matching dataset.
 
-The current public endpoint accepts `q`, optional `type`, `sort`, `limit` and `offset`. The contract records the curated `q` and optional `type`, fixes `sort` to `relevance`, maps `cutoff` to `limit`, and fixes `offset` to zero so every benchmark evaluates the first ranked page. It does not invent category, geography, profile, organization or demographic filters that the endpoint does not implement.
+The public endpoint on `main` currently accepts `q`, optional `type`, `limit` and `offset`; it orders results by publication time and does not yet accept a `sort` parameter. The contract records the curated `q` and optional `type`, fixes the *evaluation protocol* to `sort: relevance`, maps `cutoff` to `limit`, and fixes `offset` to zero so every benchmark evaluates the first ranked page. Relevance sorting is proposed separately in [PR #79](https://github.com/virtuewise/VOLITION-VECTOR/pull/79); a dataset using this contract is not executable against `main` until that ranking change (or an equivalent reviewed implementation) is merged. This PR does not claim that the current `main` endpoint already supports relevance sorting. The contract does not invent category, geography, profile, organization or demographic filters that the endpoint does not implement.
 
 ## Dataset fields
 
@@ -60,7 +60,7 @@ The validator checks structure and strict field allowlists. It cannot determine 
 
 ## Comparison rules
 
-- Compare candidate ranking implementations against the same dataset version, corpus snapshot ID and cutoff.
+- Run comparisons only against an endpoint revision that implements the declared relevance ordering; record that implementation commit with the evaluation artifact. Compare candidate ranking implementations against the same dataset version, corpus snapshot ID and cutoff.
 - Report query count, per-query metrics, macro metrics and the evaluable-query counts for recall and NDCG.
 - Publish limitations and coverage with the results. Do not present a metric without its denominator.
 - Do not establish release thresholds until a reviewed dataset has adequate, documented coverage and a baseline.
