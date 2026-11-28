@@ -95,6 +95,16 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Security audit
         run: pnpm audit --audit-level=moderate
+      - name: Print formatted snapshot files for diagnostics
+        run: |
+          for file in \
+            docs/intelligence/public-opportunity-corpus-snapshot.md \
+            packages/database/src/opportunity-repository.test.ts \
+            packages/database/src/opportunity-repository.ts \
+            packages/database/src/tenant-transaction.test.ts; do
+            echo "===== $file ====="
+            pnpm exec prettier "$file"
+          done
       - name: Formatting
         run: pnpm format:check
       - name: Lint
