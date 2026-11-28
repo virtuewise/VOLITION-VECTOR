@@ -1,4 +1,3 @@
-import { createHash, randomUUID } from "node:crypto";
 import { normalizeTenantId } from "./tenant-context.js";
 import {
   withTenantTransaction,
@@ -891,13 +890,17 @@ export class PostgresOpportunityRepository {
         if (rows.length < limit) break;
       }
 
-      const sha256 = createHash("sha256")
-        .update(JSON.stringify(records), "utf8")
-        .digest("hex");
+      const digest = await globalThis.crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(JSON.stringify(records)),
+      );
+      const sha256 = Array.from(new Uint8Array(digest), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+      ).join("");
 
       return {
         schemaVersion: "1.0.0",
-        corpusSnapshotId: randomUUID(),
+        corpusSnapshotId: globalThis.crypto.randomUUID(),
         corpusSnapshotAt: capturedAt,
         sourcePolicy: "public-opportunity-projection-only",
         recordCount: records.length,
