@@ -12,7 +12,7 @@ This contract describes a small, versioned, offline evaluation dataset for the p
 The public endpoint on `main` currently accepts `q`, optional `type`, `limit` and
 `offset`. It orders results by publication time and does not yet accept a `sort`
 parameter. The contract records the curated `q` and optional `type`, fixes the
-*evaluation protocol* to `sort: relevance`, maps `cutoff` to `limit`, and fixes
+_evaluation protocol_ to `sort: relevance`, maps `cutoff` to `limit`, and fixes
 `offset` to zero so every benchmark evaluates the first ranked page. Relevance
 sorting is proposed separately in PR #79. A dataset using this contract is not
 executable against `main` until that ranking change (or an equivalent reviewed
